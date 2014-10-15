@@ -20,7 +20,7 @@ cli.with {
     m "Sample names of males from which to select from when simulating", longOpt:"male", args: 1, required:true
     r "BED file of regions in which CNVs should be simulated (eg: target region for exome capture) (required)", longOpt: "regions", args:1, required: true
     o "output file to write regions of true CNVs to (BED format)(required)", longOpt: "output", args:1, required:true
-	bam "BAM files for samples (required unles specified via sample information file)", args:1
+	bam "BAM files for samples (required unles specified via sample information file)", args: Cli.UNLIMITED
     so "output file to write sample information to (optional)", args:1
     i "sample information file (tab separated, MGHA format, required for -so)", args:1
     cov "mean target coverage for simulated samples (default: maximise) - requires -abed", args:1
@@ -83,13 +83,14 @@ if(opts.cov && !opts.abed) {
 }
 
 // Index the bam files we have by sample name
-//Map<String,String> bamFiles = samples.grep { entry -> entry.value.files.bam != null }.collectEntries { entry-> [entry.key, entry.value.info.files.bam[0] ] }
 Map<String,String> bamFiles = samples.grep { entry -> entry.value.files.bam != null }.collectEntries { entry-> [entry.key, entry.value.files.bam[0] ] }
 
 // For each bam file provided as a command line argument
 if(opts.bams) {
 	opts.bams.each { bam ->
-		bamFiles[new SAM(bam).samples[0]] = bam
+        def sample = new SAM(bam).samples[0]
+        println "Mapping BAM file $bam to sample $sample"
+		bamFiles[sample] = bam
 	}
 }
 
@@ -114,7 +115,10 @@ for(female in females) {
     println "Selected male $selectedMale (${selectedMaleSample})"
         
     // Select a region - this is rather simple
-    BED bed = new BED(opts.r).load()
+    Regions bed = new BED(opts.r).load()
+    if(opts.mode != "downsample") {
+        bed = bed.grep { it.chr == 'chrX' || it.chr == 'X' } as Regions
+    }
         
     CNVSimulator simulator = new CNVSimulator(bamFiles[female], bamFiles[males[selectedMale]])
     simulator.random = random
