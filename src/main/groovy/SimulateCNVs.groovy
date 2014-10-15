@@ -88,9 +88,12 @@ Map<String,String> bamFiles = samples.grep { entry -> entry.value.files.bam != n
 // For each bam file provided as a command line argument
 if(opts.bams) {
 	opts.bams.each { bam ->
-        def sample = new SAM(bam).samples[0]
-        println "Mapping BAM file $bam to sample $sample"
-		bamFiles[sample] = bam
+        def bamSamples = new SAM(bam).samples
+        if(bamSamples.size()>1) {
+            System.err.println "BAM fie $bam contains multiple samples. Unfortunately Ximmer does not currently support multi-sample BAM files"
+            System.exit(1)
+        }
+		bamFiles[bamSamples[0]] = bam
 	}
 }
 

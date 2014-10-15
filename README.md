@@ -30,7 +30,7 @@ A simple example would be:
 
     java -Xmx1g -jar ximmer.jar -n 1 -f NA12878 -m NA19239 -bam na12878.bam -bam na19239.bam -r target.bed -o deletions.bed 
 
-Output this will create a single output BAM file that isn named starting with
+This will create a single output BAM file that isn named starting with
 the female sample name (NA12878) suffixed with the region of the deletion that was 
 simulated. An output BED file specifying the deletions would be created as 'deletions.bed'.
 
@@ -38,3 +38,8 @@ Note that you could specify multiple males, in which case the male to use would 
 
 Also note that for a reproducible result, you may like to specify the random seed using the 
 -seed option.
+
+Limitations
+===========
+
+Ximmer currently assumes that there is only a single sample in each BAM file. 
