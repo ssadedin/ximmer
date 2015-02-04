@@ -21,8 +21,19 @@ You need to install the following:
 
   * EXCAVATOR - see instructions [here](tools/excavator/README.md)
   * XHMM - see instructions [here](tools/xhmm/README.md)
-  * ExomeDepth - install into your R environment using install.packages(...)
-  * cn.MOPS - install into your R environment using BioConductor / biocLite("cn.mops") 
+  * ExomeDepth - install into your R environment using:
+
+    install.packages(ExomeDepth)
+
+  * cn.MOPS - install into your R environment using:
+ 
+    source("http://bioconductor.org/biocLite.R")
+    biocLite("cn.mops")
+
+The pipeline also needs the VariantAnnotation package in your R environment:
+
+    source("http://bioconductor.org/biocLite.R")
+    biocLite("VariantAnnotation")
 
 **3. Provide a BED file of capture region**
 
