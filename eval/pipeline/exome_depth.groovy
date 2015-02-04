@@ -21,7 +21,7 @@ exome_depth = {
 
     R({"""
 
-        source("$DSDSCRIPTS/cnv_utils.R")
+        source("tools/r-utils/cnv_utils.R")
 
         library(ExomeDepth)
 

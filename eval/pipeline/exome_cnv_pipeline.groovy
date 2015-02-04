@@ -29,6 +29,8 @@ requires batch_name : """
                          usually called something like 'dgvMerged.txt'.
                       """
 
+// Basic configuration
+load 'config.groovy'
 
 // A flag indicating whether this run is analysing simulated deletions or not.
 // When analysing simulated data, only the X chromosome results are reported,
@@ -71,15 +73,16 @@ else
 
 sample_names = run_samples
 
+println "Run samples are $run_samples"
+
 load 'excavator.groovy'
 load 'xhmm.groovy'
 load 'exome_depth.groovy'
-load 'exome_copy.groovy'
 load 'cn_mops.groovy'
 load 'summarize_cnvs.groovy'
 
 // If not overridden by command line, assume all the callers are to be run
-callers = "xhmm,ed,ex,mops,truth"
+callers = "xhmm,ed,mops,truth"
 
 cnv_callers = callers.split(",") as List
 
@@ -126,6 +129,5 @@ run {
     init + caller_stages + 
          chrs * [ touch_chr + summarize_cnvs ] + combine_cnv_report +
          sample_names * [ extract_sample_files +  extract_cnv_regions ] + 
-         cnv_report.using(callers:cnv_callers) + 
-         (simulation ?  calc_recall_precision : finish )
+         cnv_report.using(callers:cnv_callers) 
 } 
