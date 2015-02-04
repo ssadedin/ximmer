@@ -18,6 +18,26 @@ extract_sample_files = {
     forward branch.sample_info[sample].files.all
 }
 
+extract_cnv_regions = {
+    doc """"
+        Extracts regions where CNVs were called from a BAM file, based on the 
+        universal CNV format
+        """
+
+    // Slop gives the additional upstream and downstream flanking
+    // flanking region to be included
+    var slop : 500 
+
+    transform("bam") to("cnvs.bam") {
+        exec """
+             set -o pipefail
+
+             $GROOVY -e 'new RangedData("$input.tsv").load().each { println([it.chr, it.from-$slop, it.to+$slop].join("\\t"))  }' | 
+                 $SAMTOOLS view -b -L - $input.bam > $output.bam
+        """
+    }
+}
+
 sample_coverage = {
     branch.sample = branch.name
     branch.bam = all_samples[sample].files.bam[0]
