@@ -5,6 +5,19 @@ touch_chr = {
    """
 }
 
+extract_sample_files = {
+    requires sample_info : "Sample meta data file"
+    var sample : branch.name
+
+    branch.sample = sample
+
+    if(sample_info instanceof String) {
+        branch.sample_info = SampleInfo.parse_sample_info(sample_info)
+    }
+    println "Forwarding files for sample $sample : " + branch.sample_info[sample].files.all
+    forward branch.sample_info[sample].files.all
+}
+
 sample_coverage = {
     branch.sample = branch.name
     branch.bam = all_samples[sample].files.bam[0]
