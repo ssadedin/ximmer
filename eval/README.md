@@ -18,17 +18,22 @@ You need to install the following:
   * XHMM - see instructions [here](tools/xhmm/README.md)
   * ExomeDepth - install into your R environment using:
 
-    install.packages(ExomeDepth)
+    install.packages("ExomeDepth")
 
   * cn.MOPS - install into your R environment using:
  
-    source("http://bioconductor.org/biocLite.R")
+    source("http://bioconductor.org/biocLite.R");
     biocLite("cn.mops")
 
-The pipeline also needs the VariantAnnotation and rootSolve package in your R environment:
+  * samtools - should be in your default path, but you can edit config.groovy to change that
+  * R - again, should be in your path
+
+The pipeline also needs some packages in your R environment:
 
     source("http://bioconductor.org/biocLite.R")
     biocLite("VariantAnnotation")
+    biocLite("Rsamtools")
+    biocLite("GenomicRanges")
     install.packages("rootSolve")
 
 **2. Provide a BED file of capture region**
