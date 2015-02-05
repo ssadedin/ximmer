@@ -51,7 +51,7 @@ You will need to specify this BED file as the design in step 4.
 This should be an HG19 reference. The FASTA should be indexed with samtools
 faidx.
 
-**4. Copy config.groovy.template to config.groovy and edit**
+**4. Copy pipeline/config.groovy.template to pipeline/config.groovy and edit**
 
 You should read through the entries and edit as appropriate. You will need to 
 specify things such as your target region BED file (step 3), and your human genome
@@ -69,7 +69,7 @@ To run the CNV pipeline on data simulated by Ximmer, you should run it like this
     ./bpipe run -p true_cnvs=<true cnvs bed file> \
                 -p batch_name=<name for your run> \
                 -p target_bed=<target region BED file>\
-                ./pipeline/exome_cnv_pipeline.groovy <bam1>.bam <bam2>.bam ....
+                ./pipeline/exome_cnv_pipeline.groovy <bam1>.bam <bam2>.bam ... <vcf1>.vcf <vcf2.vcf> ....
 
 In this case it will run only on the X chromosome and it will compare the 
 CNVs called to the "truth" set provided in true_cnvs.bed.
@@ -79,12 +79,16 @@ If you just want an analsysi of non-simulated data, you can run it non-simulatio
     ./bpipe run -p callers=ed,xhmm,mops 
                 -p batch_name=<name for your run> \
                 -p target_bed=<target region BED file>\
-                ./pipeline/exome_cnv_pipeline.groovy <bam1>.bam <bam2>.bam ....
+                ./pipeline/exome_cnv_pipeline.groovy <bam1>.bam <bam2>.bam ... <vcf1>.vcf <vcf2.vcf> ....
 
 Here we have specified to run only a subset of the CNV callers (ExomeDepth, XHMM and cn.MOPS). You can 
 include EXCAVATOR by adding "ex". We find EXCAVATOR can take a long time to run, and does not
 add a lot of calls that you don't get from the others, so if you want a quick analysis you can
 leave it out.
+
+**NOTE: ** In both cases above the VCFs are optional. If you provie them then variant allele balance
+will be annotated over CNVs that are called so that you can review the evidence from LOH or distortion
+of balance for support of the CNVs called.
 
 What are the results?
 ---------------------
