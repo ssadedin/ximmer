@@ -64,7 +64,36 @@ The inputs to the pipeline are indexed BAM files. Optionally, you can also
 provide a VCF file for each BAM file. Providing a VCF will add annotation of 
 variants in the region of each CNV that is called in the final output.
 
-To run the CNV pipeline, execute it using Bpipe as follows:
+To run the CNV pipeline on data simulated by Ximmer, you should run it like this:
 
-./bpipe run ./pipeline/exome_cnv_pipeline.groovy <bam1>.bam <bam2>.bam ....
+    ./bpipe run -p true_cnvs=<true cnvs bed file> \
+                -p batch_name=<name for your run> \
+                -p target_bed=<target region BED file>\
+                ./pipeline/exome_cnv_pipeline.groovy <bam1>.bam <bam2>.bam ....
+
+In this case it will run only on the X chromosome and it will compare the 
+CNVs called to the "truth" set provided in true_cnvs.bed.
+
+If you just want an analsysi of non-simulated data, you can run it non-simulation mode:
+
+    ./bpipe run -p callers=ed,xhmm,mops 
+                -p batch_name=<name for your run> \
+                -p target_bed=<target region BED file>\
+                ./pipeline/exome_cnv_pipeline.groovy <bam1>.bam <bam2>.bam ....
+
+Here we have specified to run only a subset of the CNV callers (ExomeDepth, XHMM and cn.MOPS). You can 
+include EXCAVATOR by adding "ex". We find EXCAVATOR can take a long time to run, and does not
+add a lot of calls that you don't get from the others, so if you want a quick analysis you can
+leave it out.
+
+What are the results?
+---------------------
+
+The results are zipped up into a file called "cnv_report.zip" that will appear in the runs/<batch_name> directory.
+
+There is an HTML file called cnv_report.html that you can open to look at CNVs interactively, and there is a TSV
+file that you can open ina program like R or Excel to look at results programmatically. 
+
+
+
 
