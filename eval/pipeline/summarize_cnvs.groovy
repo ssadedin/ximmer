@@ -1,4 +1,42 @@
 // vim: expandtab:sw=4:ts=4:cindent
+touch_chr = {
+   exec """
+        echo $chr > $output.txt
+   """
+}
+
+extract_sample_files = {
+    requires sample_info : "Sample meta data file"
+    var sample : branch.name
+
+    branch.sample = sample
+
+    if(sample_info instanceof String) {
+        branch.sample_info = SampleInfo.parse_sample_info(sample_info)
+    }
+    println "Forwarding files for sample $sample : " + branch.sample_info[sample].files.all
+    forward branch.sample_info[sample].files.all
+}
+
+extract_cnv_regions = {
+    doc """"
+        Extracts regions where CNVs were called from a BAM file, based on the 
+        universal CNV format
+        """
+
+    // Slop gives the additional upstream and downstream flanking
+    // flanking region to be included
+    var slop : 500 
+
+    transform("bam") to("cnvs.bam") {
+        exec """
+             set -o pipefail
+
+             $GROOVY -e 'new RangedData("$input.tsv").load().each { println([it.chr, it.from-$slop, it.to+$slop].join("\\t"))  }' | 
+                 $SAMTOOLS view -b -L - $input.bam > $output.bam
+        """
+    }
+}
 
 summarize_cnvs = {
 
@@ -40,7 +78,7 @@ summarize_cnvs = {
 
         println "Running R code ..."
         R {"""
-            source("$DSDSCRIPTS/cnv_utils.R")
+            source("./tools/r-utils/cnv_utils.R")
 
             cnv.samples = c(${sample_names.collect{"'$it'"}.join(",")})
 
@@ -88,26 +126,6 @@ summarize_cnvs = {
                         )
 
             save.image(file="$output.RData")
-
-            """ + (create_plots=='T'?"""
-            batch.cov = load.normalised.coverage(c(${all_samples.collect { "'$it.key'" }.join(",")}),
-                                     list(${all_samples.collect { "'${it.value.files.coverage[0]}'" }.join(",")}), 
-                                     chr="$chr")
-
-            if($create_plots && (length(cnv.all)>0)) {
-                for(i in 1:length(cnv.all)) {
-                  cat(sprintf("Producing plot for cnv %d (%s)\\n", i, cnv.all[i]$chrpos))
-                  png(sprintf('$output.dir/cnv_%s_%d.rel.png',chr, i), width=1600, height=800)
-                  tryCatch( plot.cnv(cnv.all[i], cnv.results, batch.cov, vcfs, add.title.text=F, cex.cnv.label=1.7),  error = function(e) print(e$message) )
-                  dev.off()
-                  /*
-                  png(sprintf('$output.dir/cnv_%s_%d.abs.png',chr, i), width=1600, height=800)
-                  tryCatch(plot.cnv(cnv.all[i], cnv.results, batch.cov, vcfs, add.title.text=F, cex.cnv.label=1.7,scale="absolute"),  error = function(e) print(e$message))
-                  dev.off()
-                  */
-                }
-            }
-            """:"") + """
         """}
     }
 }
