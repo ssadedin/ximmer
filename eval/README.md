@@ -30,10 +30,11 @@ You need to install the following:
     source("http://bioconductor.org/biocLite.R")
     biocLite("cn.mops")
 
-The pipeline also needs the VariantAnnotation package in your R environment:
+The pipeline also needs the VariantAnnotation and rootSolve package in your R environment:
 
     source("http://bioconductor.org/biocLite.R")
     biocLite("VariantAnnotation")
+    install.packages("rootSolve")
 
 **3. Provide a BED file of capture region**
 
