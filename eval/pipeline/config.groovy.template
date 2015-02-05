@@ -16,7 +16,8 @@ DGV_CNVS=false
 // Needed by CRAM support inside anything using Picard
 System.properties.reference=HGFA
 
-GATK="./tools/gatk/GenomeAnalysisTK-2.3-9"
+GATK="./tools/gatk/2.3.9"
+
 EXCAVATOR="tools/excavator/2.0"
 XHMM="./tools/xhmm/trunk/build/execs"  
 
