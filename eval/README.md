@@ -94,7 +94,7 @@ of balance for support of the CNVs called.
 What are the results?
 ---------------------
 
-The results are zipped up into a file called "cnv_report.zip" that will appear in the runs/<batch_name> directory.
+The results are zipped up into a file called "cnv_report.zip" that will appear in the runs/&lt;batch_name&gt; directory.
 
 There is an HTML file called cnv_report.html that you can open to look at CNVs interactively, and there is a TSV
 file that you can open ina program like R or Excel to look at results programmatically. 
