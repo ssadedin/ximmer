@@ -28,7 +28,7 @@ extract_cnv_regions = {
         exec """
              set -o pipefail
 
-             $GROOVY -cp tools/groovy-ngs-utils/1.0/groovy-ngs-utils.jar -e 'new RangedData("$input.tsv").load().each { println([it.chr, it.from-$slop, it.to+$slop].join("\\t"))  }' | 
+             JAVA_OPTS="-Xmx1g" $GROOVY -cp tools/groovy-ngs-utils/1.0/groovy-ngs-utils.jar -e 'new RangedData("$input.tsv").load().each { println([it.chr, it.from-$slop, it.to+$slop].join("\\t"))  }' | 
                  $SAMTOOLS view -b -L - $input.bam > $output.bam
         """
     }
