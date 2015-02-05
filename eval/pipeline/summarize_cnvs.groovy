@@ -36,7 +36,7 @@ extract_cnv_regions = {
 
 summarize_cnvs = {
 
-    output.dir="$branch.dir/report"
+    output.dir="runs/$branch.dir/report"
 
     var true_cnvs : "true_cnvs.bed",
         create_plots : "T",
