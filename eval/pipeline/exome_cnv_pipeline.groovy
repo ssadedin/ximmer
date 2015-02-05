@@ -41,21 +41,7 @@ else {
 }
 
 sample_info = false
-
-// If sample_info is provided as a file, then use that
-if(sample_info) {
-    println "Parsing from $sample_info"
-    all_samples = SampleInfo.parse_sample_info(sample_info) 
-    println "All samples are " + all_samples
-    println "Bam files are " + all_samples*.value*.files*.bam
-    if(args)
-        args += all_samples*.value*.files*.bam.flatten()
-    else
-        args = all_samples*.value*.files*.bam.flatten()
-}
-else {
-    all_samples = SampleInfo.fromFiles(args)
-}
+all_samples = SampleInfo.fromFiles(args)
 
 // Can be overridden from command line
 sample_info = all_samples
@@ -66,8 +52,6 @@ else
     run_samples = target_samples
 
 sample_names = run_samples
-
-println "Run samples are $run_samples"
 
 load 'excavator.groovy'
 load 'xhmm.groovy'
@@ -100,7 +84,7 @@ init_cn_mops = { branch.dir="runs/${batch_name}/cn_mops" }
 init = { 
     branch.dir = batch_name 
     println "=" * 100
-    println "Analysing samples: $all_samples"
+    println "Analysing ${all_samples.keySet().size()} samples:\n\n${all_samples.keySet().join('\n')}\n"
     println "=" * 100
 }
 
