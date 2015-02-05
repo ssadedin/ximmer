@@ -27,7 +27,7 @@ You need to install the following:
 
   * cn.MOPS - install into your R environment using:
  
-    source("http://bioconductor.org/biocLite.R")
+    source("http://bioconductor.org/biocLite.R");
     biocLite("cn.mops")
 
   * samtools - should be in your default path, but you can edit config.groovy to change that
