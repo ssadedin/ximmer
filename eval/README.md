@@ -86,7 +86,7 @@ include EXCAVATOR by adding "ex". We find EXCAVATOR can take a long time to run,
 add a lot of calls that you don't get from the others, so if you want a quick analysis you can
 leave it out.
 
-**NOTE: ** In both cases above the VCFs are optional. If you provie them then variant allele balance
+**NOTE:** In both cases above the VCFs are optional. If you provie them then variant allele balance
 will be annotated over CNVs that are called so that you can review the evidence from LOH or distortion
 of balance for support of the CNVs called.
 
