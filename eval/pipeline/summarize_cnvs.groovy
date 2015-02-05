@@ -53,7 +53,7 @@ sample_coverage = {
 
 summarize_cnvs = {
 
-    output.dir="report"
+    output.dir="runs/$batch_name/report"
 
     var true_cnvs : "true_cnvs.bed",
         create_plots : "T",

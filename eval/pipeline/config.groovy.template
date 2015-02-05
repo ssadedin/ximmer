@@ -1,10 +1,7 @@
 
 // Location of HG19 reference sequence
-HGFA="ref/gatk.ucsc.hg19.fasta"
-
-// Location of Database of Genomic Variants file of known CNVs
-// (This originates from UCSC)
-DGV_CNVS="ref/dgvMerged.txt"
+// TODO: Edit this to put in the path to your HG19 reference fasta!
+HGFA="....."
 
 // Needed by CRAM support inside anything using Picard
 System.properties.reference=HGFA

@@ -22,13 +22,7 @@ requires batch_name : """
                          BED file describing target region on which analysis is to be run. Usually 
                          this should be the whole region covered by probes / amplicons, not just 
                          the actual genes that are of interest, and should be unique
-                      """,
-         dgv_file :   """
-                         File downloaded from UCSC, containing population
-                         frequencies of structural variants. This is the dgvMerged file / table,
-                         usually called something like 'dgvMerged.txt'.
                       """
-
 // Basic configuration
 load 'config.groovy'
 
@@ -98,11 +92,11 @@ finish = {
 
 // Initialization stages - these just set specific output directories for each 
 // analysis tool
-init_excavator = { branch.dir="$batch_name/excavator"; branch.excavator_batch=batch_name }
-init_xhmm = { branch.dir="$batch_name/xhmm"; branch.xhmm_batch_name=batch_name }
-init_exome_depth = { branch.dir="$batch_name/exome_depth" }
-init_exome_copy = { branch.dir="$batch_name/exome_copy" }
-init_cn_mops = { branch.dir="${batch_name}/cn_mops" }
+init_excavator = { branch.dir="runs/$batch_name/excavator"; branch.excavator_batch=batch_name }
+init_xhmm = { branch.dir="runs/$batch_name/xhmm"; branch.xhmm_batch_name=batch_name }
+init_exome_depth = { branch.dir="runs/$batch_name/exome_depth" }
+init_cn_mops = { branch.dir="runs/${batch_name}/cn_mops" }
+
 init = { 
     branch.dir = batch_name 
     println "=" * 100

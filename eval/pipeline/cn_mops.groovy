@@ -14,7 +14,7 @@ cn_mops_call_cnvs = {
 
     R({"""
 
-        source("$DSDSCRIPTS/cnv_utils.R")
+        source("tools/r-utils/cnv_utils.R")
 
         library(cn.mops)
         library(Rsamtools)
