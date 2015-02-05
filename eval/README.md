@@ -74,9 +74,10 @@ To run the CNV pipeline on data simulated by Ximmer, you should run it like this
 In this case it will run only on the X chromosome and it will compare the 
 CNVs called to the "truth" set provided in true_cnvs.bed.
 
-If you just want an analsysi of non-simulated data, you can run it non-simulation mode:
+If you just want an analysis of non-simulated data, you can run it non-simulation mode:
 
-    ./bpipe run -p callers=ed,xhmm,mops 
+    ./bpipe run -p callers=ed,xhmm,mops \
+                -p simulation=false \
                 -p batch_name=<name for your run> \
                 -p target_bed=<target region BED file>\
                 ./pipeline/exome_cnv_pipeline.groovy <bam1>.bam <bam2>.bam ... <vcf1>.vcf <vcf2.vcf> ....
