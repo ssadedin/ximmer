@@ -14,7 +14,7 @@ Install / Setup
 
 You need to install the following:
 
-  * EXCAVATOR - see instructions [here](tools/excavator/README.md)
+  * EXCAVATOR - see instructions [here](tools/excavator/README.md) (optional, see below)
   * XHMM - see instructions [here](tools/xhmm/README.md)
   * ExomeDepth - install into your R environment using:
 
