@@ -54,8 +54,8 @@ faidx.
 **4. Copy pipeline/config.groovy.template to pipeline/config.groovy and edit**
 
 You should read through the entries and edit as appropriate. You will need to 
-specify things such as your target region BED file (step 3), and your human genome
-reference (step 4).
+specify things such as your target region BED file (step 2), and your human genome
+reference (step 3).
 
 Running
 ----------------
