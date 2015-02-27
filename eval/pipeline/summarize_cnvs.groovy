@@ -6,14 +6,10 @@ touch_chr = {
 }
 
 extract_sample_files = {
-    requires sample_info : "Sample meta data file"
+    requires sample_info : "Sample meta data object"
     var sample : branch.name
-
     branch.sample = sample
-
-    if(sample_info instanceof String) {
-        branch.sample_info = SampleInfo.parse_sample_info(sample_info)
-    }
+    branch.sample_info = sample_info
     println "Forwarding files for sample $sample : " + branch.sample_info[sample].files.all
     forward branch.sample_info[sample].files.all
 }
@@ -32,7 +28,7 @@ extract_cnv_regions = {
         exec """
              set -o pipefail
 
-             $GROOVY -e 'new RangedData("$input.tsv").load().each { println([it.chr, it.from-$slop, it.to+$slop].join("\\t"))  }' | 
+             JAVA_OPTS="-Xmx1g" $GROOVY -cp tools/groovy-ngs-utils/1.0/groovy-ngs-utils.jar -e 'new RangedData("$input.tsv").load().each { println([it.chr, it.from-$slop, it.to+$slop].join("\\t"))  }' | 
                  $SAMTOOLS view -b -L - $input.bam > $output.bam
         """
     }
@@ -40,7 +36,7 @@ extract_cnv_regions = {
 
 summarize_cnvs = {
 
-    output.dir="$branch.dir/report"
+    output.dir="runs/$branch.dir/report"
 
     var true_cnvs : "true_cnvs.bed",
         create_plots : "T",
@@ -49,9 +45,9 @@ summarize_cnvs = {
     println "Summarizing CNVs ..."
 
     List vcfs = []
-    String hasVCFs = all_samples.every { it.value.files.vcf } ? "TRUE" : "FALSE"
+    String hasVCFs = sample_info.every { it.value.files.vcf } ? "TRUE" : "FALSE"
     if(hasVCFs == "TRUE")
-        vcfs = all_samples.collect{"'${it.value.files.vcf[0]}'"}
+        vcfs = sample_info.collect{"'${it.value.files.vcf[0]}'"}
     else 
         println "No VCF files present for one or more samples: variant heterozygosity will not be annotated for CNV calls"
 

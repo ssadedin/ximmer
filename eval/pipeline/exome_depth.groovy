@@ -46,7 +46,7 @@ exome_depth = {
         print(sprintf("Read %d samples",length(dsd.samples)))
 
         # Here we rely on ASSUMPTIONs:  - Single BAM file per sample
-        dsd.bam.files = c(${all_samples.collect { key, s -> "'$s.sample'='${s.files.bam[0]}'"}.join(",") })
+        dsd.bam.files = c(${sample_info.collect { key, s -> "'$s.sample'='${s.files.bam[0]}'"}.join(",") })
 
         print(sprintf("Found %d bam files",length(dsd.bam.files)))
 

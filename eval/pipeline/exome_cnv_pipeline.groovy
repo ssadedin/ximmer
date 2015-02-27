@@ -40,12 +40,10 @@ else {
     chrs = chr(1..22,'X',filterInputs:false)
 }
 
-sample_info = false
-all_samples = SampleInfo.fromFiles(args)
+sample_info = SampleInfo.fromFiles(args)
 
 // Can be overridden from command line
-sample_info = all_samples
-target_samples = all_samples.keySet()
+target_samples = sample_info.keySet()
 if(target_samples instanceof String)
     run_samples = target_samples.split(",")*.trim()
 else
@@ -84,7 +82,7 @@ init_cn_mops = { branch.dir="runs/${batch_name}/cn_mops" }
 init = { 
     branch.dir = "runs/" + batch_name 
     println "=" * 100
-    println "Analysing ${all_samples.keySet().size()} samples:\n\n${all_samples.keySet().join('\n')}\n"
+    println "Analysing ${sample_info.keySet().size()} samples:\n\n${sample_info.keySet().join('\n')}\n"
     println "=" * 100
 }
 

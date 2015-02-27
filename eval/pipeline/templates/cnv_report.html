@@ -19,7 +19,7 @@
 
         -   target_region : name of BED file defining the targeted regions for the 
                             capture
-        -   dgv_file : DGV database, downloaded from UCSC (dgvMerged.txt)
+        -   DGV_CNVS : DGV database, downloaded from UCSC (dgvMerged.txt)
 */%>
 <%
     // Read the CNVs from the file
@@ -83,7 +83,7 @@
 
     // Load the CNV annotation information
     BED targetRegions = new BED(target_bed).load()
-    TargetedCNVAnnotator annotator = new TargetedCNVAnnotator(targetRegions, dgv_file)
+    TargetedCNVAnnotator annotator = new TargetedCNVAnnotator(targetRegions, DGV_CNVS)
 
     log.println "Writing report ..."
 %>

@@ -1,12 +1,23 @@
+// ======================= Required to Set =======================
 
 // Location of HG19 reference sequence
 // TODO: Edit this to put in the path to your HG19 reference fasta!
 HGFA="....."
 
+// TODO: set this to reference file containing CNVs from DGV
+// You can download the required file from the UCSC DGV annotation file, "dgvMerged.txt"
+// which was located at this URL on 5th feb 2015:
+// http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/dgvMerged.txt.gz
+// Make sure you unzip it.
+DGV_CNVS=false
+
+// ======================= Advanced properties =======================
+
 // Needed by CRAM support inside anything using Picard
 System.properties.reference=HGFA
 
-GATK="./tools/gatk/GenomeAnalysisTK-2.3-9"
+GATK="./tools/gatk/2.3.9"
+
 EXCAVATOR="tools/excavator/2.0"
 XHMM="./tools/xhmm/trunk/build/execs"  
 
@@ -16,4 +27,10 @@ XHMM="./tools/xhmm/trunk/build/execs"
 SAMTOOLS="samtools"
 
 PERL5="./tools/perl5"
+
 CRAMTOOLS="./tools/cramtools/2.1/cramtools.jar"
+
+// Groovy distribution for running in the pipeline (should be the same
+// as that which the bundled bpipe uses, as well as the one that
+// the groovy-ngs-utils is compiled with
+GROOVY="./tools/groovy/2.3.4/bin/groovy"

@@ -30,7 +30,7 @@ BUILDDATE=1423021852007
 # Default memory used
 # Mainly here to limit memory on systems with very large memory
 # as otherwise Java can default to extreme amounts (gigabytes)
-: ${MAX_JAVA_MEM:="256m"}
+: ${MAX_JAVA_MEM:="2g"}
 
 # Pattern used to parse log files when tailing
 TAIL_PATTERN='s/\[[*.0-9a-zA-Z_-]*\(\.\{0,1\}[0-9]*\)\{1,\}\]'$'\t//g' 

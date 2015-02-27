@@ -1,0 +1,12 @@
+////////// Configuration file to run on Merri cluster at VLSCI //////////
+// If you are not a VLSCI user, ignore this file!
+/////////////////////////////////////////////////////////////////////////
+libs="./tools/groovy-ngs-utils/1.0/groovy-ngs-utils.jar"
+
+// Defaults
+executor="slurm"
+account="VR0002"
+walltime="08:00:00"
+memory="8"
+jobtype="single"
+queue="main"
