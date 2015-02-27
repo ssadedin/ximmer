@@ -118,7 +118,7 @@ load_exome_copy_results = function(file.name, sample.tag=NA) {
 }
 
 load_cn_mops_results = function(file.name, sample.tag=NA) {
-  raw = read.table(file.name, header = T, colClasses=(NA,NA,NA,NA,NA,"character"))  
+  raw = read.table(file.name, header = T, colClasses=c(NA,NA,NA,NA,NA,"character"))  
   raw$CN =  as.integer(gsub("^CN","",raw$CN))
   raw = raw[raw$CN != 2,]
   
