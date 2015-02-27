@@ -16,7 +16,7 @@ read.bed.ranges = function(f) {
 load_xhmm_results = function(file.name,sample.tag=NA) {
   # Load output from XHMM and return it in a "standardized" format
   # CHR START END TYPE QUALITY SAMPLE
-  raw = read.table(file.name, header=T)
+  raw = read.table(file.name, header=T, colClasses=c("character"))
   raw$start = as.integer(gsub("^.*:","",gsub("-.*$","",raw$INTERVAL)))
   raw$end = as.integer(gsub("^.*-","",raw$INTERVAL))
   
@@ -57,7 +57,7 @@ load_excavator_results = function(file.name, sample.tag=NA) {
 
 load_exomedepth_results = function(file.name, sample.tag=NA) {
   cnv.types = list(deletion="DEL", duplication="DUP")
-  raw = read.table(file.name, header=T, as.is=T)
+  raw = read.table(file.name, header=T, as.is=T, colClasses=c("integer","integer","character","integer","integer","integer","character","character","double","integer","integer","double","character"))
   # Some samples have trailing underscores incorrectly
   raw$sample= gsub('_$','',as.character(raw$sample))
   if(!is.na(sample.tag) && nrow(raw))
@@ -118,7 +118,7 @@ load_exome_copy_results = function(file.name, sample.tag=NA) {
 }
 
 load_cn_mops_results = function(file.name, sample.tag=NA) {
-  raw = read.table(file.name, header = T)  
+  raw = read.table(file.name, header = T, colClasses=(NA,NA,NA,NA,NA,"character"))  
   raw$CN =  as.integer(gsub("^CN","",raw$CN))
   raw = raw[raw$CN != 2,]
   
