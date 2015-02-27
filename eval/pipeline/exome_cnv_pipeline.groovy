@@ -82,7 +82,7 @@ init_exome_depth = { branch.dir="runs/$batch_name/exome_depth" }
 init_cn_mops = { branch.dir="runs/${batch_name}/cn_mops" }
 
 init = { 
-    branch.dir = batch_name 
+    branch.dir = "runs/" + batch_name 
     println "=" * 100
     println "Analysing ${all_samples.keySet().size()} samples:\n\n${all_samples.keySet().join('\n')}\n"
     println "=" * 100
