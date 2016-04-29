@@ -356,10 +356,13 @@ class Ximmer {
     List<Region> readCnvs() {
         List<Region> cnvs = []
         for(runDir in runDirectories) {
-            new BED(new File(runDir,"true_cnvs.bed"),withExtra:true).load().each { Region r ->
-                r.run = runDir.name
-                r.sample = r.extra
-                cnvs << r
+            File cnvFile = new File(runDir,"true_cnvs.bed")
+            if(cnvFile.exists()) {
+                new BED(cnvFile,withExtra:true).load().each { Region r ->
+                    r.run = runDir.name
+                    r.sample = r.extra
+                    cnvs << r
+                }
             }
         }               
         
