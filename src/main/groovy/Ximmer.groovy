@@ -162,8 +162,10 @@ class Ximmer {
         }
         else 
         if(bamFiles instanceof List) {
-            bamFiles = bamFiles.collect { MiscUtils.glob(it) }
+            bamFiles = bamFiles.collect { MiscUtils.glob(it) }.flatten()
         }
+        
+        log.info("Resolved BAM files: " + bamFiles)
         
         this.bamFiles = bamFiles.collectEntries { bamPath ->
             SAM sam = new SAM(bamPath)
@@ -528,7 +530,7 @@ class Ximmer {
         Cli cli = new Cli(usage:"ximmer -c <config> -o <output_directory>")
         cli.with {
             c "Configuration file", args:1, required:true
-            o "Output directory", args:1
+            o "Output directory", args:1, required:true
             v "Verbose output"
         }
         
