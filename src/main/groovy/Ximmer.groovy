@@ -116,7 +116,7 @@ class Ximmer {
             return
         }
         
-        File bpipe = new File("eval/tools/bpipe/0.9.9.1/bin/bpipe")
+        File bpipe = new File("eval/bpipe")
         
         String targetRegionsPath = new File(cfg.target_regions).absolutePath
         String toolsPath = new File("eval/tools").absolutePath
