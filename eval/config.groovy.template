@@ -1,0 +1,60 @@
+
+// Customise the title for the simulation reports
+title="CNV Simulation"
+
+// Enter path to your BAM files as a glob-style string
+// eg: /home/someone/data/*.bam
+bam_files=<CUSTOMISE>
+
+// Define the target regions for your capture
+target_regions=<CUSTOMISE>
+
+// Set the simulation to either "downsample" or "x-replacement"
+simulation_type="downsample"
+
+// Optionall provide a PED file to define sample sexes
+// ped_file=""
+
+// Number of separate runs to complete
+runs=5
+
+// Size range of CNVs to simulate in target regions
+regions=2..10
+
+samples {
+    males = [
+    ]
+    females = [
+    ]
+}
+
+// Parameters to use in annotating CNVs from DGV
+dgv {
+    max_freq = 0.01
+
+    min_study_size = 5
+}
+
+// Configuration for different CNV callers here
+callers {
+
+    xhmm {
+    }
+
+    exome_depth {
+    }
+
+    mops {
+    }
+    
+    cfr {
+    }
+}
+
+tools {
+    // Optional: define the path the Rscript executable
+    // Rscript = "/usr/local/bin/Rscript"
+
+    // Optional: define path to python executable
+    // python = "/Users/simon/anaconda/bin/python"
+}
