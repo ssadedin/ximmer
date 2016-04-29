@@ -34,10 +34,13 @@ class Ximmer {
     
     File dgvMergedFile
     
-    Ximmer(ConfigObject cfg, String outputDirectory) {
+    boolean enableSimulation = true
+    
+    Ximmer(ConfigObject cfg, String outputDirectory, boolean simulate) {
         this.outputDirectory = new File(outputDirectory)
         this.cfg = cfg
         this.random = new Random(42) // todo: programmable seed
+        this.enableSimulation = simulate
     }
     
     List<File> runDirectories = []
@@ -78,8 +81,15 @@ class Ximmer {
         
         for(int i=0; i<cfg.runs; ++i) {
             String runDir = runDirectoryPrefix+i
-            runDirectories << new File(outputDirectory, runDir)
-            simulateRun(runDir)
+            File dir = new File(outputDirectory, runDir)
+            dir.mkdirs()
+            runDirectories << dir
+            if(!this.enableSimulation) {
+                log.info "Simulation disabled: analysis will be performed directly from source files"
+            }
+            else {
+                simulateRun(runDir)
+            }
         }
     }
     
@@ -91,7 +101,13 @@ class Ximmer {
     
     void runAnalysisForRun(File runDir) {
         
-        List<String> bamFiles = new File(runDir, "bams").listFiles().grep { File f -> f.name.endsWith(".bam") }.collect { "bams/"+it.name}
+        List<String> bamFiles 
+        if(this.enableSimulation) {
+            bamFiles = new File(runDir, "bams").listFiles().grep { File f -> f.name.endsWith(".bam") }.collect { "bams/"+it.name}
+        } 
+        else {
+            bamFiles = this.bamFiles*.value*.samFile*.absolutePath
+        }
         
         String callers = ((Map<String,Object>)cfg.callers).keySet().join(",")
         
@@ -115,13 +131,13 @@ class Ximmer {
                 "-p","XIMMER_SRC=$ximmerSrc",
                 "-p", "callers=$callers",
                 "-p", "refgene=/Users/simon/work/cpipe/tools/annovar/humandb/hg19_refGene.txt",
-                "-p", "simulation=true",
+                "-p", "simulation=${enableSimulation}",
                 "-p", "batch_name=analysis",
                 "-p", "target_bed=$targetRegionsPath", 
                 "-p", "imgpath=${runDir.name}/analysis/report/",
-                new File("eval/pipeline/exome_cnv_pipeline.groovy").absolutePath,
-                "true_cnvs.bed"
-            ] + bamFiles 
+                new File("eval/pipeline/exome_cnv_pipeline.groovy").absolutePath
+                
+            ] + bamFiles  + (enableSimulation ? ["true_cnvs.bed"] : [])
             
         log.info("Executing Bpipe command: " + bpipeCommand.join(" "))
         
@@ -360,9 +376,17 @@ class Ximmer {
     }
     
     File writeCombinedCNVInfo(List<Region> cnvs) {
+        
+       if(!outputDirectory.exists())
+           outputDirectory.mkdirs()
+       
        File cnvFile = new File(outputDirectory,"combined_cnvs.tsv")
        cnvFile.withWriter { w ->
             w.println([ "chr","start","end","sample","tgbp","targets" ].join("\t"))
+            
+            if(!enableSimulation) 
+                return   
+            
             cnvs.collect { 
                 [
                     it.chr, 
@@ -426,12 +450,19 @@ class Ximmer {
     
     void plotCNVSizeHistograms(List<Region> cnvs) {
         
+        if(!this.enableSimulation)
+            return
+        
         File combinedCnvs = writeCombinedCNVInfo(cnvs)
         
         runPython([:], outputDirectory, new File("src/main/python/cnv_size_histogram.py"), [combinedCnvs.absolutePath, new File(outputDirectory,"cnv_size_histogram.png").absolutePath])
     }
     
     void generateROCPlots() {
+        
+       if(!this.enableSimulation)
+            return
+  
         runR(outputDirectory, 
             new File("src/main/R/ximmer_cnv_plots.R"), 
                 SRC: new File("src/main/R").absolutePath, 
@@ -531,6 +562,7 @@ class Ximmer {
         cli.with {
             c "Configuration file", args:1, required:true
             o "Output directory", args:1, required:true
+            nosim "Analyse samples directly (no simulation)"
             v "Verbose output"
         }
         
@@ -546,6 +578,6 @@ class Ximmer {
         // Parse the configuration
         ConfigObject cfg = new ConfigSlurper().parse(new File(opts.c).text)
         
-        new Ximmer(cfg, opts.o).run()
+        new Ximmer(cfg, opts.o, !opts.nosim).run()
     }
 }
