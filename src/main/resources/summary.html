@@ -1,0 +1,44 @@
+
+    <h2>Simulation Summary</h2>
+    <div id=summarytables style='float:left; margin-right: 1in;'>
+        
+        <table id=simoverviewtable class=summarytable>
+            <thead>
+                <tr><th colspan=2>Sample Summary</th></tr>
+            </thead>
+            <tbody>
+                <tr><th>Source Samples</th><td>${bamFiles.size()}</td></tr>
+                <tr><th>Males</th><td>Unknown</td></tr>
+                <tr><tr><th>Females</th><td>Unknown</td></tr>
+                <tr><th>CNV Callers</th><td>${callers.join(", ")}</td></tr>
+                <tr><th>Simulated CNVs</th><td>${cnvs.size()}</td></tr>
+            </tbody>
+        </table>
+                    
+        <table id=cnvsummary class=summarytable>
+            <thead>
+                <tr><th colspan=2>CNV Summary</th></tr>
+            </thead>
+            <tbody>
+                <tr><th>True Positives</th><td>${cnvs.size()}</td></tr>
+                <tr><th>Simulation Method</th><td>
+                    <%=if(simulation_type == "downsample") { "Downsampling" } else {"X Replacement"} %>
+                </td></tr>
+                <tr><th>Minimum size (spanned bp)</th><td>${cnvs*.size().min()}</td></tr>
+                <tr><th>Maximum size (spanned bp)</th><td>${cnvs*.size().max()}</td></tr>
+                <tr><th>Minimum size (targeted bp)</th><td>${cnvs*.targeted.min()}</td></tr>
+                <tr><th>Maximum size (targeted bp)</th><td>${cnvs*.targeted.max()}</td></tr>
+                <tr><th>Total TP Identified</th><td><%=results.sum { r -> r.count { cnv -> cnv.truth && callers.any { cnv[it] } }}%></td></tr>
+                <tr><th>TP by Caller</th><td> </td></tr>
+                <% for(caller in callers) { %> 
+                    <tr><th class=callerCount>$caller</th><td><%=callerCounts[caller] %></td></tr>
+                <% } %>
+                <tr><th>Best caller (sensitivity)</th><td><%=callers.max { callerCounts[it] } %></td></tr>
+        </table>
+    </div>
+    
+    <div id=figures>
+        <img src='cnv_size_histogram.png'>
+    </div>
+
+    

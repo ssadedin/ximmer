@@ -22,6 +22,9 @@ requires batch_name : """
                          BED file describing target region on which analysis is to be run. Usually 
                          this should be the whole region covered by probes / amplicons, not just 
                          the actual genes that are of interest, and should be unique
+                      """,
+         refgene :    """
+                         A copy of the UCSC refgene database.
                       """
 // Basic configuration
 load 'config.groovy'
@@ -32,6 +35,7 @@ load 'config.groovy'
 simulation = true
 
 // For simulations we force chr=chrX
+/*
 if(simulation) {
     chr = "chrX"
     chrs = chr('X', filterInputs:false) 
@@ -39,6 +43,9 @@ if(simulation) {
 else {
     chrs = chr(1..22,'X',filterInputs:false)
 }
+*/
+
+println "Parsing samples from " + args
 
 sample_info = SampleInfo.fromFiles(args)
 
@@ -51,10 +58,17 @@ else
 
 sample_names = run_samples
 
+// Only parallelise over the chromosomes actually in the
+// target bed file
+chromosomes = new BED(target_bed).load()*.chr.unique()
+println "Chromosomes for analysis are: " + chromosomes
+
+
 load 'excavator.groovy'
 load 'xhmm.groovy'
 load 'exome_depth.groovy'
 load 'cn_mops.groovy'
+load 'conifer.groovy'
 load 'summarize_cnvs.groovy'
 
 // If not overridden by command line, assume all the callers are to be run
@@ -63,6 +77,8 @@ callers = "xhmm,ed,mops,truth"
 cnv_callers = callers.split(",") as List
 
 bpipe.Config.userConfig.autoFilter = "false"
+
+
 
 set_sample = {
     branch.sample = branch.name
@@ -74,13 +90,14 @@ finish = {
 
 // Initialization stages - these just set specific output directories for each 
 // analysis tool
-init_excavator = { branch.dir="runs/$batch_name/excavator"; branch.excavator_batch=batch_name }
-init_xhmm = { branch.dir="runs/$batch_name/xhmm"; branch.xhmm_batch_name=batch_name }
-init_exome_depth = { branch.dir="runs/$batch_name/exome_depth" }
-init_cn_mops = { branch.dir="runs/${batch_name}/cn_mops" }
+init_excavator = { branch.dir="$batch_name/excavator"; branch.excavator_batch=batch_name }
+init_xhmm = { branch.dir="$batch_name/xhmm"; branch.xhmm_batch_name=batch_name }
+init_exome_depth = { branch.dir="$batch_name/exome_depth" }
+init_cn_mops = { branch.dir="${batch_name}/cn_mops" }
+init_conifer = { branch.dir="${batch_name}/conifer" }
 
 init = { 
-    branch.dir = "runs/" + batch_name 
+    branch.dir = batch_name 
     println "=" * 100
     println "Analysing ${sample_info.keySet().size()} samples:\n\n${sample_info.keySet().join('\n')}\n"
     println "=" * 100
@@ -101,9 +118,11 @@ run {
 
     if('mops' in cnv_callers)
         caller_stages << (init_cn_mops + cn_mops_call_cnvs)
+        
+    if('cfr' in cnv_callers)
+        caller_stages << (init_conifer + run_conifer)
 
-    init + caller_stages + 
-         chrs * [ touch_chr + summarize_cnvs ] + combine_cnv_report +
-         sample_names * [ extract_sample_files +  extract_cnv_regions ] + 
-         cnv_report.using(callers:cnv_callers) 
+    init + caller_stages + create_cnv_report +
+         chromosomes * [ touch_chr + plot_cnv_coverage ]  +
+         sample_names * [ extract_sample_files ] 
 } 

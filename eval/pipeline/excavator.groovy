@@ -93,7 +93,7 @@ create_excavator_config = {
     }
 }
 
-excavator = {
+run_excavator = {
 
    var excavator_theta : "1e-4",
        excavator_dnorm : "10e6",
@@ -167,6 +167,6 @@ combine_excavator_results = {
 }
 
 excavator_pipeline = segment {
-    excavator_target + run_samples * [ create_excavator_config + excavator ] + combine_excavator_results
+    excavator_target + run_samples * [ create_excavator_config + run_excavator ] + combine_excavator_results
 }
 

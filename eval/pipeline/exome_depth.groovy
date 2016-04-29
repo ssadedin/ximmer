@@ -4,7 +4,7 @@
 // ExomeDepth Support Routines
 //
 //////////////////////////////////////////////////////////////////
-exome_depth = {
+run_exome_depth = {
 
     requires target_bed : "BED file containing regions to analyse",
             sample_names : "List of sample names to process (comma separated, or List object)",
@@ -12,6 +12,8 @@ exome_depth = {
 
     var transition_probability : "0.0001"
 
+    def chr = branch.name
+    
     def sample_list = sample_names
     if(sample_names instanceof String) {
         sample_list = sample_names.split(",")
@@ -123,6 +125,6 @@ merge_ed = {
 }
 
 exome_depth_pipeline = segment {
-    chrs * [ exome_depth ] + merge_ed
+    chromosomes * [ run_exome_depth ] + merge_ed
 }
 

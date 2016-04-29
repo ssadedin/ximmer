@@ -87,7 +87,7 @@ include EXCAVATOR by adding "ex". We find EXCAVATOR can take a long time to run,
 add a lot of calls that you don't get from the others, so if you want a quick analysis you can
 leave it out.
 
-**NOTE:** In both cases above the VCFs are optional. If you provie them then variant allele balance
+**NOTE:** In both cases above the VCFs are optional. If you provide them then variant allele balance
 will be annotated over CNVs that are called so that you can review the evidence from LOH or distortion
 of balance for support of the CNVs called.
 
@@ -97,8 +97,7 @@ What are the results?
 The results are zipped up into a file called "cnv_report.zip" that will appear in the runs/&lt;batch_name&gt; directory.
 
 There is an HTML file called cnv_report.html that you can open to look at CNVs interactively, and there is a TSV
-file that you can open ina program like R or Excel to look at results programmatically. 
-
+file that you can open in a program like R or Excel to look at results programmatically. 
 
 
 

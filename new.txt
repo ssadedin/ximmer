@@ -1,0 +1,40 @@
+total 0
+drwxr-xr-x  8 simon  staff  272 19 Apr 08:52 Run0
+
+./Run0:
+total 16
+drwxr-xr-x   2 simon  staff    68 19 Apr 08:52 analysis
+drwxr-xr-x  12 simon  staff   408 19 Apr 08:52 bams
+-rw-r--r--   1 simon  staff  4006 19 Apr 08:52 commandlog.txt
+drwxr-xr-x   3 simon  staff   102 19 Apr 08:52 runs
+-rw-r--r--   1 simon  staff   170 19 Apr 08:52 true_cnvs.bed
+
+./Run0/analysis:
+
+./Run0/bams:
+total 281008
+-rw-r--r--  1 simon  staff  33150610 19 Apr 08:51 CZ05_S39_chr1_75606595-84544182.bam
+-rw-r--r--  1 simon  staff    175368 19 Apr 08:51 CZ05_S39_chr1_75606595-84544182.bam.bai
+-rw-r--r--  1 simon  staff  17016007 19 Apr 08:51 DSD57_S54_chr1_120461722-120463171.bam
+-rw-r--r--  1 simon  staff    138632 19 Apr 08:51 DSD57_S54_chr1_120461722-120463171.bam.bai
+-rw-r--r--  1 simon  staff  28961310 19 Apr 08:52 EM_S24_chr1_198608068-198666141.bam
+-rw-r--r--  1 simon  staff    185512 19 Apr 08:52 EM_S24_chr1_198608068-198666141.bam.bai
+-rw-r--r--  1 simon  staff  29159146 19 Apr 08:52 IDN-115_S41_chr1_1571631-1573292.bam
+-rw-r--r--  1 simon  staff    202088 19 Apr 08:52 IDN-115_S41_chr1_1571631-1573292.bam.bai
+-rw-r--r--  1 simon  staff  34672165 19 Apr 08:52 NLD-3015_S42_chr1_167385261-167906845.bam
+-rw-r--r--  1 simon  staff    200432 19 Apr 08:52 NLD-3015_S42_chr1_167385261-167906845.bam.bai
+
+./Run0/runs:
+total 0
+drwxr-xr-x  4 simon  staff  136 19 Apr 08:52 testbatch
+
+./Run0/runs/testbatch:
+total 0
+drwxr-xr-x  3 simon  staff  102 19 Apr 08:52 cn_mops
+drwxr-xr-x  2 simon  staff   68 19 Apr 08:52 report
+
+./Run0/runs/testbatch/cn_mops:
+total 8
+-rw-r--r--  1 simon  staff  301 19 Apr 08:52 testbatch.cnmops.cnvs.tsv
+
+./Run0/runs/testbatch/report:

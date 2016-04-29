@@ -15,7 +15,7 @@
 xhmm_init = {
 
     // Settings that can be overridden on command line
-    var exome_wide_cnv_rate :  '1e-08',
+    var exome_wide_cnv_rate :  '1e-03',
         mean_number_of_targets_in_cnv : 6 ,
         mean_distance_between_targets_within_cnv  : 70,
         mean_of_deletion_z_score_distribution : -3,
@@ -57,7 +57,7 @@ gatk_depth_of_coverage = {
 
     transform("sample_interval_summary") {
         exec """
-            java -Xmx2g -jar $GATK/GenomeAnalysisTK.jar 
+            $JAVA -Xmx2g -jar $GATK/GenomeAnalysisTK.jar 
                  -T DepthOfCoverage 
                  ${inputs.bam.withFlag("-I")}
                  -L $target_bed
@@ -86,7 +86,7 @@ find_extreme_gc_content = {
     produce(file(target_bed).name + ".gc.txt", file(target_bed).name+".extremegc.txt") {
 
         exec """
-            java -Xmx3g -jar $GATK/GenomeAnalysisTK.jar 
+            $JAVA -Xmx3g -jar $GATK/GenomeAnalysisTK.jar 
                 -T GCContentByInterval 
                 -L $target_bed
                 -R $HGFA

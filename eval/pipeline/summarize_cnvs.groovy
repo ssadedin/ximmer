@@ -1,4 +1,6 @@
 // vim: expandtab:sw=4:ts=4:cindent
+
+
 touch_chr = {
    exec """
         echo $chr > $output.txt
@@ -10,7 +12,7 @@ extract_sample_files = {
     var sample : branch.name
     branch.sample = sample
     branch.sample_info = sample_info
-    println "Forwarding files for sample $sample : " + branch.sample_info[sample].files.all
+    println "Processing files for sample $sample : " + branch.sample_info[sample].files.all
     forward branch.sample_info[sample].files.all
 }
 
@@ -28,101 +30,115 @@ extract_cnv_regions = {
         exec """
              set -o pipefail
 
-             JAVA_OPTS="-Xmx1g" $GROOVY -cp tools/groovy-ngs-utils/1.0/groovy-ngs-utils.jar -e 'new RangedData("$input.tsv").load().each { println([it.chr, it.from-$slop, it.to+$slop].join("\\t"))  }' | 
+             JAVA_OPTS="-Xmx1g" $GROOVY -cp $TOOLS/groovy-ngs-utils/1.0/groovy-ngs-utils.jar -e 'new RangedData("$input.tsv").load().each { println([it.chr, it.from-$slop, it.to+$slop].join("\\t"))  }' | 
                  $SAMTOOLS view -b -L - $input.bam > $output.bam
         """
     }
 }
 
-summarize_cnvs = {
+plot_cnv_coverage = {
+    requires target_bed : "Flattened, sorted BED file describing target regions, with ID column containing gene",
+             refgene : "UCSC refGene database (usually named refGene.txt)"
 
-    output.dir="runs/$branch.dir/report"
+    output.dir="$branch.dir/report"
 
-    var true_cnvs : "true_cnvs.bed",
-        create_plots : "T",
-        chr : "*"
+    var reportSamples : false
 
-    println "Summarizing CNVs ..."
+    def reportSamplesFlag = reportSamples ? reportSamples.split(",")*.trim().collect { " -sample " + it }.sum()  : ""
+
+    uses(threads:2..8) {
+        from("cnv_report.tsv") { produce("cnv_${chr}_*.png") {
+
+            def caller_opts = []
+
+            if('xhmm' in cnv_callers)
+               caller_opts << "-xhmm $input.xcnv"
+
+            if('ed' in cnv_callers)
+               caller_opts << "-ed $input.exome_depth.cnvs.tsv"
+
+            if('mops' in cnv_callers)
+               caller_opts << "-cnmops $input.cnmops.cnvs.tsv"
+               //caller_opts << "-cnmops $input.cn_mops_call_cnvs.tsv"
+
+            if('angelhmm' in cnv_callers) 
+               caller_opts << "-angel $input.angelhmm.cnvs.bed"
+
+            exec """
+                unset GROOVY_HOME 
+
+                JAVA_OPTS="-Xmx8g -Djava.awt.headless=true" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/CNVDiagram.groovy
+                    -cnvs $input.tsv
+                    -targets $target_bed
+                    -o ${output.dir+"/cnv.png"} 
+                    -xmean $reportSamplesFlag
+                    -t $threads ${caller_opts.join(" ")} ${inputs.vcf.withFlag("-vcf")}
+                    -refseq $refgene ${inputs.bam.withFlag("-bam")}
+            ""","plot_cnv_coverage"
+        }
+      }
+    }
+}
+
+create_cnv_report = {
+
+    var angel_quality_threshold : 8.0f,
+        batch_name : false,
+        bam_file_path : "http://172.16.56.202/$batch_name/",
+        sample_info : false,
+        simulation: false,
+        imgpath: false
 
     List vcfs = []
-    String hasVCFs = sample_info.every { it.value.files.vcf } ? "TRUE" : "FALSE"
-    if(hasVCFs == "TRUE")
-        vcfs = sample_info.collect{"'${it.value.files.vcf[0]}'"}
-    else 
-        println "No VCF files present for one or more samples: variant heterozygosity will not be annotated for CNV calls"
+    /*
+    if(sample_info) 
+        vcfs = sample_info.collect{it.value.files.vcf[0]}
+    else
+        vcfs = all_samples.collect{it.value.files.vcf[0]}
+    */
 
-    println "Using callers : " + cnv_callers
+    output.dir="$branch.dir/report"
+    
+    def caller_opts = []
 
-    def output_prefix = (chr == "*" ? "" : "." + chr)
-    produce(batch_name + ".cnv${output_prefix}.summary.tsv", batch_name +"${output_prefix}.plotdata.RData") {
+    if('xhmm' in cnv_callers)
+       caller_opts << "-xhmm $input.xcnv"
 
-        def result_list = []
-        if(callers.contains("xhmm")) 
-            result_list << "xhmm = load_xhmm_results('$input.xcnv')"
-        if(callers.contains("ec")) 
-            result_list << "ec = load_exome_copy_results('$input.exome_copy.cnvs.tsv')"
-        if(callers.contains("ex")) 
-            result_list << "ex = load_excavator_results('$input.excavator.cnvs.tsv')"
-        if(callers.contains("ed")) 
-            result_list << "ed = load_exomedepth_results(file.name='$input.exome_depth.cnvs.tsv')"
-        if(callers.contains("mops")) 
-            result_list << "mops = load_cn_mops_results(file.name='$input.cn_mops_call_cnvs.tsv')"
-        if(callers.contains("ang")) 
-            result_list << "ang = load_angel_results(file.name='$input.angel.cnvs.bed')"
+    if('ed' in cnv_callers)
+       caller_opts << "-ed $input.exome_depth.cnvs.tsv"
+
+    if('mops' in cnv_callers)
+       caller_opts << "-cnmops $input.cnmops.cnvs.tsv"
+       //caller_opts << "-cnmops $input.cn_mops_call_cnvs.tsv"
+
+    if('angelhmm' in cnv_callers) 
+       caller_opts << "-angel $input.angelhmm.cnvs.bed"
+    
+    if('cfr' in cnv_callers)
+       caller_opts << "-cfr $input.conifer.cnvs.tsv"
+       
+    produce("cnv_report.html", "cnv_report.tsv") {
+
+        def true_cnvs = ""
         if(simulation) 
-            result_list << "truth = load_angel_results(file.name='$input.true_cnvs.bed')"
+            true_cnvs = "-truth $input.true_cnvs.bed"
+        
+        exec """
+            JAVA_OPTS=-Xmx8g $GROOVY -cp $GNGS_JAR:$XIMMER_SRC:$XIMMER_SRC/../resources $XIMMER_SRC/SummarizeCNVs.groovy
+                -target $target_bed ${caller_opts.join(" ")}
+                ${inputs.snpeff.vcf.withFlag("-vcf")} -bampath "$bam_file_path"
+                -tsv $output.tsv ${imgpath?"-imgpath $imgpath":""}
+                -o $output.html ${batch_name ? "-name $batch_name" : ""} ${inputs.bam.withFlag('-bam')}
+                -dgv $DGV_CNVS $true_cnvs
+        """, "create_cnv_report"
+    }
+}
 
-        println "Running R code ..."
-        R {"""
-            source("./tools/r-utils/cnv_utils.R")
-
-            cnv.samples = c(${sample_names.collect{"'$it'"}.join(",")})
-
-            target.bed = read.bed.ranges("$target_bed")
-            cnv.results = list(
-                ${result_list.join(",\n")}
-            )
-            cnv.all = combine_cnv_caller_results(cnv.samples, cnv.results, target.bed, chr="$chr")
-
-            if($hasVCFs) {
-                vcf_files = gsub(".vcf\$", ".vcf.bgz", c(${vcfs.join(",")}))
-
-                # Figure out the siez of the chromosome from VCF header (assume all samples the same)
-                hdr = scanBcfHeader(vcf_files[[1]])[[1]]
-                chr.end = as.integer(hdr$Header$contig['$chr','length'])
-
-                vcfs = sapply(cnv.samples, function(s) {
-                    v = readVcf(file=vcf_files[[which(cnv.samples==s)]],
-                                genome='hg19', 
-                                param=ScanVcfParam(which=GRanges(seqnames='$chr',ranges=IRanges(start=0, end=chr.end))))
-
-                    #v = readVcf(file=vcf_files[[which(cnv.samples==s)]],genome="h19")
-                    seqlevels(v,force=T) = hg19.chromosomes
-                    return(v)
-                }, USE.NAMES=T)
-
-                cnv.all = annotate_variant_counts(vcfs, cnv.all)
-
-                cnv.output = data.frame(as.data.frame(cnv.all),
-                    vcf=sapply(cnv.all$sample, function(s) {vcf_files[[which(cnv.samples==s)]]})
-                )
-            } else {
-                cnv.output = as.data.frame(cnv.all)
-            }
-
-            chr='$chr'
-            if(chr=='*') {
-               chr='all'
-             }
-            write.table(as.data.frame(cnv.output), 
-                        file="${output.tsv}",
-                        quote=F,
-                        sep='\\t',
-                        row.names=F
-                        )
-
-            save.image(file="$output.RData")
-        """}
+zip_cnv_report = {
+    produce("cnv_report.zip") {
+        exec """
+            zip -r $output.zip $branch.dir/report -x \\*.RData report
+        """
     }
 }
 

@@ -1,4 +1,5 @@
-import groovy.transform.CompileStatic;
+import groovy.transform.CompileStatic
+import groovy.util.logging.Log;
 import groovyx.gpars.GParsPool;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMRecord;
@@ -18,6 +19,7 @@ import net.sf.samtools.SAMTagUtil;
  * 
  * @author simon.sadedin@mcri.edu.au
  */
+@Log
 class CNVSimulator {
     
     /**
@@ -81,10 +83,15 @@ class CNVSimulator {
     Random random = null
     
     public CNVSimulator(String femaleBam, String maleBam) {
-        this.maleBam = new SAM(maleBam)
-        this.femaleBam = new SAM(femaleBam)
+        this(new SAM(femaleBam), maleBam != null ? new SAM(maleBam) : null)
+    }
+    
+    public CNVSimulator(SAM femaleBam, SAM maleBam) {
+        this.maleBam = maleBam
+        this.femaleBam = femaleBam
         this.random = new Random()
     }
+  
     
     void setTargetCoverage(Regions targetRegions, double value) {
         this.targetRegions = targetRegions
@@ -162,14 +169,18 @@ class CNVSimulator {
         femaleDownSampleRate = 1.0d
         maleDownSampleRate = 1.0d
         
+        // If there is no male bam then down sampling is not necessary
+        if(maleBam == null)
+            return
+        
         GParsPool.withPool(this.concurrency) {
             println "Using $concurrency threads"
             if(this.targetCoverage > 0.0d) {
-		        Regions autosomalRegions = null
-		        synchronized(this) { // cause write flush after we build this block
-		            autosomalRegions = this.targetRegions.reduce().grep { !NON_AUTOSOMES.contains(it.chr) }
-		        }
-	        
+                Regions autosomalRegions = null
+                synchronized(this) { // cause write flush after we build this block
+                    autosomalRegions = this.targetRegions.reduce().grep { !NON_AUTOSOMES.contains(it.chr) }
+                }
+            
                 List femaleStats = null
                 List maleStats = null
                 println "Determining coverage of female autosomal regions ..."
@@ -179,7 +190,7 @@ class CNVSimulator {
                 println "Determining coverage of male autosomal regions ..."
                 maleStats = autosomalRegions.collectParallel { counter.count(); maleBam.coverageStatistics(it.chr, it.from, it.to); }
                 
-				double femaleSum = (femaleStats.sum { it.mean * it.n })
+                double femaleSum = (femaleStats.sum { it.mean * it.n })
                 double femaleMean = femaleSum / femaleStats.sum { it.n }
                 double maleMean = maleStats.sum { it.mean * it.n } / maleStats.sum { it.n }
                 
@@ -211,6 +222,10 @@ class CNVSimulator {
     }
     
     void createBam(String outputFileName, String region) {
+        createBam(outputFileName, new Region(region))    
+    }
+    
+    void createBam(String outputFileName, Region region) {
         
         calculateDownsampleRates()
         
@@ -236,12 +251,10 @@ class CNVSimulator {
         println "Created $outputFileName"
     }
     
-    void createBamByReplacement(String outputFileName, String region) {
+    void createBamByReplacement(String outputFileName, Region cleanRegion) {
         
-        println "Creating $outputFileName using replace mode"
-        
-		Region cleanRegion = new Region(region)
-        
+        log.info "Creating $outputFileName using replace mode"
+       
         println "Querying source reads from Male alignment ..."
         List maleRegionReads = []
         int count = 0
@@ -258,8 +271,8 @@ class CNVSimulator {
             random = new Random()
         
         final String chr = cleanRegion.chr
-		final int start = cleanRegion.from
-		final int end = cleanRegion.to
+        final int start = cleanRegion.from
+        final int end = cleanRegion.to
         
         final String rgId = femaleBam.samFileReader.fileHeader.getReadGroups()[0].getId()
         
@@ -270,10 +283,10 @@ class CNVSimulator {
                 if(r1 == null|| r2 == null)
                     return
                 
-			    def boundaries = [r1.alignmentStart, r1.alignmentEnd, r2.alignmentStart, r2.alignmentEnd]
-				int rStart = boundaries.min()
-				int rEnd = boundaries.max()
-				
+                def boundaries = [r1.alignmentStart, r1.alignmentEnd, r2.alignmentStart, r2.alignmentEnd]
+                int rStart = boundaries.min()
+                int rEnd = boundaries.max()
+                
                 if(cleanRegion.overlaps(chr, rStart, rEnd))
                     return
                 
@@ -289,10 +302,10 @@ class CNVSimulator {
             
             for(List<SAMRecord> r in maleRegionReads) {
                 if(random.nextFloat() < maleDownSampleRate) {
-					r[0].setAttribute("DL", "1")
+                    r[0].setAttribute("DL", "1")
                     r[0].setAttribute(SAMTagUtil.getSingleton().RG, rgId);
                     writer.addAlignment(r[0])
-					r[1].setAttribute("DL","1")
+                    r[1].setAttribute("DL","1")
                     r[1].setAttribute(SAMTagUtil.getSingleton().RG, rgId);
                     writer.addAlignment(r[1])
                 }
@@ -307,11 +320,9 @@ class CNVSimulator {
      * @param outputFileName
      * @param region
      */
-    void createBamByDownSample(String outputFileName, String region) {
+    void createBamByDownSample(String outputFileName, Region cleanRegion) {
         
-        println "Creating $outputFileName using downsample mode"
-        
-        Region cleanRegion = new Region(region)
+        log.info "Creating $outputFileName using downsample mode"
         
         // Inside regions of simulated deletions, downsample to 50% of the otherwise estimated rate
         // technical note: the femaleDownSampleRate takes into account the coverage in the supplied
@@ -328,12 +339,12 @@ class CNVSimulator {
                 if(r1 == null|| r2 == null)
                     return
                 
-			    def boundaries = [r1.alignmentStart, r1.alignmentEnd, r2.alignmentStart, r2.alignmentEnd]
-				int rStart = boundaries.min()
-				int rEnd = boundaries.max()
+                def boundaries = [r1.alignmentStart, r1.alignmentEnd, r2.alignmentStart, r2.alignmentEnd]
+                int rStart = boundaries.min()
+                int rEnd = boundaries.max()
                 
                 float downSampleRate = femaleDownSampleRate
-				
+                
                 if(cleanRegion.overlaps(chr, rStart, rEnd)) {
                     downSampleRate = deletionDownSampleRate
                 }
@@ -350,43 +361,51 @@ class CNVSimulator {
             }
         }        
     }
-	
-	/**
-	 * Expand the given region until it is "clean" on either side in both the
-	 * male and female files.
-	 * 
-	 * @param region
-	 * @return
-	 */
-	Region findCleanRegion(Region seedRegion) {
-		
-        if(maleReadRegions == null)
-            maleReadRegions = maleBam.toPairRegions("chrX",0,0,500)
+    
+    /**
+     * Expand the given region until it is "clean" on either side in both the
+     * male and female files.
+     * 
+     * @param region
+     * @return
+     */
+    Region findCleanRegion(Region seedRegion) {
         
-		println "Overlaps of male region with target are " + maleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
-		
+        String chromosome = seedRegion.chr
+        
+        if(maleReadRegions == null && maleBam != null) {
+            maleReadRegions = maleBam.toPairRegions(chromosome,0,0,500)
+        }
+        
+        if(maleBam != null)
+            log.fine "Overlaps of male region with target are " + maleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
+        
         if(femaleReadRegions == null)
-            femaleReadRegions = femaleBam.toPairRegions("chrX",0,0,500)
+            femaleReadRegions = femaleBam.toPairRegions(chromosome,0,0,500)
             
-		println "Overlaps of female region with target are " + femaleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
+        log.fine "Overlaps of female region with target are " + femaleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
         
-		Regions combinedRegions = maleReadRegions.reduce()
-		femaleReadRegions.reduce().each { r ->
-			combinedRegions.addRegion(r)
-		}
-		
-		combinedRegions = combinedRegions.reduce()
-		
-		// Finally, find the overlaps with the desired region
-		List<IntRange> overlaps = combinedRegions.getOverlaps(seedRegion)
-	
-		// We will start from the end points of this range
-		Region result = new Region("chrX", overlaps*.from.min()..overlaps*.to.max())
+        Regions combinedRegions = maleReadRegions ? maleReadRegions.reduce() : new Regions()
+        femaleReadRegions.reduce().each { r ->
+            combinedRegions.addRegion(r)
+        }
         
-        println "Original region $seedRegion expanded to $result [female=" + this.femaleBam.samples[0] + ", male=" + this.maleBam.samples[0] + "]"
-		
-		return result
-	}
+        combinedRegions = combinedRegions.reduce()
+        
+        // Finally, find the overlaps with the desired region
+        List<IntRange> overlaps = combinedRegions.getOverlaps(seedRegion)
+        if(overlaps.empty) {
+            println "WARNING: no overlapping reads for deletion seed $seedRegion over samples $femaleBam.samples / ${maleBam?.samples}"
+            return null
+        }
+    
+        // We will start from the end points of this range
+        Region result = new Region(chromosome, overlaps*.from.min()..overlaps*.to.max())
+        
+        log.info "Original region $seedRegion expanded to $result [female=" + this.femaleBam.samples[0] + ", male=" + this.maleBam?.samples?.getAt(0) + "]"
+        
+        return result
+    }
     
     /**
      * Select a candidate region to simulate a deletion from a set of supplied regions, 
@@ -400,12 +419,21 @@ class CNVSimulator {
     Region selectRegion(Regions fromRegions, int numRanges, Regions excludeRegions=null) {
         Region cleanRegion  = null
         int attemptCount = 0
+        
+        List<String> chromosomes = fromRegions*.chr.unique().sort()
+        
+        log.info "Chromosomes in target region are " + chromosomes
+        
+        String chromosome = chromosomes.size() > 1 ? chromosomes[this.random.nextInt(chromosomes.size()-1)] : chromosomes[0]
+        
+        log.info "Selected chromosome " + chromosome + " to simulate next deletion"
+        
         while(true) {
-            int selectedRange =  (int)Math.floor(random.nextDouble() * (fromRegions.allRanges["chrX"].size()-numRanges)) 
-            List<Range> regions = fromRegions.allRanges["chrX"][selectedRange..(selectedRange+numRanges-1)] 
+            int selectedRange =  (int)Math.floor(random.nextDouble() * (fromRegions.allRanges[chromosome].size()-numRanges)) 
+            List<Range> regions = fromRegions.allRanges[chromosome][selectedRange..(selectedRange+numRanges-1)] 
             Range r = (regions[0].from)..(regions[-1].to)
             
-            Region seedRegion = new Region('chrX',r)
+            Region seedRegion = new Region(chromosome,r)
             
             // The seed region is directly derived from the target region
             // The problem is, many capture technologies will capture reads to either side of the
@@ -413,13 +441,21 @@ class CNVSimulator {
             // no reads, so that a "clean" swap can be made of reads without causing any artefacts.
             cleanRegion = this.findCleanRegion(seedRegion)
             
+            if(cleanRegion == null) {
+                ++attemptCount
+                if(attemptCount > 20)
+                    throw new RuntimeException("Failed to identify a viable seed region for placement of deletion after $attemptCount tries")
+                    
+                continue
+            }
+            
             // Check if the cleaned up region overlaps any excluded regions
             if(!excludeRegions || !excludeRegions.overlaps(cleanRegion))
                 break
                
             ++attemptCount
             if(attemptCount > 20)
-                throw new RuntimeException("Failed to identify a non-excluded region for placement of deletion after ")
+                throw new RuntimeException("Failed to identify a non-excluded region for placement of deletion after $attemptCount tries")
                 
             println "Selected range $r.from-$r.to overlaps one or more excluded regions: trying again"
         }

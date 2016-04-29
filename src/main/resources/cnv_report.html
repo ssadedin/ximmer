@@ -1,0 +1,508 @@
+<!doctype html>
+<!-- vim: set sw=4:ts=4:expandtab:cindent: -->
+<%/*
+    Groovy Template for Generating CNV Report
+
+    This template is designed to be executed by Bpipe to generate the CNV report.
+    It expects the following parameters to by supplied in the model:
+
+        -   cnvs  :  Regions object containing CNVs
+        
+        -   batch_name  :  a name for the batch to which the samples belong.
+
+        -   cnv_callers     : the names of the CNV callers. Each of these should
+                          a column in the provided cnv_summary (along with many 
+                          other columns)
+
+        -   types       : List of CNV types to include (DUP,DEL)
+
+        -   reportSamples : if false or blank, all samples are reported. If 
+                            a comma separated list of sample ids then only the 
+                            specified samples are exported.
+        -   cnvAnnotator : annotator to extract DGV information
+        
+        -   bam_files : list of BAM files with reads for the samples (options, false if not available)
+
+        -   bam_file_path : path to bam files, can be URL base for IGV access (or false if not available)        
+*/%>
+
+<%
+
+    new File("template.log").withWriter { log ->
+
+    // Read the CNVs from the file
+    log.println("Processing ${cnvs.numberOfRanges} CNVs")
+    def cnvTypes = types
+    if(types instanceof String) {
+        cnvTypes = types.split(',') as List
+    }
+
+    if(cnvs.numberOfRanges == 0) {
+	%>No CNVs detected"<%
+	return
+    }
+
+    def chrCounts = [:]
+    cnvs.eachWithIndex { cnv, index ->
+        chrCounts[cnv.chr] = chrCounts.containsKey(cnv.chr) ? chrCounts[cnv.chr]+1 : 1 
+        cnv.chrIndex = chrCounts[cnv.chr]
+    }
+
+    List includeSamples = null
+    if(reportSamples) {
+        includeSamples = reportSamples.split(",")*.trim()
+    }
+    
+    def allCnvs = cnvs
+
+    cnvs = allCnvs.grep { it.type in cnvTypes && (!includeSamples || (it.sample in includeSamples)) }
+
+    log.println "${cnvs.size()} / ${allCnvs.size()} cnvs remain after filtering by types $types and samples ${includeSamples}"
+
+    // println("Processing ${cnvs.size()} cnvs")
+    //println(cnvs);
+    def cnv_labels = [
+        DEL : "Deletion",
+        DUP : "Duplication"
+    ]
+
+    // Find the Variants for each CNV
+    def sample_vcfs = cnvs.unique(false) {it.sample}.collectEntries { cnv ->
+        log.println "Raw VCF for $cnv.sample = $cnv.vcf"
+	if(cnv.vcf == null)
+		return [ cnv.sample, null ]
+        def vcf = cnv.vcf.endsWith(".bgz") ? cnv.vcf.replaceAll('.bgz$','') : cnv.vcf
+        log.println "Sample = $cnv.sample, used VCF = $vcf"
+        [ cnv.sample, new VCFIndex(vcf) ]
+    }
+
+    def sample_bams = bam_files ? bam_files.collectEntries { 
+        bam = new SAM(it)
+        [ bam.samples[0], new File(it).name ]
+    } : [:]
+
+    log.println "Loading variants ..."
+    def variants = cnvs.collect { cnv ->
+        def vcf = sample_vcfs[cnv.sample]
+        def variants = []
+    	if(vcf == null)
+    		return []
+        vcf.query(cnv.chr, cnv.start.toInteger(), cnv.end.toInteger()) { if(it.info.DP.toInteger()>5) variants.add(it) }
+        log.println "Loaded ${variants.size()} variants for cnv $cnv.chr:$cnv.start-$cnv.end ..."
+        if(variants.size()>50)
+            return []
+        else
+            return variants;
+    }
+
+    def anno_types = [ "DEL" : "LOSS", "DUP" : "GAIN" ]
+    
+    boolean hasDGV = cnvAnnotator != null
+    
+    if(hasDGV)
+        log.println "Including DGV annotations"
+    else
+        log.println "Excluding DGV annotations"
+    
+    boolean hasVariants = cnvs[0].het != null
+
+    log.println "Writing report ..."
+%>
+<html>
+    <head>
+        <title>CNV Report <%if(batch_name) { %>for $batch_name <% } %></title>
+        <style type='text/css'>
+
+            html {
+                xheight: 100%;
+            }
+            
+            body {
+                font-family: helvetica;
+                xheight: 100%;
+            }
+
+            #filterHelp {
+                font-size: 80%;
+                font-style: italic;
+                color: #888;
+            }
+ 
+            table th { text-align: left; }
+            table tr td:nth-child(1) { text-align: center; }
+            hr { clear: both; margin: 2em 0; }
+            img.cnvimg { display : block; }
+            table.cnvTable {
+                font-size: 10px;
+                font-family: verdana;
+            }
+            table.cnvTable th, table.cnvDetailTable th {
+                font-weight: bold;
+            }
+            .ui-layout-south {
+                font-size: 16px;
+                font-family: verdana;
+            }
+            .mydialog {
+                display: none;
+            }
+            #genelist {
+                height: 200px;
+                width: 100%;
+            }
+            .coveragePlotDiv {
+                float: right;
+            }
+            .highlighted { background-color: #ffeeff !important; }
+            .truncated { background-color: #ffffee !important; }
+            .genelist td:nth-of-type(3) { font-weight: bold; color: #ff6600 !important; }
+
+    	    /* jqModal base Styling courtesy of;
+    		    Brice Burgess <bhb@iceburg.net> */
+    
+    	    /* The Window's CSS z-index value is respected (takes priority). If none is supplied,
+    		    the Window's z-index value will be set to 3000 by default (via jqModal.js). */
+    		    
+    	    .jqmWindow {
+    		display: none;
+    		
+    		position: fixed;
+    		top: 17%;
+    		left: 50%;
+    		
+    		margin-left: -300px;
+    		width: 600px;
+    		
+    		background-color: #EEE;
+    		color: #333;
+    		border: 1px solid black;
+    		padding: 12px;
+    	    }
+            
+            #helptable {
+                font-size: 11px;
+                border-collapse: collapse;
+            }
+
+            #help {
+                border-radius: 6px 6px 0 0;
+                height: 60%;
+            }
+            #helptitle {
+                background-color: #444;
+                color: #fcfcfc;
+                padding: 4px;
+            }
+            #helpbody {
+                padding: 1em;
+                overflow: scroll;
+                font-size: 11px;
+                height: 90%;
+            }
+            #helptable th, #helptable td  {
+                border: solid 1px #444;
+                padding: 0.5em;
+            }
+            #helptable th {
+                font-weight: bold;
+                background-color: #444;
+                color: #fcfcfc;
+            }
+            .jqmWindow#help {
+                padding: 0 0 1em 0;
+            }            
+    	    .jqmOverlay { background-color: #000; }
+            
+            #ampliconButton {
+                position: absolute;
+                top: 1em;
+                right: 5em;
+            }
+            
+            #cnvVariants { 
+                font-size: 75%;
+            }
+            #cnvVariants { 
+                border-collapse: collapse;
+            }
+            
+            #cnvVariants th { 
+                background-color: black;
+                border: solid 1px #444; 
+                color: white;
+                padding: 3px;
+            }
+            #cnvVariants td { 
+                border: solid 1px #444; 
+                padding: 3px;
+            }
+            
+            #tags { float: right; }
+            
+            .assignedTag, .rowTagDiv {
+                background-color: red;
+                border-radius: 5px;
+                color: white;
+                display: inline;
+                padding: 3px 5px;
+                font-size: 75%;
+                margin: 3px;
+            }
+            
+            .rowTagDiv {
+                font-size: 55%;
+            }
+            
+            .tag0 {
+                background-color: #33aa33;
+            }
+            
+            .tag1 {
+                background-color: #3333ff;
+            }
+            
+            .tag2 {
+                background-color: #aa33aa;
+            }
+            
+            .tag3 {
+                background-color: #ff6600;
+            }
+               
+            .unassignedTag {
+                display: none;
+            }
+            
+            #copyDiv {
+                font-size: 9px;
+                font-family: courier;
+                background-color: white;
+                padding: 2px;
+                border: solid 1px #55f;
+                margin-top: 1em;
+            }
+        </style>
+        <script type='text/javascript' src='http://ajax.aspnetcdn.com/ajax/jQuery/jquery-2.1.0.min.js'></script>
+        <script type='text/javascript' src="http://cdn.datatables.net/1.10.0/js/jquery.dataTables.js"></script>
+ 
+        <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+        <script type='text/javascript' src='http://cdnjs.cloudflare.com/ajax/libs/jquery-layout/1.3.0-rc-30.79/jquery.layout.min.js'></script>
+        <script type='text/javascript' src='cnv.js'></script>
+
+        <link rel="stylesheet" href='http://cdn.datatables.net/1.10.0/css/jquery.dataTables.css'>
+        <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css" />
+        
+        <link rel="stylesheet" href='http://cdnjs.cloudflare.com/ajax/libs/jquery-layout/1.3.0-rc-30.79/layout-default.css'>
+        <script type='text/javascript'>
+            <% log.println "Writing cnv json" %>
+            var cnvs = <%=groovy.json.JsonOutput.toJson(
+                cnvs.collect { cnv ->
+                  def variantInfo = [:];
+                  if(hasVariants) {
+                      variantInfo = [
+                       het: cnv.het,
+                       hom: cnv.hom, 
+                       bal: ((cnv.bal == null || cnv.bal.isNaN())?null:cnv.bal), 
+                       truncated: cnv.variants.any { it.maxEffect?.isTruncating() }
+                      ]
+                  };
+                
+                  return [ chr : cnv.chr, start: cnv.from, end: cnv.to ] + 
+                      ['sample','type','count','stotal'].collectEntries { [it, cnv.getProperty(it)] } +
+                      [ genes : cnv.genes ? cnv.genes.split(",") : [] ] +
+                      cnv_callers.collect { caller -> 
+                          if(cnv[caller])
+                            [ caller, [ quality : cnv[caller].quality ] ] 
+                          else
+                            [ caller, false ]
+                      }.collectEntries() + variantInfo
+                }
+            )%>;
+            <% log.println "Writing variant json" %>
+            var cnvVariants = <%="[" + cnvs.collect{ "["+ (it.variants*.toJson(it.sample)?:[]).join(",") + "]" }.join(",") + "]"%>;
+            <% log.println "Writing callers json" %>
+            var callers = <%=groovy.json.JsonOutput.toJson(cnv_callers)%>;
+            <% log.println "Writing annotations json" %>
+            <% def annotations = cnvs.collect { cnv -> cnvAnnotator ? cnvAnnotator.annotate(new Region(cnv.chr, cnv.from..cnv.to), anno_types[cnv.type]) : [spanning: 0f, spanningFreq: 0f] }; %>
+            var annotations = <%=groovy.json.JsonOutput.toJson(annotations)%>;
+            
+            var bam_file_path = <%=groovy.json.JsonOutput.toJson(bam_file_path)%>;
+
+            var bams = <%=groovy.json.JsonOutput.toJson(sample_bams)%>;            
+            
+            var imgpath = "$imgpath";
+        </script>
+        <%=js%>
+    </head>
+    
+    <body>
+        <div id='innerLayout' class='ui-layout-center'>
+        
+          <div class='ui-layout-north'>
+            <h3 style='display:inline;'>CNV Report <%if(batch_name) { %>for $batch_name <% } %></h3>
+            <input type=checkbox id='filterHVR' name='filterHVR'> Filter out high variability regions
+            <span id=filterOuter><span id=filters> </span></span>
+            <div id=filterHelp style='display:none'> </div>
+          </div>
+     
+          <div class="ui-layout-center">
+            <div id=callstab>
+                 <div id=tableHolder>
+                    <table id='cnvTable' class='stripe'>
+                        <thead>
+                            <%
+                             List tableHeaders = ['','Index','Genes','Region','Size','Type','True?','Callers','Sample','Conc']
+                             if(hasVariants)
+                                tableHeaders.addAll(['Het Count', 'Hom Count', 'Balance'])
+                             if(hasDGV)
+                                tableHeaders.addAll(['DGV Match', 'DGV Span', 'Freq'])
+                                
+                             if(!cnv_callers.contains("truth")) {
+                                tableHeaders.remove("True?")
+                             }
+                            %>
+                            <tr><%=tableHeaders.collect{"<th>$it</th>"}.join('')%></tr>
+                        </thead>
+                        <tbody>
+                        <% cnvs.eachWithIndex { cnv, index -> %>
+                            <% log.println "Writing cnv $index ($cnv.chr:$cnv.start-$cnv.end)" %>
+                            <% def genes = cnv.genes.split(",") as List; 
+                               if(genes.size()>5) {
+                                 genes = [genes[0],genes[1],"... ${genes.size()-4} genes ...",genes[-2],genes[-1]]
+                               }
+                            %>
+                            <tr class='cnvRow' id='cnv_${index}_row'>
+                                <td></td>
+                                <td><a href='#cnv_${index+1}_detail'>${index+1}</a></td>
+                                <td>${genes.join(",")}</td>
+                                <td>${cnv.chr}:${cnv.from}-${cnv.to}</td>
+                                <td>${cnv.to - cnv.from}</td>
+                                <td>${cnv.type}</td>
+                                <%if(cnv_callers.contains("truth")) {%>
+                                    <td><%=cnv["truth"]!=null?"Yes":"No"%></td>
+                                <%}%>
+                                <td><%=cnv_callers.grep { it != "truth" && cnv[it] !=null }.join(",")%></td>
+                                <td>${cnv.sample}</td>
+                                <td>${cnv.count}</td>
+                                <%if(hasVariants) {%>
+                                    <td>${cnv.het == null ? '' : cnv.het}</td>
+                                    <td>${cnv.hom == null ? '' : cnv.hom}</td>
+                                    <td>${!(cnv.bal == null || cnv.bal.isNaN()) ? String.format("%2.3f",cnv.bal.toFloat()) : ''}</td>
+                                <%}%>
+                                <%if(hasDGV) {%>
+                                    <td>${annotations[index].matching?.size()?:""}</td>
+                                    <td>${annotations[index].spanning.size()}</td>
+                                    <td>${String.format("%.4f",annotations[index].spanningFreq)}</td> 
+                                <%}%>
+                            </tr>
+                        <% } %>
+                        </tbody>
+                    </table>
+                  </div> <!-- tableHolder -->
+             </div><%/* callstab */ %>
+        </div> <%/* ui-layout-center */%>
+
+        <div class="ui-layout-south" id="ui-layout-south">Report created ${new Date()}</div>
+            
+        <div id='help' class='mydialog modal-dialog jqmWindow'>
+                <div id='helptitle'>Help</div>
+                <div id='helpbody'>
+                    <h3>Fields</h3>
+                    <table id='helptable'>
+                        <thead>
+                            <tr><th>Field</th><th>Description</th><th>Notes/Tips</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><th>Region</th><td>The region spanned by the union of the calls from all the CNV callers that reported an overlapping CNV in the region.</td><td>This region may not match a call from any one CNV caller. It is the result of merging all the calls together from all callers. View the CNV details by clicking on it to understand the individual calls.</td></tr>
+                            <tr><th>Conc</th><td>The number of CNV callers that detected the CNV.</td><td>This count does not imply that the callers agreed about the breakpoints, size, or boundaries of the CNV. Concordance is based on overlap of at least 1bp.</td></tr>
+                            <tr><th>Het</th><td>The number of heterozygous variant calls reported overlapping the CNV region</td>
+                                            <td>Deletions should exhibit a loss of
+                                            heterozygosity, thus the presence of
+                                            het calls throughout a deletion can
+                                            indicate it may be a false positive.
+                                            However poor breakpoint resolution
+                                            means that het calls may still occur
+                                            even when a call was generated by a
+                                            real deletion. View the deletion detail
+                                            to understand the distribution of the
+                                            calls.</td></tr>
+                            <tr><th>Hom</th><td>The number of homozygous variant calls reported overlapping the CNV region</td><td>Deletions should exhibit a loss of heterozygosity, thus the presence of a run of homozygous variants with no intervening heterozygous variants can provide supporting evidence that a deletion is real.</td></tr>
+                            <tr><th>Balance</th><td>The mean of the ratio of reads supporting heterozygous variant calls over the CNV region.</td><td>Good quality heterozygous variant calls should be theoretically supported by equal numbers of reads from the reference and the alternate alleles. In such a case, this value will be close to 1.0.
+                                                    A skew in this value over a deletion may indicate that the heterozygous calls are not real and can be ignored. A skew over a duplication may support the duplication if the ratio matches that
+                                                    expected by the duplication (for example, 2/3 or 3/2).</td></tr>
+                            <tr><th>Spanning Freq</th><td>The highest frequency of a single spanning CNV of the same type reported within a study in DGV.</td><td>This is not the total fraction of samples reported in DGV with a spanning CNV. It is the highest fraction for a single CNV from any individual study within DGV.</td></tr>
+                            <tr><th>Callers</th><td>Which callers reported a CNV event overlapping the call</td><td>Callers may disagree on the breakpoint of the CNV.</td></tr>
+                        </tbody>
+                    </table>
+                    <h3>Filtering</h3>
+    
+    
+                    <p>The report can be filtered in two separate ways:</p>
+                    <ul>
+                        <li>Quick filtering: typing into the search box in the top right of the table performs a global search across all fields in the table, treating them as text fields</li>
+                        <li>Filter expressions: filter expressions can be added that interrogate specific fields in the table using Javascript expressions. The result of each filter expression
+                            is evaluated to 'true' or 'false' (where false, null or empty values equate to false), and 'false' values are filtered out.
+                    </ul>
+    
+                    <p>The filter expressions operate on variables that are predefined
+                    for each row of the table. The available variables are
+                    displayed when you click the "Add Filter" button. In most cases
+                    each variable relates directly to a column in the table, however some 
+                    variables may not be displayed in the table, and in some cases their
+                    presentation in the table may be slightly different to the value in the variable itself.
+                    </p>
+    
+                    <p><em>Compound Expressions</em></p>
+                    <p>
+                        Compound expressions can be formed using Javascript syntax via boolean operators:
+                        <ul>
+                            <li> A || B : A or B. Example: sample.startsWith("X17") || chr == "chr4"
+                            <li> A &amp;&amp; : A and B. Example: type == "DEL" &amp;&amp; count &gt; 2
+                        </ul>
+    
+                        Parentheses can be used to group operators:
+    
+                        &nbsp;&nbsp;hom &gt; 4 &amp;&amp; (count &gt; 2 || xhmm)
+                    </p>
+    
+    
+                    <h3>Gene Lists</h3>
+                    <p>
+                     Enter a list of genes to highlight by clicking the 'Gene List' button. 
+                     These genes will be highlighted with orange bold text. You can filter 
+                     to show only CNVs covering genes in the gene list by using the 'category'
+                     variable:
+                     <ul>
+                        <li>category &gt; 0</li>
+                     </ul>
+                     </p>
+                    
+                    <h3>Filter Variables</h3>
+    
+                    <table id='helptable'>
+                        <thead>
+                            <tr><th>Variable(s)</th><th>Table Column</th><th>Notes/Tips/Example</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><th>chr</th><td>The chromosome portion from the Region column</td><td>chr == "chr8"</td></tr>
+                            <tr><th>start</th><td>The start coordinate from the Region column</td><td>start &gt; 100304</td></tr>
+                            <tr><th>end</th><td>The end coordinate from the Region column</td><td>end &lt; 250000</td></tr>
+                            <tr><th>width</th><td>Size column</td><td>width &gt; 5000</td></tr>
+                            <tr><th>type</th><td>Type column</td><td>type == "DEL"</td></tr>
+                            <tr><th>&lt;caller name&gt;</th><td>Each CNV caller by name, true if displayed in the Callers column</td><td>angelhmm &amp;&amp; xhmm</td></tr>
+                            <tr><th>&lt;caller name&gt.quality;</th><td>N/A</td>
+                                <td>The quality of the best call by the given caller over the CNV region. eg:
+                                    <br>
+                                    angel.quality > 20
+                                    </td></tr>
+                            <tr><th>sample</th><td>Sample column</td><td><ol><li>sample == "MUW09_S12"<li>sample.startsWith("X17")</ol></td></tr>
+                            <tr><th>spanning</th><td>DGV Span column</td><td>spanning &lt; 10</td></tr>
+                            <tr><th>spanningFreq</th><td>Freq column</td><td>spanningFreq &lt; 0.01</td></tr>
+                            <tr><th>tags.&lt;tag&gt;</th><td>True if tag &lt;tag&gt; was assigned to CNV</td><td>tags.followup</td></tr>
+                        </tbody>
+                    </table>
+                </div>             
+      </div> <% /* innerLayout */ %>
+    </body>
+</html>
+<% } /* end log writer */ %>

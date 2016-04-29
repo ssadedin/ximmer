@@ -1,27 +1,18 @@
 println "=" * 100
-println "Ximmer Deletion Simulator " + (new Date().toString())
+println "CNV Simulator " + (new Date().toString())
 println "=" * 100
 println ""
 
-Cli cli = new Cli(
-        usage:"java -jar ximmer.jar [options]\n",
-        header:"Ximmer is a tool for simulating deletions in exome or targeted high throughput sequencing data",
-        footer:"""
-        Example:
-
-            java -jar ximmer.jar -n 1 -f NA12878 -m NA19239 -bam na12878.bam -bam na19239.bam -r target.bed -o deletions.bed 
-
-        """
-)
-
+Cli cli = new Cli(usage:"SimulateCNVs [options]\n")
 cli.with {
-    n "Number of target regions the CNVs should cover (required)", args:1, required: true
-    f "Sample names of females to simulate for", longOpt: "females", args: 1, required: true
-    m "Sample names of males from which to select from when simulating", longOpt:"male", args: 1, required:true
-    r "BED file of regions in which CNVs should be simulated (eg: target region for exome capture) (required)", longOpt: "regions", args:1, required: true
-    o "output file to write regions of true CNVs to (BED format)(required)", longOpt: "output", args:1, required:true
-	bam "BAM files for samples (required unles specified via sample information file)", args: Cli.UNLIMITED
-    so "output file to write sample information to (optional)", args:1
+    n "Number of regions the CNVs should cover", args:1, required: true
+    f "Sample names of females to simulate for (required if not using -ped)", longOpt: "females", args: 1
+    m "Sample names of males from which to select from when simulating (required if not using -ped)", longOpt:"male", args: 1
+    ped "PED file describing sexes of samples supplied by -bam (required unless using -f, -m)", args:1
+    r "BED file of regions in which CNVs should be simulated", longOpt: "regions", args:1, required: true
+    o "output file to write regions of true CNVs to (BED format)", longOpt: "output", args:1, required:true
+	bam "BAM files for samples (optional if bam files are specified in sample information file)", args:1
+    so "output file to write sample information to", args:1
     i "sample information file (tab separated, MGHA format, required for -so)", args:1
     cov "mean target coverage for simulated samples (default: maximise) - requires -abed", args:1
     abed "bed file of covered regions (required for -cov)", args:1
@@ -42,8 +33,22 @@ if(opts.d && !outputDir.exists())
     if(!outputDir.mkdirs() && !outputDir.exists()) // second check necessary due to race condition
         throw new IOException("Cannot create directory ${opts.d}")
 
-List males = opts.ms
-List females = opts.fs
+def males = opts.ms
+def females = opts.fs
+
+if(!males || !females) {
+    
+    if(!opts.ped) {
+        System.err.println "Please specify sexes of samples using either -f and -m options, or alternatively, using -ped"
+        cli.usage()
+        System.exit(1)
+    }
+    
+    // Get sexes from PED file
+    Pedigrees peds = Pedigrees.parse(opts.ped)
+    males = peds.subjects.grep { it.value.sex == Sex.MALE }.collect { it.id }
+    females = peds.subjects.grep { it.value.sex == Sex.FEMALE }.collect { it.id }
+}
 
 Map samples = [:]
 if(opts.i)
@@ -83,17 +88,13 @@ if(opts.cov && !opts.abed) {
 }
 
 // Index the bam files we have by sample name
+//Map<String,String> bamFiles = samples.grep { entry -> entry.value.files.bam != null }.collectEntries { entry-> [entry.key, entry.value.info.files.bam[0] ] }
 Map<String,String> bamFiles = samples.grep { entry -> entry.value.files.bam != null }.collectEntries { entry-> [entry.key, entry.value.files.bam[0] ] }
 
 // For each bam file provided as a command line argument
 if(opts.bams) {
 	opts.bams.each { bam ->
-        def bamSamples = new SAM(bam).samples
-        if(bamSamples.size()>1) {
-            System.err.println "BAM fie $bam contains multiple samples. Unfortunately Ximmer does not currently support multi-sample BAM files"
-            System.exit(1)
-        }
-		bamFiles[bamSamples[0]] = bam
+		bamFiles[new SAM(bam).samples[0]] = bam
 	}
 }
 
@@ -112,16 +113,13 @@ for(female in females) {
     // Parse out the male    
     println "Males are $males"
             
-    int selectedMale = Math.floor(Math.random() * males.size())
+    int selectedMale = Math.floor(random.nextDouble() * males.size())
     
     def selectedMaleSample = males[selectedMale]
     println "Selected male $selectedMale (${selectedMaleSample})"
         
     // Select a region - this is rather simple
-    Regions bed = new BED(opts.r).load()
-    if(opts.mode != "downsample") {
-        bed = bed.grep { it.chr == 'chrX' || it.chr == 'X' } as Regions
-    }
+    BED bed = new BED(opts.r).load()
         
     CNVSimulator simulator = new CNVSimulator(bamFiles[female], bamFiles[males[selectedMale]])
     simulator.random = random

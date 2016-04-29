@@ -2,7 +2,7 @@ apply plugin: 'groovy'
 
 project.ext {
     VERSION="0.1.0"
-    GROOVY_VERSION="2.3.4"
+    GROOVY_VERSION="2.4.5"
     mainClassName = 'SimulateCNVs'
 }
 
