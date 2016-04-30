@@ -34,6 +34,8 @@ class Ximmer {
     
     File dgvMergedFile
     
+    File hg19RefGeneFile
+    
     boolean enableSimulation = true
     
     Ximmer(ConfigObject cfg, String outputDirectory, boolean simulate) {
@@ -67,12 +69,20 @@ class Ximmer {
         
         if(!cacheDirectory.exists())
             cacheDirectory.mkdirs()
-        
+            
         dgvMergedFile = new File(cacheDirectory, "dgvMerged.txt.gz")    
         if(!dgvMergedFile.exists()) {
             dgvMergedFile.withOutputStream { o -> 
                 log.info("Downloading DGV database from UCSC ...")
                 o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/dgvMerged.txt.gz").openStream() 
+            }
+        }
+        
+        hg19RefGeneFile = new File(cacheDirectory, "refGene.txt.gz")    
+        if(!hg19RefGeneFile.exists()) {
+            hg19RefGeneFile.withOutputStream { o -> 
+                log.info("Downloading DGV database from UCSC ...")
+                o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/refGene.txt.gz").openStream() 
             }
         }
     }
@@ -130,7 +140,7 @@ class Ximmer {
                 "-p","DGV_CNVS=${dgvMergedFile.absolutePath}",
                 "-p","XIMMER_SRC=$ximmerSrc",
                 "-p", "callers=$callers",
-                "-p", "refgene=/Users/simon/work/cpipe/tools/annovar/humandb/hg19_refGene.txt",
+                "-p", "refgene=${hg19RefGeneFile.absolutePath}",
                 "-p", "simulation=${enableSimulation}",
                 "-p", "batch_name=analysis",
                 "-p", "target_bed=$targetRegionsPath", 
