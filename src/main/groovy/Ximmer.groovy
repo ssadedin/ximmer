@@ -137,7 +137,7 @@ class Ximmer {
                 "bash",
                 bpipe.absolutePath,
                 "run",
-                "-n $concurrency",
+                "-n", "$concurrency",
                 "-p","TOOLS=$toolsPath",
                 "-p","DGV_CNVS=${dgvMergedFile.absolutePath}",
                 "-p","XIMMER_SRC=$ximmerSrc",
