@@ -67,6 +67,8 @@ run_exome_depth = {
         # which is actually the GC percentage
         dsd.samples = colnames(dsd.counts)[-1]
 
+	write(paste("start.p","end.p","type","nexons","start","end","chromosome","id","BF","reads.expected","reads.observed","reads.ratio","sample",sep="\\t"), "$output.tsv")
+
         for(dsd.test.sample in dsd.samples) {
 
             print(sprintf("Processing sample %s", dsd.test.sample))
@@ -113,9 +115,7 @@ run_exome_depth = {
                             row.names=F,
                             col.names=F,
                             append=T)
-            } else {
-                write(paste("start.p","end.p","type","nexons","start","end","chromosome","id","BF","reads.expected","reads.observed","reads.ratio","sample",sep="\t"), $output.tsv, append=T)
-            }
+            } 
         }
 
         print(sprintf("Finished"))
