@@ -107,10 +107,15 @@ run_exome_depth = {
             dsd.results$sample = rep(dsd.test.sample, nrow(dsd.results))
 
             print(sprintf("Writing results ..."))
-            write.table(file="$output.tsv", 
-                        x=dsd.results,
-                        row.names=F,
-                        append=T)
+            if(nrow(dsd.results)>0) {
+                write.table(file="$output.tsv", 
+                            x=dsd.results,
+                            row.names=F,
+                            col.names=F,
+                            append=T)
+            } else {
+                write(paste("start.p","end.p","type","nexons","start","end","chromosome","id","BF","reads.expected","reads.observed","reads.ratio","sample",sep="\t"), $output.tsv, append=T)
+            }
         }
 
         print(sprintf("Finished"))
