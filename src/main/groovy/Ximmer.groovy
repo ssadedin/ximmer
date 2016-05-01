@@ -131,11 +131,13 @@ class Ximmer {
         String targetRegionsPath = new File(cfg.target_regions).absolutePath
         String toolsPath = new File("eval/tools").absolutePath
         String ximmerSrc = new File("src/main/groovy").absolutePath
+        int concurrency = cfg.containsKey("concurrency") ? cfg.concurrency : 2
         
         List<String> bpipeCommand = [
                 "bash",
                 bpipe.absolutePath,
                 "run",
+                "-n $concurrency",
                 "-p","TOOLS=$toolsPath",
                 "-p","DGV_CNVS=${dgvMergedFile.absolutePath}",
                 "-p","XIMMER_SRC=$ximmerSrc",
