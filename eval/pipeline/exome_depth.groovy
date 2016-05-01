@@ -23,7 +23,7 @@ run_exome_depth = {
 
     R({"""
 
-        source("tools/r-utils/cnv_utils.R")
+        source("$TOOLS/r-utils/cnv_utils.R")
 
         library(ExomeDepth)
 
