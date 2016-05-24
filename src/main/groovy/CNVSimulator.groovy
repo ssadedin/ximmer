@@ -425,7 +425,7 @@ class CNVSimulator {
         log.info "Chromosomes in target region are " + chromosomes
         
         List<String> suitableChromosomes = chromosomes.grep {  chr ->
-            (fromRegions.allRanges[chr].size() > numRanges * 2) && (chr ==~ /^chr[0-9X]/)
+            (fromRegions.allRanges[chr].size() > numRanges * 2) && (chr ==~ /^chr[0-9X]*/)
         }
         
         log.info "Suitable chromosomes for simulation are " + suitableChromosomes
