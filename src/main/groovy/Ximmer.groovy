@@ -4,6 +4,7 @@ import graxxia.Matrix
 import groovy.text.SimpleTemplateEngine
 import groovy.transform.CompileStatic;
 import groovy.util.logging.Log
+import groovyx.gpars.GParsPool;
 import net.sf.samtools.BAMIndexer;
 import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMRecord;
@@ -265,18 +266,25 @@ class Ximmer {
         if(!bamDir.exists())
             throw new IOException("Unable to create run directory: $bamDir")
          
+        int concurrency = cfg.containsKey("concurrency") ? cfg.concurrency : 2
+        
+        log.info "Creating output BAM file swith concurrency $concurrency"
+        
         // Compute the target samples
         List<SAM> targetSamples = computeTargetSamples()
         List<Region> simulatedCNVs = []
-        for(SAM targetSample in targetSamples) {
-            // Choose number of regions randomly in the range
-            // the user has given
-            int numRegions = cfg.regions.from + random.nextInt(cfg.regions.to - cfg.regions.from)
-            Region cnv = simulateSampleCNV(bamDir, targetSample, numRegions)
-            cnv.sample = targetSample.samples[0]
-            simulatedCNVs << cnv
-        }
         
+        GParsPool.withPool(concurrency) {
+            targetSamples.eachParallel { SAM targetSample ->
+                // Choose number of regions randomly in the range
+                // the user has given
+                int numRegions = cfg.regions.from + random.nextInt(cfg.regions.to - cfg.regions.from)
+                Region cnv = simulateSampleCNV(bamDir, targetSample, numRegions)
+                cnv.sample = targetSample.samples[0]
+                simulatedCNVs << cnv
+            }
+        }
+            
         trueCnvsFile.withWriter { w -> 
             w.println simulatedCNVs.collect { [it.chr, it.from, it.to+1, it.sample ].join("\t") }.join("\n")
         }
@@ -284,6 +292,7 @@ class Ximmer {
     }
     
     Region simulateSampleCNV(File outputDir, SAM targetSample, int numRegions) {
+        
         
         if(cfg.simulation_type == "downsample") {
             CNVSimulator simulator = new CNVSimulator(targetSample, null)
