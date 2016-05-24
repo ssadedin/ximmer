@@ -473,7 +473,7 @@ class CNVDiagram {
                 this.samples.removeAll(missingCovs)
             }
             else {
-                err.println "The follwowing samples do not have coverage information provided: $missingCovs"
+                err.println "The following samples do not have coverage information provided: $missingCovs"
                 return false
             }
         }
@@ -493,6 +493,7 @@ class CNVDiagram {
             region 'A single region to plot, alternative to providing -cnvs', args:1
             xhmm 'CNV calls from XHMM', args:1
             cnmops 'CNV calls from CN.mops', args:1
+            cfr 'CNV calls from Conifer', args:1
             angel 'Deletion calls from Angel', args:1
             ed 'CNV calls from Exome Depth', args:1
             generic  'CNV calls in BED format, sample in id column', args:Cli.UNLIMITED
@@ -527,6 +528,8 @@ class CNVDiagram {
             cnvCalls.xhmm = new XHMMResults(opts.xhmm).load()
         if(opts.cnmops) 
             cnvCalls.mops = new CNMopsResults(opts.cnmops).load()
+        if(opts.cfr) 
+            cnvCalls.cfr = new ConiferResults(opts.cfr).load()
         if(opts.generics) {
             opts.generics.each { cnvBedFileAndName ->
                 

@@ -64,6 +64,12 @@ plot_cnv_coverage = {
             if('angelhmm' in cnv_callers) 
                caller_opts << "-angel $input.angelhmm.cnvs.bed"
 
+            if('cfr' in cnv_callers) 
+               caller_opts << "-cfr $input.conifer.cnvs.tsv"
+               
+            if(simulation) 
+                caller_opts << "-generic truth:$input.true_cnvs.bed"
+                 
             exec """
                 unset GROOVY_HOME 
 
@@ -72,8 +78,8 @@ plot_cnv_coverage = {
                     -targets $target_bed
                     -o ${output.dir+"/cnv.png"} 
                     -xmean $reportSamplesFlag
-                    -t $threads ${caller_opts.join(" ")} ${inputs.vcf.withFlag("-vcf")}
-                    -refseq $refgene ${inputs.bam.withFlag("-bam")}
+                    -t $threads ${caller_opts.join(" ")} ${inputs.vcf.withFlag("-vcf")} ${inputs.bam.withFlag("-bam")}
+                    -refseq $refgene
             ""","plot_cnv_coverage"
         }
       }
