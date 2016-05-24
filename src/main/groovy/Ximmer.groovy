@@ -50,7 +50,7 @@ class Ximmer {
     List<File> runDirectories = []
     
    
-    void run() {
+    void run(analyse=true) {
         
         this.cacheReferenceData()
         
@@ -62,9 +62,11 @@ class Ximmer {
         
         this.simulate()
         
-        this.runAnalysis()
+        if(analyse) {
+            this.runAnalysis()
         
-        this.generateReport()
+            this.generateReport()
+        }
     }
     
     void cacheReferenceData() {
@@ -588,6 +590,7 @@ class Ximmer {
         cli.with {
             c "Configuration file", args:1, required:true
             o "Output directory", args:1, required:true
+            simonly "Run only simulation component"
             nosim "Analyse samples directly (no simulation)"
             v "Verbose output"
         }
@@ -598,12 +601,14 @@ class Ximmer {
         }
         
         MiscUtils.configureSimpleLogging("ximmer.log")
-        if(opts.v)
+        if(opts.v) {
             MiscUtils.configureVerboseLogging()
+            log.info "Configured verbose logging"
+        }
         
         // Parse the configuration
         ConfigObject cfg = new ConfigSlurper().parse(new File(opts.c).text)
         
-        new Ximmer(cfg, opts.o, !opts.nosim).run()
+        new Ximmer(cfg, opts.o, !opts.nosim).run(!opts.simonly)
     }
 }
