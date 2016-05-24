@@ -98,6 +98,9 @@ find_extreme_gc_content = {
 }
 
 xhmm_mean_center = {
+
+    var xhmm_max_mean_rd : 1000
+
     from("sample_interval_summary", "extremegc.txt") {
         transform("centered","excluded.targets","excluded.samples") {
             exec """
@@ -110,9 +113,9 @@ xhmm_mean_center = {
                     --excludeTargets $input2 
                     --minTargetSize 10
                     --maxTargetSize 10000 
-                    --minMeanTargetRD 10 --maxMeanTargetRD 500 
-                    --minMeanSampleRD $min_sample_mean --maxMeanSampleRD 200 
-                    --maxSdSampleRD 150
+                    --minMeanTargetRD 10 --maxMeanTargetRD $xhmm_max_mean_rd 
+                    --minMeanSampleRD $min_sample_mean --maxMeanSampleRD $xhmm_max_mean_rd 
+                    --maxSdSampleRD 180
             """
         }
     }
