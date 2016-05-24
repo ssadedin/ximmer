@@ -48,6 +48,7 @@ load_xhmm_results = function(file.name,sample.tag=NA) {
   # Load output from XHMM and return it in a "standardized" format
   # CHR START END TYPE QUALITY SAMPLE
   raw = read.table(file.name, header=T, colClasses=c("character"))
+  raw$Q_SOME = as.numeric(raw$Q_SOME)
  
   raw$start = as.integer(gsub("^.*:","",gsub("-.*$","",raw$INTERVAL)))
   raw$end = as.integer(gsub("^.*-","",raw$INTERVAL))
@@ -1606,3 +1607,6 @@ sim.callers.labels = list(ex="Excavator",ed="ExomeDepth",xhmm="XHMM",ec="ExomeCo
 sim.callers.colors= list(ex="orange",ed="blue",ang="green",xhmm="red",ec="purple")
 sim.callers.symbols= list(ex=21, ed=22,ang=23,xhmm=24,ec=25)
 color.complement = list(orange="black", blue="white", green="black", red="black",purple="white")
+
+
+
