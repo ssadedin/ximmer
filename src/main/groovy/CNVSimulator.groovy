@@ -424,7 +424,16 @@ class CNVSimulator {
         
         log.info "Chromosomes in target region are " + chromosomes
         
-        String chromosome = chromosomes.size() > 1 ? chromosomes[this.random.nextInt(chromosomes.size()-1)] : chromosomes[0]
+        List<String> suitableChromosomes = chromosomes.grep {  chr ->
+            (fromRegions.allRanges[chr].size() > numRanges * 2) && (chr ==~ /^chr[0-9X]/)
+        }
+        
+        log.info "Suitable chromosomes for simulation are " + suitableChromosomes
+        
+        if(suitableChromosomes.isEmpty())
+            throw new RuntimeException("The target regions supplied do not have $numRanges regions on any chromosome. Please decrease the size of deletions to simulate.")
+        
+        String chromosome = suitableChromosomes.size() > 1 ? suitableChromosomes[this.random.nextInt(suitableChromosomes.size()-1)] : suitableChromosomes[0]
         
         log.info "Selected chromosome " + chromosome + " to simulate next deletion"
         
