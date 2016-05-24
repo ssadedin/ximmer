@@ -307,7 +307,12 @@
             </div> <!-- sizebreakdown -->
             
             <div id=qscorecalibration>
-            <img src='dummy_qscore_plot.png'>
+            <h2>Quality Score Calibration Curves</h2>
+            <p>
+                These curves estimate the precision as quality varies for each CNV caller. Use these curves
+                to determine the appropriate level of filtering to control your false discovery rate.
+            </p>
+            <img src='qual_score_calibration.png'>
             </div> <!-- qscore calibration -->
            
             <%runDirectories.eachWithIndex { File runDir, runIndex  -> %>

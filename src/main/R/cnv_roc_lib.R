@@ -648,8 +648,24 @@ bin.cnv.results = function(truth, truth.bins, results) {
 
 
  
-plot.qscore.calibration = function(qscore.results, newPlot=T, plot.title="Quality Score Calibration", cex.lab=1.0, ...) {
-  qscore.results.bins = c(-10,0,5,10,20,30,40,50,60)
+plot.qscore.calibration = function(caller, qscore.results.all, newPlot=T, plot.title=NA, cex.lab=1.0, ...) {
+  
+  qscore.results = qscore.results.all[[caller]]
+  
+  phred.scaled.callers = c("xhmm","ed")
+  
+  if(caller %in% phred.scaled.callers) {
+    qscore.results.bins = c(-10,0,5,10,20,30,40,50,60)
+    plot.xlab = "Phred Scaled Quality Score"
+  }
+  else {
+    qscore.results.bins = pretty(qscore.results$qual, 8)
+    plot.xlab = "Raw Quality Score"
+  }
+  
+  if(is.na(plot.title)) {
+   plot.title = sprintf("Quality Score Calibration for %s", sim.caller.labels[[caller]])
+  }
   
   qscore.results.bins.tprate = by(mcols(qscore.results), cut(qscore.results$qual, qscore.results.bins), function(cnvs) {
     printf("sum(cnvs$true)=%d",sum(cnvs$true))
@@ -664,11 +680,11 @@ plot.qscore.calibration = function(qscore.results, newPlot=T, plot.title="Qualit
   if(newPlot) {
     plot(c(-10,bin.centres),
          c(0, qscore.results.bins.tprate),
-         xlim=c(-10,60),
+         xlim=c(min(qscore.results.bins),max(qscore.results.bins)),
          ylim=c(0,1),
          pch=19,
          main=plot.title,
-         xlab="Phred Scaled Quality Score",
+         xlab=plot.xlab,
          ylab="Proportion of true positives (Precision)",
          cex.lab=cex.lab,
          type="n"
