@@ -98,6 +98,13 @@ sens_by_del_plot_frame(bin.levels = bin.levels, plot.xlab = "Deletion Size (span
 plot.binned.performance(r=x.binned, bin.levels=bin.levels, palette=plot.colors, log.scale = T)
 dev.off()
 
+##--------------- Quality Score Calibration
+
+png("qual_score_calibration.png", width=960, height=250*length(sim.callers))
+par(mfrow=c(length(sim.callers)/2,2))
+for(caller in sim.callers) {
+  plot.qscore.calibration(caller, ranked, newPlot=T, col="darkgreen")
+}
+dev.off()
 
 
- 
