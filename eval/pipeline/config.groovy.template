@@ -1,5 +1,8 @@
 // ======================= Required to Set =======================
 
+// Full path to base of Ximmer installation
+BASE="..."
+
 // Location of HG19 reference sequence
 // TODO: Edit this to put in the path to your HG19 reference fasta!
 HGFA="....."
@@ -13,24 +16,36 @@ DGV_CNVS=false
 
 // ======================= Advanced properties =======================
 
+TOOLS="$BASE/tools"
+
 // Needed by CRAM support inside anything using Picard
 System.properties.reference=HGFA
 
-GATK="./tools/gatk/2.3.9"
+GATK="$TOOLS/gatk/2.3.9"
 
 EXCAVATOR="tools/excavator/2.0"
-XHMM="./tools/xhmm/trunk/build/execs"  
+XHMM="$TOOLS/xhmm/trunk/build/execs"  
 
 // These are found in the path by default, but you can 
 // set specific paths here if you wish to resolve to a particular
 // samtools version
 SAMTOOLS="samtools"
 
-PERL5="./tools/perl5"
+PERL5="$TOOLS/perl5"
 
-CRAMTOOLS="./tools/cramtools/2.1/cramtools.jar"
+CRAMTOOLS="$TOOLS/cramtools/2.1/cramtools.jar"
+
+CONIFER="$TOOLS/conifer/0.2.2"
+
+GNGS_JAR="$TOOLS/groovy-ngs-utils/1.0.3/groovy-ngs-utils.jar"
+
+// ======================= Languages =======================
 
 // Groovy distribution for running in the pipeline (should be the same
 // as that which the bundled bpipe uses, as well as the one that
 // the groovy-ngs-utils is compiled with
-GROOVY="./tools/groovy/2.3.4/bin/groovy"
+GROOVY="$TOOLS/groovy/2.4.5/bin/groovy"
+
+JAVA="java"
+
+PYTHON="python"
