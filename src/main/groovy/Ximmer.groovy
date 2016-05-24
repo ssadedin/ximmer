@@ -1,3 +1,5 @@
+import java.nio.file.Files;
+
 import graxxia.Matrix
 import groovy.text.SimpleTemplateEngine
 import groovy.transform.CompileStatic;
@@ -356,6 +358,15 @@ class Ximmer {
                 summaryHTML : summaryHTML,
                 callers: callers
             ).writeTo(w)
+        }
+        
+        // We need to also copy the cnv.js file, because the individual CNV reports 
+        // put it into the wrong location
+        
+        File cnvJs = new File(outputDirectory,"cnv.js")
+        if(!cnvJs.exists()) {
+            Files.copy(new File("src/main/resources/cnv_report.js").toPath(), 
+                       cnvJs.toPath())
         }
     }
     
