@@ -2,5 +2,5 @@
 
 unset GROOVY_HOME
 
-JAVA_OPTS="-Xmx24g -Dsnappy.disable=true" ./eval/tools/groovy/2.4.5/bin/groovy -cp src/main/groovy:eval/tools/groovy-ngs-utils/1.0.3/groovy-ngs-utils.jar src/main/groovy/Ximmer.groovy $*
+JAVA_OPTS="-Xmx24g -Dsnappy.disable=true" ./eval/tools/groovy/2.4.6/bin/groovy -cp src/main/groovy:eval/tools/groovy-ngs-utils/1.0.4/groovy-ngs-utils.jar src/main/groovy/Ximmer.groovy $*
 
