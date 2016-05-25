@@ -37,14 +37,14 @@ CRAMTOOLS="$TOOLS/cramtools/2.1/cramtools.jar"
 
 CONIFER="$TOOLS/conifer/0.2.2"
 
-GNGS_JAR="$TOOLS/groovy-ngs-utils/1.0.3/groovy-ngs-utils.jar"
+GNGS_JAR="$TOOLS/groovy-ngs-utils/1.0.4/groovy-ngs-utils.jar"
 
 // ======================= Languages =======================
 
 // Groovy distribution for running in the pipeline (should be the same
 // as that which the bundled bpipe uses, as well as the one that
 // the groovy-ngs-utils is compiled with
-GROOVY="$TOOLS/groovy/2.4.5/bin/groovy"
+GROOVY="$TOOLS/groovy/2.4.6/bin/groovy"
 
 JAVA="java"
 
