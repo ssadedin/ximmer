@@ -369,19 +369,22 @@ class CNVSimulator {
      * @param region
      * @return
      */
-    Region findCleanRegion(Region seedRegion) {
+    Region findCleanRegion(Regions fromRegions, Region seedRegion) {
+        
+        // Create a search window to expand the regions into
+        Regions seedWindow = fromRegions.window(seedRegion, 10).grep { it.chr == seedRegion.chr } as Regions
         
         String chromosome = seedRegion.chr
         
         if(maleReadRegions == null && maleBam != null) {
-            maleReadRegions = maleBam.toPairRegions(chromosome,0,0,500)
+            maleReadRegions = maleBam.toPairRegions(chromosome,seedWindow[0].from,seedWindow[-1].to)
         }
         
         if(maleBam != null)
             log.fine "Overlaps of male region with target are " + maleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
         
         if(femaleReadRegions == null)
-            femaleReadRegions = femaleBam.toPairRegions(chromosome,0,0,500)
+            femaleReadRegions = femaleBam.toPairRegions(chromosome,seedWindow[0].from,seedWindow[-1].to,500)
             
         log.fine "Overlaps of female region with target are " + femaleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
         
@@ -435,12 +438,14 @@ class CNVSimulator {
         
         String chromosome = suitableChromosomes.size() > 1 ? suitableChromosomes[this.random.nextInt(suitableChromosomes.size()-1)] : suitableChromosomes[0]
         
-        log.info "Selected chromosome " + chromosome + " to simulate next deletion"
+        log.info "Selected chromosome " + chromosome + " to simulate next deletion, now choosing region"
         
         while(true) {
             int selectedRange =  (int)Math.floor(random.nextDouble() * (fromRegions.allRanges[chromosome].size()-numRanges)) 
             List<Range> regions = fromRegions.allRanges[chromosome][selectedRange..(selectedRange+numRanges-1)] 
             Range r = (regions[0].from)..(regions[-1].to)
+            
+            log.info "Examining region " + chromosome + ":" + r.from + "-" + r.to
             
             Region seedRegion = new Region(chromosome,r)
             
@@ -448,7 +453,7 @@ class CNVSimulator {
             // The problem is, many capture technologies will capture reads to either side of the
             // target region. This means we need to expand the region either side until we observe 
             // no reads, so that a "clean" swap can be made of reads without causing any artefacts.
-            cleanRegion = this.findCleanRegion(seedRegion)
+            cleanRegion = this.findCleanRegion(fromRegions, seedRegion)
             
             if(cleanRegion == null) {
                 ++attemptCount
