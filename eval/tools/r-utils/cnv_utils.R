@@ -1,5 +1,5 @@
 library(VariantAnnotation)
-library("rootSolve")
+#library("rootSolve")
 library(MASS)
 
 hg19.chromosomes = paste0("chr",c(1:22, "X","Y"))
