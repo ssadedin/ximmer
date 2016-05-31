@@ -211,6 +211,13 @@ class Ximmer {
                 
             [sam.samples[0], new SAM(bamPath)]
         }
+        
+        if(cfg.containsKey("samples")) {
+            Set<String> sampleSet =  (cfg.samples.males + cfg.samples.females) as Set
+            
+            this.bamFiles = this.bamFiles.grep { it.key in sampleSet }.collectEntries()
+        }
+        
     }
     
     void resolvePedigrees() {
