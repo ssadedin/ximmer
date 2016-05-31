@@ -1,4 +1,7 @@
-import java.nio.file.Files;
+import java.nio.file.FileSystems;
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.regex.Matcher;
 
 import graxxia.Matrix
 import groovy.text.SimpleTemplateEngine
@@ -268,20 +271,37 @@ class Ximmer {
          
         int concurrency = cfg.containsKey("concurrency") ? cfg.concurrency : 2
         
-        log.info "Creating output BAM file swith concurrency $concurrency"
+        log.info "Creating output BAM files with concurrency $concurrency"
+        
+        // Check for existing bam files - by default we will not re-simulate for samples that
+        // already have a bam file
+        List<SAM> existingBams = Files.newDirectoryStream(bamDir.toPath(), '*.bam').collect { Path p -> new SAM(p.toFile()) }
+        List<String> existingSamples = Collections.synchronizedList(existingBams.collect { it.samples[0] })
         
         // Compute the target samples
         List<SAM> targetSamples = computeTargetSamples()
         List<Region> simulatedCNVs = []
         
         GParsPool.withPool(concurrency) {
-            targetSamples.eachParallel { SAM targetSample ->
-                // Choose number of regions randomly in the range
-                // the user has given
-                int numRegions = cfg.regions.from + random.nextInt(cfg.regions.to - cfg.regions.from)
-                Region cnv = simulateSampleCNV(bamDir, targetSample, numRegions)
-                cnv.sample = targetSample.samples[0]
-                simulatedCNVs << cnv
+            simulatedCNVs = targetSamples.collectParallel { SAM targetSAM ->
+                try {
+                    String sample = targetSAM.samples[0]
+                    Region cnv = checkExistingSimulatedSample(existingSamples, existingBams, sample)
+                    if(cnv != null) {
+                        return cnv
+                    }
+                       
+                    // Choose number of regions randomly in the range
+                    // the user has given
+                    int numRegions = cfg.regions.from + random.nextInt(cfg.regions.to - cfg.regions.from)
+                    cnv = simulateSampleCNV(bamDir, targetSAM, numRegions)
+                    cnv.sample = sample
+                    return cnv
+                }
+                catch(Exception e) {
+                    log.severe("Sample ${targetSAM.samples[0]} failed in simulation")
+                    e.printStackTrace()
+                }
             }
         }
             
@@ -291,8 +311,29 @@ class Ximmer {
         return simulatedCNVs
     }
     
-    Region simulateSampleCNV(File outputDir, SAM targetSample, int numRegions) {
+    Region checkExistingSimulatedSample(List existingSamples, List existingBams, String sample) {
         
+        int existingIndex = existingSamples.indexOf(sample)
+        if(existingIndex<0) {
+            return null
+        }
+        
+        SAM existingSAM = existingBams[existingIndex]
+        String sampleName = existingSAM.samFile.name
+        Matcher m = (sampleName =~ /^(.*)_(chr[0-9MXY]+)_([0-9]+)-([0-9]+)\.bam/)
+        if(!m) {
+           log.warning "A BAM file already exists for sample $sample but does not conform to the expected file naming convention" 
+           return null
+        }
+        
+        log.info "Skipping simulation of CNV for sample $sample because a simulation BAM already exists for this sample in the output directory"
+        def match = m[0]
+        Region cnv = new Region(match[2],match[3].toInteger()..<match[4].toInteger())
+        cnv.sample = sample
+        return cnv
+    }
+    
+    Region simulateSampleCNV(File outputDir, SAM targetSample, int numRegions) {
         
         if(cfg.simulation_type == "downsample") {
             CNVSimulator simulator = new CNVSimulator(targetSample, null)
