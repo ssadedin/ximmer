@@ -104,7 +104,7 @@ xhmm_mean_center = {
     from("sample_interval_summary", "extremegc.txt") {
         transform("centered","excluded.targets","excluded.samples") {
             exec """
-                $XHMM/xhmm --matrix -r $input.sample_interval_summary
+                $XHMM --matrix -r $input.sample_interval_summary
                     --centerData 
                     --centerType target 
                     -o $output.centered
@@ -125,7 +125,7 @@ xhmm_merge_coverage = {
     from("*.sample_interval_summary") {
         filter("merged") {
             exec """
-                $XHMM/xhmm --mergeGATKdepths -o $output.sample_interval_summary ${inputs.sample_interval_summary.withFlag("--GATKdepths ")}
+                $XHMM --mergeGATKdepths -o $output.sample_interval_summary ${inputs.sample_interval_summary.withFlag("--GATKdepths ")}
             """
         }
     }
@@ -137,7 +137,7 @@ xhmm_pca = {
 
     transform("PC.txt", "PC_SD.txt", "PC_LOADINGS.txt") {
         exec """
-            $XHMM/xhmm --PCA -r $input.centered --PCAfiles $output.txt.prefix.prefix
+            $XHMM --PCA -r $input.centered --PCAfiles $output.txt.prefix.prefix
         """
     }
 }
@@ -149,7 +149,7 @@ xhmm_normalize = {
     filter("norm") {
         from("PC.txt") {
             exec """
-                $XHMM/xhmm --normalize 
+                $XHMM --normalize 
                    -r $input.centered 
                    --PCAfiles $input.txt.prefix.prefix
                    --normalizeOutput $output.txt
@@ -165,7 +165,7 @@ xhmm_filter_normalized = {
 
     transform("zscored","excluded.targets","excluded.samples") {
         exec """
-            $XHMM/xhmm --matrix -r $input.txt --centerData --centerType sample --zScoreData 
+            $XHMM --matrix -r $input.txt --centerData --centerType sample --zScoreData 
                 -o $output.zscored                
                 --outputExcludedTargets $output.targets
                 --outputExcludedSamples $output.samples
@@ -183,7 +183,7 @@ xhmm_filter_orig = {
           "norm.excluded.samples") {
         filter("filt") {
             exec """
-                $XHMM/xhmm --matrix -r $input.sample_interval_summary
+                $XHMM --matrix -r $input.sample_interval_summary
                 --excludeTargets $input2
                 --excludeTargets $input3
                 --excludeSamples $input4
@@ -211,7 +211,7 @@ xhmm_discover = {
 
     from(xhmm_params) {
         exec """
-            $XHMM/xhmm --discover 
+            $XHMM --discover 
                       -p $input.txt
                       -r $input.zscored 
                       -R $input.sample_interval_summary
