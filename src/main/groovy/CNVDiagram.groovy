@@ -514,6 +514,7 @@ class CNVDiagram {
             litemean 'Use extremely quick, less accurate mean coverage estimator'
             ignoremissing 'Ignore samples that are missing coverage information'
             noamplabels 'Omit drawing read counts over each amplicon'
+            chr 'Limit drawing to CNVs overlapping given chromosome (eg: chrX)', args:1
         }
         
         def opts = cli.parse(args)
@@ -650,6 +651,11 @@ class CNVDiagram {
         }
         else
             cnvs = new RangedData(opts.cnvs).load()
+            
+        if(opts.chr) {
+            cnvs = cnvs.grep { it.chr == opts.chr } as Regions
+        }
+        
         return cnvs
     }
     
