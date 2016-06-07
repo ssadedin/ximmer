@@ -1,7 +1,5 @@
 # vim: ts=4:expandtab:sw=4:cindent
 library(VariantAnnotation)
-library("rootSolve")
-library(MASS)
 
 hg19.chromosomes = paste0("chr",c(1:22, "X","Y"))
 
