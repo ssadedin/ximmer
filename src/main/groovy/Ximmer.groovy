@@ -552,7 +552,8 @@ class Ximmer {
             new File("src/main/R/ximmer_cnv_plots.R"), 
                 SRC: new File("src/main/R").absolutePath, 
                 XIMMER_RUNS: runDirectories.size(),
-                TARGET_REGION: new File(cfg.target_regions).absolutePath
+                TARGET_REGION: new File(cfg.target_regions).absolutePath,
+                XIMMER_CALLERS: callers.join(",")
             )
     }
     
