@@ -2,6 +2,9 @@
 
 
 touch_chr = {
+
+   branch.chromosome = branch.name
+
    exec """
         echo $chr > $output.txt
    """
@@ -59,7 +62,6 @@ plot_cnv_coverage = {
 
             if('mops' in cnv_callers)
                caller_opts << "-cnmops $input.cnmops.cnvs.tsv"
-               //caller_opts << "-cnmops $input.cn_mops_call_cnvs.tsv"
 
             if('angelhmm' in cnv_callers) 
                caller_opts << "-angel $input.angelhmm.cnvs.bed"
@@ -74,10 +76,10 @@ plot_cnv_coverage = {
                 unset GROOVY_HOME 
 
                 JAVA_OPTS="-Xmx8g -Djava.awt.headless=true" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/CNVDiagram.groovy
+                    -chr $chromosome
                     -cnvs $input.tsv
                     -targets $target_bed
-                    -o ${output.dir+"/cnv.png"} 
-                    -xmean $reportSamplesFlag
+                    -o ${output.dir+"/cnv.png"} $reportSamplesFlag
                     -t $threads ${caller_opts.join(" ")} ${inputs.vcf.withFlag("-vcf")} ${inputs.bam.withFlag("-bam")}
                     -refseq $refgene
             ""","plot_cnv_coverage"
