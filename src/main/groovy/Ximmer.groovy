@@ -44,11 +44,18 @@ class Ximmer {
     
     boolean enableSimulation = true
     
+    int deletionsPerSample = -1
+    
     Ximmer(ConfigObject cfg, String outputDirectory, boolean simulate) {
         this.outputDirectory = new File(outputDirectory)
         this.cfg = cfg
         this.random = new Random(42) // todo: programmable seed
         this.enableSimulation = simulate
+        
+        if(cfg.containsKey('deletionsPerSample'))
+            this.deletionsPerSample = cfg.deletionsPerSample
+        else
+            this.deletionsPerSample = 2
     }
     
     List<File> runDirectories = []
@@ -293,32 +300,32 @@ class Ximmer {
             simulatedCNVs = targetSamples.collectParallel { SAM targetSAM ->
                 try {
                     String sample = targetSAM.samples[0]
-                    Region cnv = checkExistingSimulatedSample(existingSamples, existingBams, sample)
-                    if(cnv != null) {
-                        return cnv
+                    Regions cnvs = checkExistingSimulatedSample(bamDir, existingSamples, existingBams, sample)
+                    if(cnvs != null) {
+                        return cnvs
                     }
-                       
-                    // Choose number of regions randomly in the range
-                    // the user has given
-                    int numRegions = cfg.regions.from + random.nextInt(cfg.regions.to - cfg.regions.from)
-                    cnv = simulateSampleCNV(bamDir, targetSAM, numRegions)
-                    cnv.sample = sample
-                    return cnv
+                          
+                    cnvs = simulateSampleCNV(bamDir, targetSAM)
+                    cnvs.each { it.sample = sample }
+                    return cnvs
                 }
                 catch(Exception e) {
                     log.severe("Sample ${targetSAM.samples[0]} failed in simulation")
+                    log.throwing("Ximmer", "simulateRun", e)
                     e.printStackTrace()
+                    throw e
                 }
             }
         }
             
         trueCnvsFile.withWriter { w -> 
-            w.println simulatedCNVs.collect { [it.chr, it.from, it.to+1, it.sample ].join("\t") }.join("\n")
+            w.println simulatedCNVs.collect { it as List }.flatten().collect { r -> 
+                [r.chr, r.from, r.to+1, r.sample ].join("\t") }.join("\n")
         }
         return simulatedCNVs
     }
     
-    Region checkExistingSimulatedSample(List existingSamples, List existingBams, String sample) {
+    Regions checkExistingSimulatedSample(File outputDir, List existingSamples, List existingBams, String sample) {
         
         int existingIndex = existingSamples.indexOf(sample)
         if(existingIndex<0) {
@@ -327,45 +334,62 @@ class Ximmer {
         
         SAM existingSAM = existingBams[existingIndex]
         String sampleName = existingSAM.samFile.name
-        Matcher m = (sampleName =~ /^(.*)_(chr[0-9MXY]+)_([0-9]+)-([0-9]+)\.bam/)
-        if(!m) {
-           log.warning "A BAM file already exists for sample $sample but does not conform to the expected file naming convention" 
-           return null
-        }
+        
+        File bedFile = new File(outputDir, sample + ".cnvs.bam")
+        if(!bedFile.exists())
+            return null
         
         log.info "Skipping simulation of CNV for sample $sample because a simulation BAM already exists for this sample in the output directory"
-        def match = m[0]
-        Region cnv = new Region(match[2],match[3].toInteger()..<match[4].toInteger())
-        cnv.sample = sample
-        return cnv
+        
+        Regions cnvs = new BED(bedFile).load()
+        cnvs.each { it.sample = sample }
+        return cnvs
     }
     
-    Region simulateSampleCNV(File outputDir, SAM targetSample, int numRegions) {
+    Regions simulateSampleCNV(File outputDir, SAM targetSample) {
         
-        if(cfg.simulation_type == "downsample") {
+        String sampleId = targetSample.samples[0]
+        Regions deletions = new Regions()
+        Regions exclusions = this.excludeRegions ? this.excludeRegions.collect { it } as Regions : new Regions()
+        
+        for(int cnvIndex = 0; cnvIndex < this.deletionsPerSample; ++cnvIndex) {
             CNVSimulator simulator = new CNVSimulator(targetSample, null)
+            // Choose number of regions randomly in the range
+            // the user has given
+            int numRegions = cfg.regions.from + random.nextInt(cfg.regions.to - cfg.regions.from) 
+            Region r = simulator.selectRegion(this.targetRegion, numRegions, exclusions)
             
-            String sampleId = targetSample.samples[0]
-            Region r = simulator.selectRegion(this.targetRegion, numRegions, excludeRegions)
             log.info "Seed region for ${sampleId} is $r" 
-                
-            File outputFile = new File(outputDir, sampleId + "_${r.chr}_${r.from}-${r.to}.bam" )
+            
+            exclusions.addRegion(r)
+            deletions.addRegion(r)
+        }
+        
+        Region r = deletions[0]
+        File outputFile = new File(outputDir, sampleId + "_${r.chr}_${r.from}-${r.to}.bam" )
+        File bedFile = new File(outputDir, sampleId + ".cnvs.bed")
+        
+        CNVSimulator simulator = new CNVSimulator(targetSample, null)
+        if(cfg.simulation_type == "downsample") {
+                    
             simulator.simulationMode = "downsample"
-            simulator.createBam(outputFile.absolutePath, r)
-            indexBAM(outputFile)
-            r.sample = sampleId
-            return r
         }
         else {
             throw new UnsupportedOperationException("Still working on this!")
         }
+        
+        simulator.createBam(outputFile.absolutePath, deletions)
+        indexBAM(outputFile)
+        deletions.each { it.sample = sampleId }
+        deletions.save(bedFile.absolutePath)
+        
+        return deletions
     }
     
     void indexBAM(File bamFile) {
             
         SAMFileReader reader = new SAMFileReader(bamFile)
         File outputFile = new File(bamFile.path + ".bai")
-        
         BAMIndexer indexer = new BAMIndexer(outputFile, reader.getFileHeader());
             
         reader.enableFileSource(true);
@@ -548,11 +572,13 @@ class Ximmer {
        if(!this.enableSimulation)
             return
   
+        String callers = ((Map<String,Object>)cfg.callers).keySet().join(",")
         runR(outputDirectory, 
             new File("src/main/R/ximmer_cnv_plots.R"), 
                 SRC: new File("src/main/R").absolutePath, 
                 XIMMER_RUNS: runDirectories.size(),
-                TARGET_REGION: new File(cfg.target_regions).absolutePath
+                TARGET_REGION: new File(cfg.target_regions).absolutePath,
+                XIMMER_CALLERS: callers.join(",")
             )
     }
     
@@ -660,6 +686,7 @@ class Ximmer {
         MiscUtils.configureSimpleLogging("ximmer.log")
         if(opts.v) {
             MiscUtils.configureVerboseLogging()
+            println "Configured verbose logging"
             log.info "Configured verbose logging"
         }
         

@@ -148,7 +148,7 @@ class CNVSimulator {
             simulator.simulationMode = opts.mode
         }
         
-        simulator.createBam(opts.o, opts.region)
+        simulator.createBam(opts.o, new Regions().addRegion(new Region(opts.region)))
     }
     
     @CompileStatic
@@ -221,27 +221,23 @@ class CNVSimulator {
         }
     }
     
-    void createBam(String outputFileName, String region) {
-        createBam(outputFileName, new Region(region))    
-    }
-    
-    void createBam(String outputFileName, Region region) {
+    void createBam(String outputFileName, Regions regions) {
         
         calculateDownsampleRates()
         
         if(this.simulationMode=="replace") {
-            this.createBamByReplacement(outputFileName, region)
+            this.createBamByReplacement(outputFileName, regions)
         }
         else
         if(this.simulationMode=="downsample") {
-            this.createBamByDownSample(outputFileName, region)
+            this.createBamByDownSample(outputFileName, regions)
         }
         else
         if(this.simulationMode=="both") {
-            this.createBamByReplacement(outputFileName, region)
+            this.createBamByReplacement(outputFileName, regions)
             
             def bothName = outputFileName.replaceAll('.bam$','.downsample.bam')
-            this.createBamByDownSample(bothName, region)
+            this.createBamByDownSample(bothName, regions)
             println "Created $bothName"
         }        
         else {
@@ -320,7 +316,7 @@ class CNVSimulator {
      * @param outputFileName
      * @param region
      */
-    void createBamByDownSample(String outputFileName, Region cleanRegion) {
+    void createBamByDownSample(String outputFileName, Regions cleanRegions) {
         
         log.info "Creating $outputFileName using downsample mode"
         
@@ -329,8 +325,6 @@ class CNVSimulator {
         //                 male alignment. This is necessary to make the output comparable
         //                 in terms of coverage when using 'both'.
         double deletionDownSampleRate = 0.5d * femaleDownSampleRate
-        
-        String chr = cleanRegion.chr
         
         // Read each BAM 
         femaleBam.withWriter(outputFileName) { SAMFileWriter  writer ->
@@ -345,7 +339,7 @@ class CNVSimulator {
                 
                 float downSampleRate = femaleDownSampleRate
                 
-                if(cleanRegion.overlaps(chr, rStart, rEnd)) {
+                if(cleanRegions.any { cr ->  cr.overlaps(r1.referenceName, rStart, rEnd)}) {
                     downSampleRate = deletionDownSampleRate
                 }
                 
@@ -374,6 +368,12 @@ class CNVSimulator {
         // Create a search window to expand the regions into
         Regions seedWindow = fromRegions.window(seedRegion, 10).grep { it.chr == seedRegion.chr } as Regions
         
+        if(!seedWindow.overlaps(seedRegion)) {
+            println "ERROR: window " +  seedWindow[0].chr + ":" + seedWindow[0].from + " - " + seedWindow[-1].to + " does not overlap original seed: " + seedRegion
+            Regions testWindow = fromRegions.window(seedRegion, 10)
+            println "Test window = " + testWindow
+        }
+        
         String chromosome = seedRegion.chr
         
         if(maleReadRegions == null && maleBam != null) {
@@ -399,6 +399,8 @@ class CNVSimulator {
         List<IntRange> overlaps = combinedRegions.getOverlaps(seedRegion)
         if(overlaps.empty) {
             println "WARNING: no overlapping reads for deletion seed $seedRegion over samples $femaleBam.samples / ${maleBam?.samples}"
+            Regions testRegions = femaleBam.toPairRegions(chromosome,seedWindow[0].from,seedWindow[-1].to,500)
+            println "Try again: " + testRegions
             return null
         }
     
@@ -460,6 +462,8 @@ class CNVSimulator {
                 if(attemptCount > 20)
                     throw new RuntimeException("Failed to identify a viable seed region for placement of deletion after $attemptCount tries")
                     
+                this.femaleReadRegions = null
+                this.maleReadRegions = null
                 continue
             }
             
