@@ -54,5 +54,5 @@ conifer_call = {
 }
 
 run_conifer = segment {
-    create_conifer_target + '%.bam' * [ conifer_rpkm ] + conifer_analyze + conifer_call
+    '%.bam' * [ conifer_rpkm ] + conifer_analyze + conifer_call
 }
