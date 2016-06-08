@@ -13,13 +13,28 @@ XIMMER_RUNS = as.integer(Sys.getenv("XIMMER_RUNS"))
 if(is.na(XIMMER_RUNS))
     XIMMER_RUNS = 5
 
-# TARGET_REGION="/Users/simon/work/ximmer/eval/data/haloplex/target_regions.bed"
-TARGET_REGION=Sys.getenv("TARGET_REGION")
+XIMMER_CALLERS=unlist(strsplit(Sys.getenv("XIMMER_CALLERS"),split=","))
 
 print(sprintf("SRC=%s", SRC))
 
+# TARGET_REGION="/Users/simon/work/ximmer/eval/data/haloplex/target_regions.bed"
+TARGET_REGION=Sys.getenv("TARGET_REGION")
+
 source(sprintf("%s/cnv_utils.R", SRC))
 source(sprintf("%s/cnv_roc_lib.R", SRC))
+
+sim.callers=XIMMER_CALLERS
+
+sim.names = paste0("run",0:(XIMMER_RUNS-1))
+ximmer.sims = lapply(sim.names, function(run) { list(name=run)})
+names(ximmer.sims) = sim.names
+
+truth = load.truth(names(ximmer.sims))
+truth$id = paste(truth$id, truth$source, sep="_")
+
+combined.results = load.combined.results(ximmer.sims, "analysis", pattern="%s/analysis/report/cnv_report.tsv")
+combined.results$sample = paste(combined.results$sample,combined.results$sim,sep='_')
+
 
 ximmer_sim_loaders = list(
   
@@ -51,20 +66,12 @@ ximmer_sim_loaders = list(
   }
 )
 
-ximmer.sims = list(
-  "run0" = list(name = "run0"),
-  "run1" = list(name = "run1"),
-  "run2" = list(name = "run2")
-)
+#ximmer.sims = list(
+#  "run0" = list(name = "run0"),
+#  "run1" = list(name = "run1"),
+#  "run2" = list(name = "run2")
+#)
 
-sim.names = paste0("run",0:(XIMMER_RUNS-1))
-ximmer.sims = lapply(sim.names, function(run) { list(name=run)})
-names(ximmer.sims) = sim.names
-
-truth = load.truth(names(ximmer.sims))
-truth$id = paste(truth$id, truth$source, sep="_")
-
-sim.callers=c("mops","xhmm")
 sim.caller.loaders = ximmer_sim_loaders
 ranked = load_ranked_run_results(truth, names(ximmer.sims), filterChrX=F)
 nice_colors = plot.colors = c('orange','blue','green','black','purple','red')
@@ -74,26 +81,24 @@ plot.exome.result.set(ranked, truth)
 dev.off()
 
 truth.metrics = compute_deletion_metrics(truth, TARGET_REGION)
-x = load.combined.results(ximmer.sims, "analysis", pattern="%s/analysis/report/cnv_report.tsv")
-x$sample = paste(x$sample,x$sim,sep='_')
 
 png("sens_by_tg.png")
 bin.levels = c(0,1,2,3,4,5,6,7,8)
-x.binned = load.binned.cnv.truth.set(x, "analysis", truth.metrics, truth.metrics$targets, bin.levels)
+x.binned = load.binned.cnv.truth.set(combined.results, "analysis", truth.metrics, truth.metrics$targets, bin.levels)
 sens_by_del_plot_frame(bin.levels = bin.levels, x.max=8, plot.xlab = "Deletion Size (No. of Target Regions)")
 plot.binned.performance(r=x.binned, bin.levels=bin.levels, palette=plot.colors)
 dev.off()
 
 png("sens_by_seqbp.png")
 bin.levels = c(0,200,500,1000,1500,4000)
-x.binned = load.binned.cnv.truth.set(x, "analysis", truth.metrics, truth.metrics$seqbp, bin.levels)
+x.binned = load.binned.cnv.truth.set(combined.results, "analysis", truth.metrics, truth.metrics$seqbp, bin.levels)
 sens_by_del_plot_frame(bin.levels = bin.levels, x.max=4000, plot.xlab = "Deletion Size (sequenced bp)")
 plot.binned.performance(r=x.binned, bin.levels=bin.levels, palette=plot.colors)
 dev.off()
 
 png("sens_by_bp.png")
 bin.levels = c(0,200,500,1000,1500,4000,10000,100000)
-x.binned = load.binned.cnv.truth.set(x, "analysis", truth.metrics, truth.metrics$bp, bin.levels)
+x.binned = load.binned.cnv.truth.set(combined.results, "analysis", truth.metrics, truth.metrics$bp, bin.levels)
 sens_by_del_plot_frame(bin.levels = bin.levels, plot.xlab = "Deletion Size (spanned bp)", log.scale = T)
 plot.binned.performance(r=x.binned, bin.levels=bin.levels, palette=plot.colors, log.scale = T)
 dev.off()
