@@ -6,8 +6,6 @@
 //////////////////////////////////////////////////////////////////
 cn_mops_call_cnvs = {
 
-    requires target_bed : "BED file containing regions to analyse"
-
     var batch_name : false
 
     var prior_impact : 10,
@@ -26,7 +24,7 @@ cn_mops_call_cnvs = {
 
             bam.files = c('${inputs.bam.join("','")}')
 
-            target.region = unique(read.bed.ranges("$target_bed"))
+            target.region = unique(read.bed.ranges("$input.bed"))
 
             # We have to order by chromosome lexically, as this is 
             # what countBam does internally - otherwise getSegmentReadCountsFromBAM

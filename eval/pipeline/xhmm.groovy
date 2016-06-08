@@ -53,14 +53,14 @@ xhmm_init = {
 
 gatk_depth_of_coverage = {
 
-    requires target_bed : "BED file containing regions to calculate coverage depth for"
+    // requires target_bed : "BED file containing regions to calculate coverage depth for"
 
     transform("sample_interval_summary") {
         exec """
             $JAVA -Xmx2g -jar $GATK/GenomeAnalysisTK.jar 
                  -T DepthOfCoverage 
                  ${inputs.bam.withFlag("-I")}
-                 -L $target_bed
+                 -L $input.bed
                  -R $HGFA
                  -dt BY_SAMPLE 
                  -dcov 5000 
@@ -81,14 +81,14 @@ gatk_depth_of_coverage = {
 
 find_extreme_gc_content = {
 
-    requires target_bed : "BED file containing regions to calculate coverage depth for"
+    // requires target_bed : "BED file containing regions to calculate coverage depth for"
 
-    produce(file(target_bed).name + ".gc.txt", file(target_bed).name+".extremegc.txt") {
+    produce(file(input.bed).name + ".gc.txt", file(input.bed).name+".extremegc.txt") {
 
         exec """
             $JAVA -Xmx3g -jar $GATK/GenomeAnalysisTK.jar 
                 -T GCContentByInterval 
-                -L $target_bed
+                -L $input.bed
                 -R $HGFA
                 -o $output1.txt
 

@@ -1,32 +1,5 @@
 // vim: ts=4 sw=4 expandtab
 
-create_conifer_target = {
-    doc """
-          Conifer cannot process chromosomes where the target region includes less targets than the number 
-          of regions in the analysis. This stage removes those regions from the target region.
-        """
-
-    requires target_bed : "The target region BED file",
-             sample_names : "The names of samples to analyse"
-
-    def numSamples = sample_names.size()
-
-    from(target_bed) {
-	    groovy """
-	       targetRegion = new BED("$input.bed", withExtra:true).load()
-
-	       chrs = targetRegion*.chr.unique()
-
-	       chrCounts = targetRegion.countBy { it.chr }
-
-	       filteredTargets = targetRegion.grep { chrCounts[it.chr] > $numSamples } as Regions
-
-	       filteredTargets.save("$output.bed")
-	 
-	    """
-   }
-}
-
 conifer_rpkm = {
 
     output.dir="$output.dir/rpkms"

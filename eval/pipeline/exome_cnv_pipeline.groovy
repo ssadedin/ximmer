@@ -58,11 +58,20 @@ else
 
 sample_names = run_samples
 
-// Only parallelise over the chromosomes actually in the
-// target bed file
-chromosomes = new BED(target_bed).load()*.chr.unique()
-println "Chromosomes for analysis are: " + chromosomes
+// The list of chromosomes to consider for analysis
+// Not all of them will be analysed - they will be filtered
+// by other checks, such as which of them overlaps the target 
+// region, which have enough targets within them to be analysable,
+// etc.
+INCLUDE_CHROMOSOMES = (["chrX"] + (1..22).collect { "chr" + it })
 
+// Only parallelise over the chromosomes actually in the target bed file
+chromosomes = new BED(target_bed).load()*.chr.unique().grep { it in INCLUDE_CHROMOSOMES }
+
+// If provided on command line as option
+if(chromosomes instanceof String) {
+    chromosomes = chromosomes.split(",") as List
+}
 
 load 'excavator.groovy'
 load 'xhmm.groovy'
@@ -70,6 +79,7 @@ load 'exome_depth.groovy'
 load 'cn_mops.groovy'
 load 'conifer.groovy'
 load 'summarize_cnvs.groovy'
+load 'init_stages.groovy'
 
 // If not overridden by command line, assume all the callers are to be run
 callers = "xhmm,ed,mops,truth"
@@ -88,18 +98,12 @@ finish = {
     exec "echo 'Finished'" 
 }
 
-// Initialization stages - these just set specific output directories for each 
-// analysis tool
-init_excavator = { branch.dir="$batch_name/excavator"; branch.excavator_batch=batch_name }
-init_xhmm = { branch.dir="$batch_name/xhmm"; branch.xhmm_batch_name=batch_name }
-init_exome_depth = { branch.dir="$batch_name/exome_depth" }
-init_cn_mops = { branch.dir="${batch_name}/cn_mops" }
-init_conifer = { branch.dir="${batch_name}/conifer" }
-
 init = { 
     branch.dir = batch_name 
     println "=" * 100
     println "Analysing ${sample_info.keySet().size()} samples:\n\n${sample_info.keySet().join('\n')}\n"
+    println "=" * 100
+    println "Chromosomes: " + chromosomes
     println "=" * 100
 }
 
@@ -122,7 +126,7 @@ run {
     if('cfr' in cnv_callers)
         caller_stages << (init_conifer + run_conifer)
 
-    init + caller_stages + create_cnv_report +
-         chromosomes * [ touch_chr + plot_cnv_coverage ]  +
+    init + create_analysable_target + caller_stages + create_cnv_report +
+         INCLUDE_CHROMOSOMES * [ touch_chr + plot_cnv_coverage ]  +
          sample_names * [ extract_sample_files ] 
 } 
