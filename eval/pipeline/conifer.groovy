@@ -14,7 +14,7 @@ conifer_rpkm = {
     
     produce(rpkmOutput) {
         exec """
-        LD_LIBRARY_PATH=$HDF5_DIR/lib $PYTHON $CONIFER/conifer.py rpkm 
+        LD_LIBRARY_PATH=$HDF5_DIR/lib $PYTHON $CONIFER rpkm 
           --probes $input.bed
           --output $output.rpkm
           --input $input.bam
@@ -30,7 +30,7 @@ conifer_analyze = {
     produce(batch_name+".conifer.hdf5",batch_name+".scree.png") {
         exec """
 
-        LD_LIBRARY_PATH=$HDF5_DIR/lib $PYTHON $CONIFER/conifer.py analyze 
+        LD_LIBRARY_PATH=$HDF5_DIR/lib $PYTHON $CONIFER analyze 
           --probes $input.bed
           --rpkm_dir ${file(input.rpkm).parentFile.absolutePath}
           --output $output.hdf5
