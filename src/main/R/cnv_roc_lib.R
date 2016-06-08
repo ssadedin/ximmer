@@ -110,7 +110,7 @@ load.combined.results = function(sims, batch.name, pattern="%s/%s/report/%s.cnv.
     # Load the results
     results.name = sprintf(pattern,sim.name,batch.name, batch.name)
     printf("Loading from file %s", results.name)
-    r = read.table(results.name,header=T)#[,1:15]
+    r = read.table(results.name,header=T,sep='\t')#[,1:15]
     r$sim =sim.name
     return(r)
   })))
