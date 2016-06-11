@@ -1,3 +1,5 @@
+import java.util.logging.Level;
+
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log;
 import groovyx.gpars.GParsPool;
