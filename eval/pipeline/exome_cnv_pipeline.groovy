@@ -82,7 +82,7 @@ load 'summarize_cnvs.groovy'
 load 'init_stages.groovy'
 
 // If not overridden by command line, assume all the callers are to be run
-callers = "xhmm,ed,mops,truth"
+callers = "xhmm,ed,cnmops,truth"
 
 cnv_callers = callers.split(",") as List
 
@@ -120,7 +120,7 @@ run {
     if('xhmm' in cnv_callers) 
             caller_stages << (init_xhmm + xhmm_pipeline)
 
-    if('mops' in cnv_callers)
+    if('cnmops' in cnv_callers)
         caller_stages << (init_cn_mops + cn_mops_call_cnvs)
         
     if('cfr' in cnv_callers)

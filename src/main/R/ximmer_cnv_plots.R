@@ -46,7 +46,7 @@ ximmer_sim_loaders = list(
     do.call(c,lapply(sims,function(sim) load_xhmm_results(Sys.glob(sprintf("%s/analysis/xhmm/*.xhmm_discover.xcnv",sim)[[1]]),sim)))
   },
   
-  mops=function(batch,sims) {
+  cnmops=function(batch,sims) {
     do.call(c,lapply(sims,
        function(sim) {
          load_cn_mops_results(Sys.glob(sprintf("%s/analysis/cn_mops/*.cnmops.cnvs.tsv",sim)[[1]]), sim)

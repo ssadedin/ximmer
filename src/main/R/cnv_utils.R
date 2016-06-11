@@ -31,7 +31,7 @@ fmt2 = function(msg) {
   return(paste(output,collapse=''))
 }
 
-sim.callers.labels = sim.caller.labels  = list(ex="Excavator",ed="ExomeDepth",xhmm="XHMM",ec="ExomeCopy", mops="cn.MOPS",cfr="Conifer", anghmm="Angel")
+sim.callers.labels = sim.caller.labels  = list(ex="Excavator",ed="ExomeDepth",xhmm="XHMM",ec="ExomeCopy", cnmops="cn.MOPS",cfr="Conifer", anghmm="Angel")
 
 lmp <- function (modelobject) {
   # Extract p-value from a linear model object

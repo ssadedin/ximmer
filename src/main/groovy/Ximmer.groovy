@@ -20,6 +20,19 @@ import net.sf.samtools.SAMRecord;
 @Log
 class Ximmer {
     
+    /**
+     * Map of long name to short name for each caller. Long names 
+     * are used in the configuration file because they are more 
+     * descriptive. Short names appear in plots, result files and other places where
+     * space is constrained.
+     */
+    Map<String,String> callerIdMap = [
+        exome_depth : "ed", 
+        cnmops : "cnmops",
+        xhmm: "xhmm",
+        conifer: "cfr"
+    ]
+    
     ConfigObject cfg = null
     
     File outputDirectory = null
@@ -46,6 +59,8 @@ class Ximmer {
     
     int deletionsPerSample = -1
     
+    List<String> callerIds = null
+    
     Ximmer(ConfigObject cfg, String outputDirectory, boolean simulate) {
         this.outputDirectory = new File(outputDirectory)
         this.cfg = cfg
@@ -55,7 +70,13 @@ class Ximmer {
         if(cfg.containsKey('deletionsPerSample'))
             this.deletionsPerSample = cfg.deletionsPerSample
         else
-            this.deletionsPerSample = 2
+            this.deletionsPerSample = 1
+            
+        this.callerIds = ((Map<String,Object>)cfg.callers).keySet().collect { 
+            if(callerIdMap[it] == null)
+                throw new RuntimeException("Unknown CNV caller " + it + " referenced in configuration.")
+            callerIdMap[it]
+        }
     }
     
     List<File> runDirectories = []
@@ -134,8 +155,6 @@ class Ximmer {
             bamFiles = this.bamFiles*.value*.samFile*.absolutePath
         }
         
-        String callers = ((Map<String,Object>)cfg.callers).keySet().join(",")
-        
         if(new File(runDir,"analysis/report/cnv_report.html").exists()) {
             log.info("Skipping bpipe run for $runDir because cnv_report.html already exists")
             return
@@ -156,7 +175,7 @@ class Ximmer {
                 "-p","TOOLS=$toolsPath",
                 "-p","DGV_CNVS=${dgvMergedFile.absolutePath}",
                 "-p","XIMMER_SRC=$ximmerSrc",
-                "-p", "callers=$callers",
+                "-p", "callers=${callerIds.join(',')}",
                 "-p", "refgene=${hg19RefGeneFile.absolutePath}",
                 "-p", "simulation=${enableSimulation}",
                 "-p", "batch_name=analysis",
@@ -429,17 +448,13 @@ class Ximmer {
         log.info("Generating HTML Report ...")
         File mainTemplate = new File("src/main/resources/index.html")
         
-        List<String> callers = ((Map<String,Object>)cfg.callers).keySet().collect { 
-           it == "mops" ? "cnmops" : it
-        }
-        
         new File(outputDirectory, "index.html").withWriter { w ->
             SimpleTemplateEngine templateEngine = new SimpleTemplateEngine()
             templateEngine.createTemplate(mainTemplate.newReader()).make(
                 runDirectories: runDirectories,
                 batch_name : outputDirectory.name,
                 summaryHTML : summaryHTML,
-                callers: callers
+                callers: this.callerIds
             ).writeTo(w)
         }
         
@@ -521,10 +536,6 @@ class Ximmer {
         
         List<Region> cnvs = readCnvs()
         
-        List<String> callers = ((Map<String,Object>)cfg.callers).keySet().collect { 
-           it == "mops" ? "cnmops" : it
-        }
-        
         // Load the results
         List<RangedData> results = runDirectories.collect { runDir ->
             new RangedData(new File(runDir,"analysis/report/cnv_report.tsv").path).load([:], { r ->
@@ -537,7 +548,7 @@ class Ximmer {
 //        List<IntRange> sizeBins = [0..<200, 200..<500, 500..<1000, 1000..<2000,2000..<10000]
 //        Map<IntRange,Integer> binnedCounts = 
         
-        Map<String,Integer> callerCounts = callers.collectEntries { caller -> 
+        Map<String,Integer> callerCounts = this.callerIds.collectEntries { caller -> 
             [caller, results.sum { r -> r.count { cnv -> cnv.truth && cnv[caller] } }] 
         }
         
@@ -549,7 +560,7 @@ class Ximmer {
             cnvs: cnvs,
             bamFiles: this.bamFiles,
             batch_name : outputDirectory.name,
-            callers: callers,
+            callers: this.callerIds,
             simulation_type: cfg.simulation_type,
             results: results,
             callerCounts: callerCounts
@@ -572,13 +583,12 @@ class Ximmer {
        if(!this.enableSimulation)
             return
   
-        String callers = ((Map<String,Object>)cfg.callers).keySet().join(",")
         runR(outputDirectory, 
             new File("src/main/R/ximmer_cnv_plots.R"), 
                 SRC: new File("src/main/R").absolutePath, 
                 XIMMER_RUNS: runDirectories.size(),
                 TARGET_REGION: new File(cfg.target_regions).absolutePath,
-                XIMMER_CALLERS: callers.join(",")
+                XIMMER_CALLERS: this.callerIds.join(",")
             )
     }
     

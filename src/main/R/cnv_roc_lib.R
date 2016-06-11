@@ -31,7 +31,7 @@ mg.analysis.names.untrimmed= list(
 
 # Small analysis based on trimmed data
 # Note this data does not include Excavator results
-# ie: sim.callers = c("ed","xhmm","mops")
+# ie: sim.callers = c("ed","xhmm","cnmops")
 mg.analysis.names.trimmed = list(
   "sim1.1" = "sim1.1",
   "sim3.1" = "sim3.1",
@@ -71,7 +71,7 @@ sim.caller.loaders = list(
   ec=function(batch,an, sims,num) {do.call(c,lapply(sims,function(sim) load_exome_copy_results(sprintf("%s/%s.%d/exome_copy/%s.%d.exome_copy.cnvs.tsv",sim, an[[sim]],num,an[[sim]],num))))},
   ed=function(batch,an, sims,num) {do.call(c,lapply(sims,function(sim) load_exomedepth_results(sprintf("%s/%s.%d/exome_depth/%s.exome_depth.cnvs.tsv",sim, an[[sim]],num,an[[sim]]))))},
   xhmm=function(batch,an, sims,num) {do.call(c,lapply(sims,function(sim) load_xhmm_results(sprintf("%s/%s.%d/xhmm/%s.%d.params.xhmm_discover.xcnv",sim, an[[sim]],num,an[[sim]],num))))},
-  mops=function(batch,an, sims,num) {do.call(c,lapply(sims,function(sim) { load_cn_mops_results(Sys.glob(sprintf("%s/%s.%d/cn_mops/*.cn_mops_call_cnvs.tsv",sim, an[[sim]],num,an[[sim]]))[[1]])}))}
+  cnmops=function(batch,an, sims,num) {do.call(c,lapply(sims,function(sim) { load_cn_mops_results(Sys.glob(sprintf("%s/%s.%d/cn_mops/*.cn_mops_call_cnvs.tsv",sim, an[[sim]],num,an[[sim]]))[[1]])}))}
 )
 
 compute.sim.info = function(sim.all, batch.name) {
@@ -120,8 +120,6 @@ load.combined.results = function(sims, batch.name, pattern="%s/%s/report/%s.cnv.
                     sample=result.table$sample,
                     sim=result.table$sim)  
   for(caller in sim.callers) {
-    # workaround for egregious problem with cnmops being called mops some places
-    result.caller = ifelse(caller == "mops", "cnmops", caller)
     mcols(results)[,caller] = result.table[,result.caller]
   }
   return(results)
@@ -142,7 +140,7 @@ get_param_labels = function(file.name) {
     ec=sprintf("Q%s",params$exome_copy_quality_threshold),
     ed=sprintf("trans. prob=%s",params$transition_probability),
     xhmm=sprintf("cnv rate=%s",params$exome_wide_cnv_rate),
-    mops=sprintf("prior impact=%s",params$prior_impact)
+    cnmops=sprintf("prior impact=%s",params$prior_impact)
   ))
 }
 
@@ -593,7 +591,7 @@ count.by.size.bin = function(results, truth.metrics, bin.levels) {
 #         if(length(cnv.results)>0) {
 #           return(sample.results[cnv.results[[1]]])
 #         } else {
-#           return(GRanges(cnv.chr,IRanges(cnv.start,cnv.end), ed=FALSE, ex=FALSE, xhmm=FALSE, mops=FALSE, truth=TRUE, sample=cnv.id))        
+#           return(GRanges(cnv.chr,IRanges(cnv.start,cnv.end), ed=FALSE, ex=FALSE, xhmm=FALSE, cnmops=FALSE, truth=TRUE, sample=cnv.id))        
 #         }
 #     }, truth.bin$seqnames, truth.bin$start, truth.bin$end, truth.bin$id, truth.bin$source)
 #   })
@@ -626,7 +624,7 @@ bin.cnv.results = function(truth, truth.bins, results) {
         for(i in results.cols) {
           mcols(result)[,i] = F
         }
-        # ed=FALSE,ex=FALSE,xhmm=FALSE,mops=FALSE,cfr=FALSE,truth=TRUE,
+        # ed=FALSE,ex=FALSE,xhmm=FALSE,cnmops=FALSE,cfr=FALSE,truth=TRUE,
         result$sample=cnv.id
         result$sim=sim
         return(result);
