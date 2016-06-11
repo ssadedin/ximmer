@@ -327,7 +327,7 @@ class CNVSimulator {
         double deletionDownSampleRate = 0.5d * femaleDownSampleRate
         
         // Read each BAM 
-        femaleBam.withWriter(outputFileName) { SAMFileWriter  writer ->
+        femaleBam.withOrderedPairWriter(outputFileName, true) { OrderedPairWriter  writer ->
             femaleBam.eachPair { SAMRecord r1, SAMRecord r2 ->
                 
                 if(r1 == null|| r2 == null)
@@ -349,8 +349,7 @@ class CNVSimulator {
                 // strictly not necesary for a pure downsample simulation, but we want to make
                 // output that is comparable with that produced when reads are sourced from a male
                 if(random.nextFloat() < downSampleRate) {
-                    writer.addAlignment(r1)
-                    writer.addAlignment(r2)
+                    writer.addAlignmentPair(new SAMRecordPair(r1:r1, r2:r2))
                 }
             }
         }        
