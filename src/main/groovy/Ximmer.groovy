@@ -144,7 +144,7 @@ class Ximmer {
         File bpipe = new File("eval/bpipe")
         
         String targetRegionsPath = new File(cfg.target_regions).absolutePath
-        String toolsPath = new File("eval/tools").absolutePath
+        String toolsPath = new File("eval/pipeline/tools").absolutePath
         String ximmerSrc = new File("src/main/groovy").absolutePath
         int concurrency = cfg.containsKey("concurrency") ? cfg.concurrency : 2
         
