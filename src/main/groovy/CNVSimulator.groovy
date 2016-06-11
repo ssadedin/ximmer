@@ -380,12 +380,14 @@ class CNVSimulator {
         }
         
         if(maleBam != null)
-            log.fine "Overlaps of male region with target are " + maleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
+            if(log.isLoggable(Level.FINE))
+                log.fine "Overlaps of male region with target are " + maleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
         
         if(femaleReadRegions == null)
             femaleReadRegions = femaleBam.toPairRegions(chromosome,seedWindow[0].from,seedWindow[-1].to,500)
             
-        log.fine "Overlaps of female region with target are " + femaleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
+        if(log.isLoggable(Level.FINE))
+            log.fine "Overlaps of female region with target are " + femaleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
         
         Regions combinedRegions = maleReadRegions ? maleReadRegions.reduce() : new Regions()
         femaleReadRegions.reduce().each { r ->
