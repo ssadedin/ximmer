@@ -8,9 +8,9 @@ import groovy.text.SimpleTemplateEngine
 import groovy.transform.CompileStatic;
 import groovy.util.logging.Log
 import groovyx.gpars.GParsPool;
-import net.sf.samtools.BAMIndexer;
-import net.sf.samtools.SAMFileReader
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.BAMIndexer;
+import htsjdk.samtools.SAMFileReader
+import htsjdk.samtools.SAMRecord;
 
 /**
  * The main entry point for the Ximmer simulation framework
@@ -308,7 +308,11 @@ class Ximmer {
         
         // Check for existing bam files - by default we will not re-simulate for samples that
         // already have a bam file
-        List<SAM> existingBams = Files.newDirectoryStream(bamDir.toPath(), '*.bam').collect { Path p -> new SAM(p.toFile()) }
+        List<SAM> existingBams = Files.newDirectoryStream(bamDir.toPath(), '*.bam').grep { Path p ->
+            // Ignore if the index for the file doesn't exist
+            new File(p.toFile().absolutePath + '.bai').exists() 
+        }.collect { Path p -> new SAM(p.toFile()) }
+        
         List<String> existingSamples = Collections.synchronizedList(existingBams.collect { it.samples[0] })
         
         // Compute the target samples
@@ -539,7 +543,7 @@ class Ximmer {
         // Load the results
         List<RangedData> results = runDirectories.collect { runDir ->
             new RangedData(new File(runDir,"analysis/report/cnv_report.tsv").path).load([:], { r ->
-                    callers.each { r[it] = r[it] == "TRUE" }
+                    callerIds.each { r[it] = r[it] == "TRUE" }
           })
         }
         

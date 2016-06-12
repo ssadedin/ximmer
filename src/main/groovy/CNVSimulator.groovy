@@ -3,9 +3,9 @@ import java.util.logging.Level;
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log;
 import groovyx.gpars.GParsPool;
-import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMTagUtil;
+import htsjdk.samtools.SAMFileWriter;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMTagUtil;
 
 /**
  * Produce a BAM file that simulates the presence of a heterozygous deletion in
@@ -330,6 +330,7 @@ class CNVSimulator {
         
         // Read each BAM 
         femaleBam.withOrderedPairWriter(outputFileName, true) { OrderedPairWriter  writer ->
+            femaleBam.verbose = false
             femaleBam.eachPair { SAMRecord r1, SAMRecord r2 ->
                 
                 if(r1 == null|| r2 == null)
@@ -351,9 +352,21 @@ class CNVSimulator {
                 // strictly not necesary for a pure downsample simulation, but we want to make
                 // output that is comparable with that produced when reads are sourced from a male
                 if(random.nextFloat() < downSampleRate) {
-                    writer.addAlignmentPair(new SAMRecordPair(r1:r1, r2:r2))
+                    try {
+                        writer.addAlignmentPair(new SAMRecordPair(r1:r1, r2:r2))
+                    }
+                    catch(IllegalArgumentException e) {
+                        if(e.message.startsWith("Alignments added out of order")) {
+                            println "WARNING: failed to add alignment $r1.readName at $r1.referenceName:$r1.alignmentStart, $r2.referenceName:$r2.alignmentStart - is input file sorted?"
+                            println "WARNING: Full message is $e.message"
+                        }
+                        else {
+                            throw e
+                        }
+                    }
                 }
             }
+            femaleBam.verbose = false
         }        
     }
     
