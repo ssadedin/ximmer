@@ -358,7 +358,7 @@ class Ximmer {
         SAM existingSAM = existingBams[existingIndex]
         String sampleName = existingSAM.samFile.name
         
-        File bedFile = new File(outputDir, sample + ".cnvs.bam")
+        File bedFile = new File(outputDir, sample + ".cnvs.bed")
         if(!bedFile.exists())
             return null
         
