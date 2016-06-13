@@ -388,9 +388,12 @@ class Ximmer {
             deletions.addRegion(r)
         }
         
-        Region r = deletions[0]
-        File outputFile = new File(outputDir, sampleId + "_${r.chr}_${r.from}-${r.to}.bam" )
         File bedFile = new File(outputDir, sampleId + ".cnvs.bed")
+        Region r = deletions[0]
+        deletions.each { it.sample = sampleId }
+        deletions.save(bedFile.absolutePath + ".tmp")
+        
+        File outputFile = new File(outputDir, sampleId + "_${r.chr}_${r.from}-${r.to}.bam" )
         
         CNVSimulator simulator = new CNVSimulator(targetSample, null)
         if(cfg.simulation_type == "downsample") {
@@ -403,9 +406,9 @@ class Ximmer {
         
         simulator.createBam(outputFile.absolutePath, deletions)
         indexBAM(outputFile)
-        deletions.each { it.sample = sampleId }
-        deletions.save(bedFile.absolutePath)
         
+        deletions.save(bedFile.absolutePath)
+        new File(bedFile.absolutePath + ".tmp").delete()
         return deletions
     }
     
