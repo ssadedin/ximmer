@@ -325,6 +325,7 @@ class Ximmer {
                     String sample = targetSAM.samples[0]
                     Regions cnvs = checkExistingSimulatedSample(bamDir, existingSamples, existingBams, sample)
                     if(cnvs != null) {
+                        log.info "Loaded pre-existing CNVs with samples " + cnvs*.sample
                         return cnvs
                     }
                           
@@ -364,9 +365,14 @@ class Ximmer {
         
         log.info "Skipping simulation of CNV for sample $sample because a simulation BAM already exists for this sample in the output directory"
         
+        Regions result = new Regions()
+        
         Regions cnvs = new BED(bedFile).load()
-        cnvs.each { it.sample = sample }
-        return cnvs
+        cnvs.each { 
+            it.sample = sample 
+            result.addRegion(it)
+        }
+        return result
     }
     
     Regions simulateSampleCNV(File outputDir, SAM targetSample) {
@@ -589,6 +595,8 @@ class Ximmer {
         
        if(!this.enableSimulation)
             return
+            
+        log.info "Creating combined report for callers " + this.callerIds.join(",")
   
         runR(outputDirectory, 
             new File("src/main/R/ximmer_cnv_plots.R"), 
