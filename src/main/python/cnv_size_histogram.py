@@ -1,6 +1,8 @@
 import os
 import pandas as pd
-import matplotlib
+import matplotlib as mpl
+mpl.use('Agg') # Needed to not depend on display variable
+
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
