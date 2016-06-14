@@ -43,6 +43,12 @@ class Ximmer {
     
     Random random = null
     
+    /**
+     * If set, this seed will be used to initialise random number generation, for 
+     * reproducible simulations
+     */
+    Integer seed = null
+    
     Regions targetRegion = null
     
     Regions excludeRegions = null
@@ -64,7 +70,7 @@ class Ximmer {
     Ximmer(ConfigObject cfg, String outputDirectory, boolean simulate) {
         this.outputDirectory = new File(outputDirectory)
         this.cfg = cfg
-        this.random = new Random(42) // todo: programmable seed
+        this.random = this.seed != null ? new Random(this.seed)  : new Random()
         this.enableSimulation = simulate
         
         if(cfg.containsKey('deletionsPerSample'))
@@ -383,6 +389,9 @@ class Ximmer {
         
         for(int cnvIndex = 0; cnvIndex < this.deletionsPerSample; ++cnvIndex) {
             CNVSimulator simulator = new CNVSimulator(targetSample, null)
+            if(this.seed != null) 
+                simulator.random = new Random((this.seed<<16) + (cnvIndex << 8)  + (targetSample.hashCode() % 256))
+  
             // Choose number of regions randomly in the range
             // the user has given
             int numRegions = cfg.regions.from + random.nextInt(cfg.regions.to - cfg.regions.from) 
@@ -698,6 +707,7 @@ class Ximmer {
         cli.with {
             c "Configuration file", args:1, required:true
             o "Output directory", args:1, required:true
+            seed "Random seed", args:1
             simonly "Run only simulation component"
             nosim "Analyse samples directly (no simulation)"
             v "Verbose output"
@@ -715,9 +725,18 @@ class Ximmer {
             log.info "Configured verbose logging"
         }
         
+        if(opts.seed) {
+            
+        }
+        
         // Parse the configuration
         ConfigObject cfg = new ConfigSlurper().parse(new File(opts.c).text)
         
-        new Ximmer(cfg, opts.o, !opts.nosim).run(!opts.simonly)
+        Ximmer ximmer = new Ximmer(cfg, opts.o, !opts.nosim)
+        if(opts.seed != false) {
+            ximmer.seed = opts.seed.toInteger()
+        }
+        
+        ximmer.run(!opts.simonly)
     }
 }
