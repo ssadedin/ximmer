@@ -3,11 +3,11 @@ class ExomeDepthResults extends CNVResults {
 
     public ExomeDepthResults(String sourceFile) {
         super(sourceFile, 6, 4, 5);
-        this.separator = " "
+        this.separator = "\t"
     }
     
     ExomeDepthResults load(Map options=[:], Closure c=null) {
-        super.load(options+[separator:" "]) { r ->
+        super.load(options+[separator:"\t"]) { r ->
             r.quality = r.BF
             r.type = (r.type == "deletion") ? "DEL" : "DUP"
         }
