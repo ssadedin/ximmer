@@ -120,7 +120,7 @@ load.combined.results = function(sims, batch.name, pattern="%s/%s/report/%s.cnv.
                     sample=result.table$sample,
                     sim=result.table$sim)  
   for(caller in sim.callers) {
-    mcols(results)[,caller] = result.table[,result.caller]
+    mcols(results)[,caller] = result.table[,caller]
   }
   return(results)
 }
