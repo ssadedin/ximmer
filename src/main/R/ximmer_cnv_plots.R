@@ -54,7 +54,7 @@ ximmer_sim_loaders = list(
   },
   
   cfr=function(batch,sims) {
-    do.call(c,lapply(sims,function(sim) load_conifer_results(Sys.glob(sprintf("%s/analysis/*.conifer.cnvs.tsv",sim)[[1]]),sim)))
+    do.call(c,lapply(sims,function(sim) load_conifer_results(Sys.glob(sprintf("%s/analysis/conifer/*.conifer.cnvs.tsv",sim)[[1]]),sim)))
   },
   
   anghmm=function(batch,sims) {
