@@ -330,7 +330,7 @@ class CNVSimulator {
         
         // Read each BAM 
         femaleBam.withOrderedPairWriter(outputFileName, true) { OrderedPairWriter  writer ->
-            femaleBam.verbose = false
+//            femaleBam.verbose = false
             femaleBam.eachPair { SAMRecord r1, SAMRecord r2 ->
                 
                 if(r1 == null|| r2 == null)

@@ -350,7 +350,15 @@ class Ximmer {
             
         trueCnvsFile.withWriter { w -> 
             w.println simulatedCNVs.collect { it as List }.flatten().collect { r -> 
-                [r.chr, r.from, r.to+1, r.sample ].join("\t") }.join("\n")
+                [r.chr, r.from, r.to+1, r.sample ].join("\t") 
+            }.join("\n")
+                
+            if('known_cnvs' in cfg) {
+                RangedData cnvs = new RangedData(cfg.known_cnvs).load(columnNames: ['chr','start','end','sample','type'])
+                w.println cnvs.collect { r -> 
+                    [r.chr, r.from, r.to+1, r.sample ].join("\t") 
+                }.join("\n")
+            }
         }
         return simulatedCNVs
     }
