@@ -173,6 +173,17 @@ class Ximmer {
         String ximmerSrc = new File("src/main/groovy").absolutePath
         int concurrency = cfg.containsKey("concurrency") ? cfg.concurrency : 2
         
+        
+        List<String> batches = ["analysis"]
+        createAnalysis(runDir, batches[0])
+        
+        if(cfg.containsKey('analyses')) {
+            for(String analysisName in cfg.analyses.keySet()) {
+                // Create the corresponding analysis
+                batches << createAnalysis(runDir, analysisName)
+            }
+        }
+        
         List<String> bpipeCommand = [
                 "bash",
                 bpipe.absolutePath,
@@ -184,7 +195,7 @@ class Ximmer {
                 "-p", "callers=${callerIds.join(',')}",
                 "-p", "refgene=${hg19RefGeneFile.absolutePath}",
                 "-p", "simulation=${enableSimulation}",
-                "-p", "batch_name=analysis",
+                "-p", "batches=${batches.join(',')}",
                 "-p", "target_bed=$targetRegionsPath", 
                 "-p", "imgpath=${runDir.name}/analysis/report/",
                 new File("eval/pipeline/exome_cnv_pipeline.groovy").absolutePath
@@ -217,6 +228,54 @@ class Ximmer {
           try { p.outputStream.close() } catch(Throwable t) { }      
           try { p.errorStream.close() } catch(Throwable t) { }      
         } 
+    }
+    
+    /**
+     * Configure a bpipe analysis to run for the given named analysis
+     * which must be a configured analysis either under 'callers' or
+     * 'analyses' in the coniguration file. The analysis configured under
+     * 'callers' is treated as a set of default values and these are customised
+     * by entries under 'analyses'.
+     * 
+     * @param runDir
+     * @param analysisName
+     */
+    String createAnalysis(File runDir, String analysisName) {
+        
+        // Clone the default configuration
+        ConfigObject analysisCfg = cfg.callers.clone() 
+                
+        // If customised, merge the customised values for the analysis
+        if(analysisName != "analysis") {
+            analysisCfg.merge(cfg.analyses[analysisName])
+            analysisName = "analysis-" + analysisName
+        }
+                
+        
+        File batchDir = new File(runDir, analysisName)
+        batchDir.mkdirs()
+        writeCallerParameterFile(batchDir, analysisCfg)
+        return analysisName
+    }
+    
+    /**
+     * Write a file containing the caller parameters extracted from a config object
+     * as the file caller.params.txt to the given directory.
+     * 
+     * @param outputDir
+     * @param callersObj
+     */
+    void writeCallerParameterFile(File outputDir, ConfigObject callersObj) {
+        String paramText = callersObj.collect { caller ->
+            caller.value.collect { paramEntry ->
+                "$paramEntry.key=$paramEntry.value"
+            }
+
+        }.flatten().join('\n')
+        
+        File paramFile = new File(outputDir, "caller.params.txt")
+        paramFile.text = paramText
+        log.info "Write file $paramFile with caller parameters"
     }
     
     void resolveBamFiles() {
@@ -325,27 +384,9 @@ class Ximmer {
         List<SAM> targetSamples = computeTargetSamples()
         List<Region> simulatedCNVs = []
         
+        Ximmer me = this
         GParsPool.withPool(concurrency) {
-            simulatedCNVs = targetSamples.collectParallel { SAM targetSAM ->
-                try {
-                    String sample = targetSAM.samples[0]
-                    Regions cnvs = checkExistingSimulatedSample(bamDir, existingSamples, existingBams, sample)
-                    if(cnvs != null) {
-                        log.info "Loaded pre-existing CNVs with samples " + cnvs*.sample
-                        return cnvs
-                    }
-                          
-                    cnvs = simulateSampleCNV(bamDir, targetSAM)
-                    cnvs.each { it.sample = sample }
-                    return cnvs
-                }
-                catch(Exception e) {
-                    log.severe("Sample ${targetSAM.samples[0]} failed in simulation")
-                    log.throwing("Ximmer", "simulateRun", e)
-                    e.printStackTrace()
-                    throw e
-                }
-            }
+            simulatedCNVs = targetSamples.collectParallel(me.&simulateSampleCNVs.curry(bamDir,existingSamples,existingBams))
         }
             
         trueCnvsFile.withWriter { w -> 
@@ -363,6 +404,40 @@ class Ximmer {
         return simulatedCNVs
     }
     
+    Regions simulateSampleCNVs(File bamDir, List<String> existingSamples, List<SAM> existingBams, SAM targetSAM) {
+        try {
+            String sample = targetSAM.samples[0]
+            Regions cnvs = checkExistingSimulatedSample(bamDir, existingSamples, existingBams, sample)
+            if(cnvs != null) {
+                log.info "Loaded pre-existing CNVs with samples " + cnvs*.sample
+                return cnvs
+            }
+                          
+            cnvs = simulateSampleCNV(bamDir, targetSAM)
+            cnvs.each { it.sample = sample }
+            return cnvs
+        }
+        catch(Exception e) {
+            log.severe("Sample ${targetSAM.samples[0]} failed in simulation")
+            log.throwing("Ximmer", "simulateRun", e)
+            e.printStackTrace()
+            throw e
+        }
+    }
+    
+    /**
+     * Check if the given sample already has been simulated, and if it has,
+     * return a Regions object containing the CNVs that were simulated. Otherwise
+     * return null.
+     * 
+     * @param outputDir         the output directory where BAM files are placed
+     * @param existingSamples   list of known samples extracted from BAMs - if not in there, will return null
+     * @param existingBams      list of BAM files in output directory
+     * @param sample            the sample to check for
+     * 
+     * @return      null if sample not simulated, otherwise Regions 
+     *              object containing CNVs, with sample property set
+     */
     Regions checkExistingSimulatedSample(File outputDir, List existingSamples, List existingBams, String sample) {
         
         int existingIndex = existingSamples.indexOf(sample)
@@ -694,7 +769,7 @@ class Ximmer {
             
         int exitCode = process.waitFor()
         if(exitCode != 0) 
-            throw new RuntimeException("Execution of R script $tempScript.absolutePath failed: \n"  + rLogFile.text + "\n")
+            throw new RuntimeException("Execution of R script $scriptFile failed: \n"  + rLogFile.text + "\n")
     }
     
     public static void main(String [] args) {
@@ -731,10 +806,6 @@ class Ximmer {
             MiscUtils.configureVerboseLogging()
             println "Configured verbose logging"
             log.info "Configured verbose logging"
-        }
-        
-        if(opts.seed) {
-            
         }
         
         // Parse the configuration
