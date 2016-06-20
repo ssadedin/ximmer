@@ -39,11 +39,18 @@ combined.results$sample = paste(combined.results$sample,combined.results$sim,sep
 ximmer_sim_loaders = list(
   
   ed=function(batch,sims) {
-    do.call(c,lapply(sims,function(sim) load_exomedepth_results(sprintf("%s/analysis/exome_depth/analysis.exome_depth.cnvs.tsv", sim),sim)))
+    do.call(c,lapply(sims,function(sim) load_exomedepth_results(sprintf("%s/analysis/analysis.exome_depth.cnvs.tsv", sim),sim)))
   },
   
   xhmm=function(batch,sims) {
-    do.call(c,lapply(sims,function(sim) load_xhmm_results(Sys.glob(sprintf("%s/analysis/xhmm/*.xhmm_discover.xcnv",sim)[[1]]),sim)))
+
+    do.call(c,lapply(sims, {
+      function(sim) {
+        glob = sprintf("%s/analysis/xhmm/*.xhmm_discover.xcnv",sim)
+        print(sprintf("glob = %s",glob))  
+        load_xhmm_results(Sys.glob(glob)[[1]],sim)
+      } 
+    }))
   },
   
   cnmops=function(batch,sims) {
@@ -108,7 +115,8 @@ dev.off()
 png("qual_score_calibration.png", width=960, height=250*length(sim.callers))
 par(mfrow=c(length(sim.callers)/2,2))
 for(caller in sim.callers) {
-  plot.qscore.calibration(caller, ranked, newPlot=T, col="darkgreen")
+  if(length(ranked[[caller]])> 0)
+    plot.qscore.calibration(caller, ranked, newPlot=T, col="darkgreen")
 }
 dev.off()
 

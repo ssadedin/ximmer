@@ -264,7 +264,8 @@ load_ranked_run_results = function(truth, analysis.names, exclude.bed=NULL, batc
     
     # order by quality so that we count true positives correctly to produce ROC-style curve
     printf("Counting true positives ordered by rank for %s",caller)
-    cnvs = cnvs[order(cnvs$qual,decreasing = T)]
+    if(length(cnvs)>1)
+      cnvs = cnvs[order(cnvs$qual,decreasing = T)]
     
     if(length(cnvs)>0) {
       true.count = 0
@@ -665,12 +666,18 @@ plot.qscore.calibration = function(caller, qscore.results.all, newPlot=T, plot.t
    plot.title = sprintf("Quality Score Calibration for %s", sim.caller.labels[[caller]])
   }
   
-  qscore.results.bins.tprate = by(mcols(qscore.results), cut(qscore.results$qual, qscore.results.bins), function(cnvs) {
-    printf("sum(cnvs$true)=%d",sum(cnvs$true))
-    printf("length(cnvs)=%d",nrow(cnvs))
-    return(sum(cnvs$true) / nrow(cnvs))
-  })
+  if(length(qscore.results)>0) {
   
+    qscore.results.bins.tprate = by(mcols(qscore.results), cut(qscore.results$qual, qscore.results.bins), function(cnvs) {
+      printf("sum(cnvs$true)=%d",sum(cnvs$true))
+      printf("length(cnvs)=%d",nrow(cnvs))
+      return(sum(cnvs$true) / nrow(cnvs))
+    })
+  }
+  else {
+    qscore.results.bins.tprate = rep(0, length(qscore.results.bins))
+  }
+    
   qscore.results.bins.tprate[is.na(qscore.results.bins.tprate)] = 0
   
   bin.centres = qscore.results.bins[-1]-(diff(qscore.results.bins)/2)
