@@ -26,6 +26,8 @@ conifer_rpkm = {
 conifer_analyze = {
 
     requires batch_name : "The name of the batch that Conifer is analysing"
+    
+    var conifer_svd_num : 1
 
     produce(batch_name+".conifer.hdf5",batch_name+".scree.png") {
         exec """
@@ -34,7 +36,7 @@ conifer_analyze = {
           --probes $input.bed
           --rpkm_dir ${file(input.rpkm).parentFile.absolutePath}
           --output $output.hdf5
-          --svd 1
+          --svd $conifer_svd_num
           --write_svals singular_values.txt
           --write_sd sd_values.txt
           --plot_scree $output.png
