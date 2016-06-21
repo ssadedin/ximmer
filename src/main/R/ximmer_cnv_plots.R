@@ -43,7 +43,7 @@ combined.results$sample = paste(combined.results$sample,combined.results$sim,sep
 ximmer_sim_loaders = list(
   
   ed=function(batch,sims) {
-    do.call(c,lapply(sims,function(sim) load_exomedepth_results(sprintf("%s/%s/%s.exome_depth.cnvs.tsv", sim, ANALYSIS, ANALYSIS),sim)))
+    do.call(c,lapply(sims,function(sim) load_exomedepth_results(sprintf("%s/%s/exome_depth/%s.exome_depth.cnvs.tsv", sim, ANALYSIS, ANALYSIS),sim)))
   },
   
   xhmm=function(batch,sims) {
