@@ -275,7 +275,10 @@ load_ranked_run_results = function(truth, analysis.names, exclude.bed=NULL, batc
       calls = c()
       
       for(i in 1:length(cnvs)) {
-        print(sprintf("CNV %d by caller %s", i, caller))
+        if(i %% 10 == 0) {
+          print(sprintf("CNV %d by caller %s", i, caller))
+        }  
+        
         cnv = cnvs[i]
         if(cnv$true && (cnv$tpid %in% tp.identified)) {
           printf("CNV %d identified multiple times by different calls",i)        
