@@ -87,27 +87,27 @@ sim.caller.loaders = ximmer_sim_loaders
 ranked = load_ranked_run_results(truth, names(ximmer.sims), filterChrX=F)
 nice_colors = plot.colors = c('orange','blue','green','black','purple','red')
 
-png("roc.png")
+png(sprintf("%s_roc.png",ANALYSIS))
 plot.exome.result.set(ranked, truth)
 dev.off()
 
 truth.metrics = compute_deletion_metrics(truth, TARGET_REGION)
 
-png("sens_by_tg.png")
+png(sprintf("%s_sens_by_tg.png", ANALYSIS))
 bin.levels = c(0,1,2,3,4,5,6,7,8)
 x.binned = load.binned.cnv.truth.set(combined.results, ANALYSIS, truth.metrics, truth.metrics$targets, bin.levels)
 sens_by_del_plot_frame(bin.levels = bin.levels, x.max=8, plot.xlab = "Deletion Size (No. of Target Regions)")
 plot.binned.performance(r=x.binned, bin.levels=bin.levels, palette=plot.colors)
 dev.off()
 
-png("sens_by_seqbp.png")
+png(sprintf("%s_sens_by_seqbp.png", ANALYSIS))
 bin.levels = c(0,200,500,1000,1500,4000)
 x.binned = load.binned.cnv.truth.set(combined.results, ANALYSIS, truth.metrics, truth.metrics$seqbp, bin.levels)
 sens_by_del_plot_frame(bin.levels = bin.levels, x.max=4000, plot.xlab = "Deletion Size (sequenced bp)")
 plot.binned.performance(r=x.binned, bin.levels=bin.levels, palette=plot.colors)
 dev.off()
 
-png("sens_by_bp.png")
+png(sprintf("%s_sens_by_bp.png", ANALYSIS))
 bin.levels = c(0,200,500,1000,1500,4000,10000,100000)
 x.binned = load.binned.cnv.truth.set(combined.results, ANALYSIS, truth.metrics, truth.metrics$bp, bin.levels)
 sens_by_del_plot_frame(bin.levels = bin.levels, plot.xlab = "Deletion Size (spanned bp)", log.scale = T)
@@ -116,7 +116,7 @@ dev.off()
 
 ##--------------- Quality Score Calibration
 
-png("qual_score_calibration.png", width=960, height=250*length(sim.callers))
+png(sprintf("%s_qual_score_calibration.png",ANALYSIS), width=960, height=250*length(sim.callers))
 par(mfrow=c(length(sim.callers)/2,2))
 for(caller in sim.callers) {
   if(length(ranked[[caller]])> 0)

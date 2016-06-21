@@ -297,15 +297,15 @@
                 <h2>ROC Style Curves for <%=callers.size()%> CNV Callers</h2>
                 <p>ROC curves show the number of true positives vs false positives found
                    as quality score (or confidence measure) decreases.</p>
-                <img src="roc.png">
+                <img src="<%=analysisName%>_roc.png">
             </div><!-- simrocs -->
             
             <div id=sizebreakdown>
                 <h2>Performance by Deletion Size</h2>
-                <img src="sens_by_bp.png" width='37%'> 
-                <img src="sens_by_seqbp.png" width='37%'> 
+                <img src="<%=analysisName%>_sens_by_bp.png" width='37%'> 
+                <img src="<%=analysisName%>_sens_by_seqbp.png" width='37%'> 
                 <br>
-                <img src="sens_by_tg.png" width='37%'> 
+                <img src="<%=analysisName%>_sens_by_tg.png" width='37%'> 
             
             </div> <!-- sizebreakdown -->
             
@@ -315,7 +315,7 @@
                 These curves estimate the precision as quality varies for each CNV caller. Use these curves
                 to determine the appropriate level of filtering to control your false discovery rate.
             </p>
-            <img src='qual_score_calibration.png'>
+            <img src='<%=analysisName%>_qual_score_calibration.png'>
             </div> <!-- qscore calibration -->
            
             <%runDirectories.eachWithIndex { File runDir, runIndex  -> %>
