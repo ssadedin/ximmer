@@ -15,6 +15,10 @@ if(is.na(XIMMER_RUNS))
 
 XIMMER_CALLERS=unlist(strsplit(Sys.getenv("XIMMER_CALLERS"),split=","))
 
+ANALYSIS=Sys.getenv("ANALYSIS")
+if(is.na(ANALYSIS))
+    ANALYSIS = "analysis"
+
 print(sprintf("SRC=%s", SRC))
 
 # TARGET_REGION="/Users/simon/work/ximmer/eval/data/haloplex/target_regions.bed"
@@ -32,21 +36,21 @@ names(ximmer.sims) = sim.names
 truth = load.truth(names(ximmer.sims))
 truth$id = paste(truth$id, truth$source, sep="_")
 
-combined.results = load.combined.results(ximmer.sims, "analysis", pattern="%s/analysis/report/cnv_report.tsv")
+combined.results = load.combined.results(ximmer.sims, ANALYSIS, pattern=paste0("%s/",ANALYSIS,"/report/cnv_report.tsv"))
 combined.results$sample = paste(combined.results$sample,combined.results$sim,sep='_')
 
 
 ximmer_sim_loaders = list(
   
   ed=function(batch,sims) {
-    do.call(c,lapply(sims,function(sim) load_exomedepth_results(sprintf("%s/analysis/analysis.exome_depth.cnvs.tsv", sim),sim)))
+    do.call(c,lapply(sims,function(sim) load_exomedepth_results(sprintf("%s/%s/%s.exome_depth.cnvs.tsv", sim, ANALYSIS, ANALYSIS),sim)))
   },
   
   xhmm=function(batch,sims) {
 
     do.call(c,lapply(sims, {
       function(sim) {
-        glob = sprintf("%s/analysis/xhmm/*.xhmm_discover.xcnv",sim)
+        glob = sprintf("%s/%s/xhmm/*.xhmm_discover.xcnv",sim, ANALYSIS)
         print(sprintf("glob = %s",glob))  
         load_xhmm_results(Sys.glob(glob)[[1]],sim)
       } 
@@ -56,17 +60,17 @@ ximmer_sim_loaders = list(
   cnmops=function(batch,sims) {
     do.call(c,lapply(sims,
        function(sim) {
-         load_cn_mops_results(Sys.glob(sprintf("%s/analysis/cn_mops/*.cnmops.cnvs.tsv",sim)[[1]]), sim)
+         load_cn_mops_results(Sys.glob(sprintf("%s/%s/cn_mops/*.cnmops.cnvs.tsv",sim, ANALYSIS)[[1]]), sim)
        }))
   },
   
   cfr=function(batch,sims) {
-    do.call(c,lapply(sims,function(sim) load_conifer_results(Sys.glob(sprintf("%s/analysis/conifer/*.conifer.cnvs.tsv",sim)[[1]]),sim)))
+    do.call(c,lapply(sims,function(sim) load_conifer_results(Sys.glob(sprintf("%s/%s/conifer/*.conifer.cnvs.tsv",sim, ANALYSIS)[[1]]),sim)))
   },
   
   anghmm=function(batch,sims) {
     do.call(c,lapply(sims,function(sim) {
-      pattern = sprintf("%s/analysis/analysis.*counts.angelhmm*.cnvs.bed", sim)
+      pattern = sprintf("%s/%s/%s.*counts.angelhmm*.cnvs.bed", sim, ANALYSIS, ANALYSIS)
       print(sprintf("Pattern = %s", pattern))
       load_angel_results(Sys.glob(pattern)[[1]],sim)
     }))
@@ -91,21 +95,21 @@ truth.metrics = compute_deletion_metrics(truth, TARGET_REGION)
 
 png("sens_by_tg.png")
 bin.levels = c(0,1,2,3,4,5,6,7,8)
-x.binned = load.binned.cnv.truth.set(combined.results, "analysis", truth.metrics, truth.metrics$targets, bin.levels)
+x.binned = load.binned.cnv.truth.set(combined.results, ANALYSIS, truth.metrics, truth.metrics$targets, bin.levels)
 sens_by_del_plot_frame(bin.levels = bin.levels, x.max=8, plot.xlab = "Deletion Size (No. of Target Regions)")
 plot.binned.performance(r=x.binned, bin.levels=bin.levels, palette=plot.colors)
 dev.off()
 
 png("sens_by_seqbp.png")
 bin.levels = c(0,200,500,1000,1500,4000)
-x.binned = load.binned.cnv.truth.set(combined.results, "analysis", truth.metrics, truth.metrics$seqbp, bin.levels)
+x.binned = load.binned.cnv.truth.set(combined.results, ANALYSIS, truth.metrics, truth.metrics$seqbp, bin.levels)
 sens_by_del_plot_frame(bin.levels = bin.levels, x.max=4000, plot.xlab = "Deletion Size (sequenced bp)")
 plot.binned.performance(r=x.binned, bin.levels=bin.levels, palette=plot.colors)
 dev.off()
 
 png("sens_by_bp.png")
 bin.levels = c(0,200,500,1000,1500,4000,10000,100000)
-x.binned = load.binned.cnv.truth.set(combined.results, "analysis", truth.metrics, truth.metrics$bp, bin.levels)
+x.binned = load.binned.cnv.truth.set(combined.results, ANALYSIS, truth.metrics, truth.metrics$bp, bin.levels)
 sens_by_del_plot_frame(bin.levels = bin.levels, plot.xlab = "Deletion Size (spanned bp)", log.scale = T)
 plot.binned.performance(r=x.binned, bin.levels=bin.levels, palette=plot.colors, log.scale = T)
 dev.off()

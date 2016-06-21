@@ -101,9 +101,11 @@ class Ximmer {
         this.simulate()
         
         if(analyse) {
-            this.runAnalysis()
+            List<String> analyses = this.runAnalysis()
         
-            this.generateReport()
+            for(String analysis in analyses) {
+                this.generateReport(analysis)
+            }
         }
     }
     
@@ -145,13 +147,15 @@ class Ximmer {
         }
     }
     
-    void runAnalysis() {
+    List<String> runAnalysis() {
+        List<String> analyses
         for(File runDir in runDirectories) {
-            runAnalysisForRun(runDir)
+            analyses = runAnalysisForRun(runDir)
         }
+        return analyses
     }
     
-    void runAnalysisForRun(File runDir) {
+    List<String> runAnalysisForRun(File runDir) {
         
         List<String> bamFiles 
         if(this.enableSimulation) {
@@ -159,11 +163,6 @@ class Ximmer {
         } 
         else {
             bamFiles = this.bamFiles*.value*.samFile*.absolutePath
-        }
-        
-        if(new File(runDir,"analysis/report/cnv_report.html").exists()) {
-            log.info("Skipping bpipe run for $runDir because cnv_report.html already exists")
-            return
         }
         
         File bpipe = new File("eval/bpipe")
@@ -182,6 +181,11 @@ class Ximmer {
                 // Create the corresponding analysis
                 batches << createAnalysis(runDir, analysisName)
             }
+        }
+        
+        if(batches.every { new File(runDir,it+"/report/cnv_report.html").exists()}) {
+            log.info("Skipping bpipe run for $runDir because cnv_report.html already exists for all analyses (${batches.join(',')})")
+            return batches
         }
         
         List<String> bpipeCommand = [
@@ -228,6 +232,8 @@ class Ximmer {
           try { p.outputStream.close() } catch(Throwable t) { }      
           try { p.errorStream.close() } catch(Throwable t) { }      
         } 
+        
+        return batches
     }
     
     /**
@@ -542,22 +548,25 @@ class Ximmer {
         }        
     }
     
-    void generateReport() {
+    void generateReport(String analysisName) {
         
-        log.info "Generating consolidated report for " + this.runDirectories.size() + " runs"
+        log.info "Generating consolidated report for " + this.runDirectories.size() + " runs in analysis $analysisName"
         
-        String summaryHTML = generateSummary()
+        String summaryHTML = generateSummary(analysisName)
         
-        generateROCPlots()
+        generateROCPlots(analysisName)
         
         log.info("Generating HTML Report ...")
         File mainTemplate = new File("src/main/resources/index.html")
         
-        new File(outputDirectory, "index.html").withWriter { w ->
+        String outputName = analysisName + ".html"
+        
+        new File(outputDirectory, outputName).withWriter { w ->
             SimpleTemplateEngine templateEngine = new SimpleTemplateEngine()
             templateEngine.createTemplate(mainTemplate.newReader()).make(
+                analysisName : analysisName,
                 runDirectories: runDirectories,
-                batch_name : outputDirectory.name,
+                outputDirectory : outputDirectory.name,
                 summaryHTML : summaryHTML,
                 callers: this.callerIds
             ).writeTo(w)
@@ -637,13 +646,13 @@ class Ximmer {
      * 
      * @return
      */
-    String generateSummary() {
+    String generateSummary(String analysisName) {
         
         List<Region> cnvs = readCnvs()
         
         // Load the results
         List<RangedData> results = runDirectories.collect { runDir ->
-            new RangedData(new File(runDir,"analysis/report/cnv_report.tsv").path).load([:], { r ->
+            new RangedData(new File(runDir,"$analysisName/report/cnv_report.tsv").path).load([:], { r ->
                     callerIds.each { r[it] = r[it] == "TRUE" }
           })
         }
@@ -683,7 +692,7 @@ class Ximmer {
         runPython([:], outputDirectory, new File("src/main/python/cnv_size_histogram.py"), [combinedCnvs.absolutePath, new File(outputDirectory,"cnv_size_histogram.png").absolutePath])
     }
     
-    void generateROCPlots() {
+    void generateROCPlots(String analysisName) {
         
        if(!this.enableSimulation)
             return
@@ -692,6 +701,7 @@ class Ximmer {
   
         runR(outputDirectory, 
             new File("src/main/R/ximmer_cnv_plots.R"), 
+                ANALYSIS: analysisName,
                 SRC: new File("src/main/R").absolutePath, 
                 XIMMER_RUNS: runDirectories.size(),
                 TARGET_REGION: new File(cfg.target_regions).absolutePath,
