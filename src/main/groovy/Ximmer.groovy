@@ -497,8 +497,17 @@ class Ximmer {
         Regions deletions = new Regions()
         Regions exclusions = this.excludeRegions ? this.excludeRegions.collect { it } as Regions : new Regions()
         
+        // If simulation mode is replacement, we need to select a male to simulate from
+        SAM sourceSample = null
+        if(cfg.simulation_type == "replace") {
+            String maleId = cfg.samples.males[random.nextInt(cfg.samples.males.size())]
+            sourceSample = this.bamFiles[maleId]
+            if(sourceSample == null) 
+                throw new IllegalStateException("The configured male sample $maleId does not have a corresponding BAM file configured under bam_files")
+        }
+        
         for(int cnvIndex = 0; cnvIndex < this.deletionsPerSample; ++cnvIndex) {
-            CNVSimulator simulator = new CNVSimulator(targetSample, null)
+            CNVSimulator simulator = new CNVSimulator(targetSample, sourceSample)
             if(this.seed != null) 
                 simulator.random = new Random((this.seed<<16) + (cnvIndex << 8)  + (targetSample.hashCode() % 256))
   
@@ -520,13 +529,13 @@ class Ximmer {
         
         File outputFile = new File(outputDir, sampleId + "_${r.chr}_${r.from}-${r.to}.bam" )
         
-        CNVSimulator simulator = new CNVSimulator(targetSample, null)
+        CNVSimulator simulator = new CNVSimulator(targetSample, sourceSample) 
         if(cfg.simulation_type == "downsample") {
-                    
-            simulator.simulationMode = "downsample"
+           simulator.simulationMode = "downsample"
         }
         else {
-            throw new UnsupportedOperationException("Still working on this!")
+           simulator.simulationMode = "replace"
+           
         }
         
         simulator.createBam(outputFile.absolutePath, deletions)
@@ -565,7 +574,19 @@ class Ximmer {
             return this.bamFiles*.value
         }
         else {
-            throw new UnsupportedOperationException("Still working on this!")
+            if(!("samples" in cfg)) 
+                throw new IllegalStateException("To use X replacement, please specify which samples are male and female in the 'samples' section of the configuration file")
+            
+            Set<String> females = cfg.samples.females
+            
+            List<SAM> results = this.bamFiles.grep { Map.Entry e ->
+                e.key in cfg.samples.females
+            }*.value
+        
+            if(results.isEmpty()) 
+                throw new IllegalStateException("To use X replacement, there must be at least one female sample configured")
+                
+            return results
         }        
     }
     
