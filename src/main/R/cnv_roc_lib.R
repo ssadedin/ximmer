@@ -640,8 +640,9 @@ bin.cnv.results = function(truth, truth.bins, results) {
   # It's nicer to coalesce each list into a single GRanges with multiple ranges
   # Combine separate GRanges objects to 1 for each bin  
   binned.combined = lapply(binned, function(r.bin) { 
-    if(length(r.bin)>0)
+    if((length(r.bin)>0) && (typeof(r.bin) == "list")) {
       do.call(c, unname(r.bin)) 
+    }
     else 
       return(r.bin)      
   })

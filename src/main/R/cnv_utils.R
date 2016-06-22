@@ -1584,6 +1584,9 @@ cnv.caller.recall = function(cnvs, caller, ignore.samples=c("")) {
   ## Calculate the recall for named CNV caller based on the 'truth' column
   ## in the given table
   ##
+  if(length(cnvs) == 1 && is.na(cnvs))  
+    return(0)
+  
   result = sum(cnvs$truth & cnvs[,caller]) / sum(cnvs$truth & !(cnvs$sample %in% ignore.samples)) 
   if(is.nan(result))
     return(0)
