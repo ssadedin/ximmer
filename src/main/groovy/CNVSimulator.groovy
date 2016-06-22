@@ -390,7 +390,7 @@ class CNVSimulator {
         String chromosome = seedRegion.chr
         
         if(maleReadRegions == null && maleBam != null) {
-            maleReadRegions = maleBam.toPairRegions(chromosome,seedWindow[0].from,seedWindow[-1].to)
+            maleReadRegions = new SAM(maleBam.samFile).toPairRegions(chromosome,seedWindow[0].from,seedWindow[-1].to)
         }
         
         if(maleBam != null)
