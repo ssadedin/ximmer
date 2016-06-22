@@ -399,12 +399,24 @@ class Ximmer {
         // Compute the target samples
         List<SAM> targetSamples = computeTargetSamples()
         List<Region> simulatedCNVs = []
-        
         Ximmer me = this
         GParsPool.withPool(concurrency) {
             simulatedCNVs = targetSamples.collectParallel(me.&simulateSampleCNVs.curry(bamDir,existingSamples,existingBams))
         }
             
+        writeCNVFile(trueCnvsFile, simulatedCNVs)
+        
+        return simulatedCNVs
+    }
+    
+    /**
+     * Write out a file in BED-like format including all known true positive CNVs for this run.
+     * These include both simulated CNVs and also any true positives known to be in the data.
+     * 
+     * @param trueCnvsFile
+     * @param simulatedCNVs
+     */
+    void writeCNVFile(File trueCnvsFile, simulatedCNVs) {
         trueCnvsFile.withWriter { w -> 
             w.println simulatedCNVs.collect { it as List }.flatten().collect { r -> 
                 [r.chr, r.from, r.to+1, r.sample ].join("\t") 
@@ -417,7 +429,6 @@ class Ximmer {
                 }.join("\n")
             }
         }
-        return simulatedCNVs
     }
     
     Regions simulateSampleCNVs(File bamDir, List<String> existingSamples, List<SAM> existingBams, SAM targetSAM) {
