@@ -249,18 +249,20 @@ class CNVSimulator {
         println "Created $outputFileName"
     }
     
-    void createBamByReplacement(String outputFileName, Region cleanRegion) {
+    void createBamByReplacement(String outputFileName, Regions cleanRegions) {
         
         log.info "Creating $outputFileName using replace mode"
        
         println "Querying source reads from Male alignment ..."
-        List maleRegionReads = []
         int count = 0
-        maleBam.eachPair(cleanRegion.chr,cleanRegion.from,cleanRegion.to) { r1, r2 ->
-            maleRegionReads << [ r1, r2]
-            ++count
+        List maleRegionReads = []
+        for(Region cleanRegion in cleanRegions) { 
+            maleBam.eachPair(cleanRegion.chr,cleanRegion.from,cleanRegion.to) { r1, r2 ->
+                maleRegionReads << [ r1, r2]
+                ++count
+            }
         }
-        
+            
         println "Found $count read pairs in region over male alignment " + this.maleBam.samples[0]
         if(count == 0) 
             throw new RuntimeException("Male alignment has no reads over targeted region for CNV")
@@ -268,14 +270,11 @@ class CNVSimulator {
         if(this.random == null)
             random = new Random()
         
-        final String chr = cleanRegion.chr
-        final int start = cleanRegion.from
-        final int end = cleanRegion.to
-        
+        final String chr = cleanRegions[0].chr
         final String rgId = femaleBam.samFileReader.fileHeader.getReadGroups()[0].getId()
         
         // Read each BAM 
-        femaleBam.withWriter(outputFileName) { SAMFileWriter  writer ->
+        femaleBam.withWriter(outputFileName, false) { SAMFileWriter  writer ->
             femaleBam.eachPair { SAMRecord r1, SAMRecord r2 ->
                 
                 if(r1 == null|| r2 == null)
@@ -285,7 +284,7 @@ class CNVSimulator {
                 int rStart = boundaries.min()
                 int rEnd = boundaries.max()
                 
-                if(cleanRegion.overlaps(chr, rStart, rEnd))
+                if(cleanRegions.overlaps(chr, rStart, rEnd))
                     return
                 
                 // For regions outside that which we are simulating for,
