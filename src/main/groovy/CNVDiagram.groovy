@@ -182,6 +182,13 @@ class CNVDiagram {
         
         println "Call $cnv.chr:$cnv.from-$cnv.to for sample $cnv.sample"
 
+        String imageFileName = outputFileBase.replaceAll('.png$','') + "_${cnv.chr}_${cnv.from}_${cnv.to}_${cnv.sample}.png"
+        File imageFile = new File(imageFileName)
+        if(imageFile.exists() && imageFile.length() > 0) {
+            println "Skip $imageFileName because file already exists"
+            return
+        }
+        
         SAM bam = bams[cnv.sample]
 
         List<String> genes = geneDb.getGenes(cnv).grep { gene -> geneDb.getExons(gene).overlaps(this.targetRegions) }
@@ -227,7 +234,6 @@ class CNVDiagram {
         
         double yMax = 2.0d
 
-        String imageFileName = outputFileBase.replaceAll('.png$','') + "_${cnv.chr}_${cnv.from}_${cnv.to}_${cnv.sample}.png"
         graxxia.Drawing d = new graxxia.Drawing(
                         imageFileName,
                         width,
