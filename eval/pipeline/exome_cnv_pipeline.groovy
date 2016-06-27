@@ -117,15 +117,19 @@ init = {
 run {
     
     caller_stages = [ ]
+    
+    common_stages = [ ]
 
     if('ex' in cnv_callers) 
-            caller_stages << (init_excavator + excavator_pipeline)
+        caller_stages << (init_excavator + excavator_pipeline)
 
     if('ed' in cnv_callers) 
-            caller_stages << (init_exome_depth + exome_depth_pipeline)
+        caller_stages << (init_exome_depth + exome_depth_pipeline)
 
-    if('xhmm' in cnv_callers) 
-            caller_stages << (init_xhmm + xhmm_pipeline)
+    if('xhmm' in cnv_callers)  {
+        caller_stages << (init_xhmm + xhmm_pipeline)
+        common_stages << "%.bam" * [ gatk_depth_of_coverage ]
+    }
 
     if('cnmops' in cnv_callers)
         caller_stages << (init_cn_mops + cn_mops_call_cnvs)
@@ -133,9 +137,10 @@ run {
     if('cfr' in cnv_callers)
         caller_stages << (init_conifer + run_conifer)
 
-    batch_dirs * [
-        init + create_analysable_target + caller_stages + create_cnv_report +
-             INCLUDE_CHROMOSOMES * [ touch_chr + plot_cnv_coverage ]  +
-             sample_names * [ extract_sample_files ] 
-     ]
+    common_stages + 
+        batch_dirs * [
+            init + create_analysable_target + caller_stages + create_cnv_report +
+                 INCLUDE_CHROMOSOMES * [ touch_chr + plot_cnv_coverage ]  +
+                 sample_names * [ extract_sample_files ] 
+         ]
 } 

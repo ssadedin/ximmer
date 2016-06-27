@@ -52,15 +52,17 @@ xhmm_init = {
 }
 
 gatk_depth_of_coverage = {
-
+    
     // requires target_bed : "BED file containing regions to calculate coverage depth for"
 
+    output.dir = "common/xhmm"
+    
     transform("sample_interval_summary") {
         exec """
             $JAVA -Xmx2g -jar $GATK/GenomeAnalysisTK.jar 
                  -T DepthOfCoverage 
                  ${inputs.bam.withFlag("-I")}
-                 -L $input.bed
+                 -L $target_bed
                  -R $HGFA
                  -dt BY_SAMPLE 
                  -dcov 5000 
@@ -222,7 +224,7 @@ xhmm_discover = {
 }
 
 xhmm_pipeline = segment {
-    find_extreme_gc_content + "%.bam" * [ gatk_depth_of_coverage ] + 
+    find_extreme_gc_content + 
              xhmm_init + 
              xhmm_merge_coverage + 
              xhmm_mean_center +
