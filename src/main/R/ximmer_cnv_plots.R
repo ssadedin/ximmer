@@ -117,7 +117,9 @@ dev.off()
 ##--------------- Quality Score Calibration
 
 png(sprintf("%s_qual_score_calibration.png",ANALYSIS), width=960, height=250*length(sim.callers))
-par(mfrow=c(length(sim.callers)/2,2))
+if(length(sim.callers)>1) {
+  par(mfrow=c(length(sim.callers)/2,2))
+}
 for(caller in sim.callers) {
   if(length(ranked[[caller]])> 0)
     plot.qscore.calibration(caller, ranked, newPlot=T, col="darkgreen")
