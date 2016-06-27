@@ -147,6 +147,8 @@ xhmm_pca = {
 xhmm_normalize = {
 
     doc "Normalizes mean-centered data using PCA information"
+    
+    var xhmm_pve_mean_factor : "0.7"
 
     filter("norm") {
         from("PC.txt") {
@@ -156,7 +158,7 @@ xhmm_normalize = {
                    --PCAfiles $input.txt.prefix.prefix
                    --normalizeOutput $output.txt
                    --PCnormalizeMethod PVE_mean 
-                   --PVE_mean_factor 0.7
+                   --PVE_mean_factor $xhmm_pve_mean_factor
             """
         }
     }
