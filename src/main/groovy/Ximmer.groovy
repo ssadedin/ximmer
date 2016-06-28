@@ -12,13 +12,6 @@ import htsjdk.samtools.BAMIndexer;
 import htsjdk.samtools.SAMFileReader
 import htsjdk.samtools.SAMRecord;
 
-class AnalysisConfig {
-    
-    String analysisName
-    
-    List<String> callerCfgs
-}
-
 /**
  * The main entry point for the Ximmer simulation framework
  * 
@@ -923,3 +916,12 @@ class Ximmer {
         ximmer.run(!opts.simonly)
     }
 }
+
+class AnalysisConfig {
+    
+    String analysisName
+    
+    List<String> callerCfgs
+}
+
+
