@@ -163,7 +163,9 @@ class CNVDiagram {
             loadMeans()
         
         def callers = cnvCalls.keySet() as List
-        def colors = [ callers, ["red","green","orange","blue"] ].transpose().collectEntries()
+        List<String> palette = ["red","green","orange","blue","gray","magenta","yello","cyan","black"]
+        def colors = [ callers, palette[0..<callers.size()] ].transpose().collectEntries()
+        
         GParsPool.withPool(concurrency) {
             cnvs.eachParallel { cnv ->
                 Utils.time("Draw CNV $cnv.chr:$cnv.from-$cnv.to") {
