@@ -13,6 +13,7 @@
 // NOTE: Depends on base HG19
 
 xhmm_init = {
+    
 
     // Settings that can be overridden on command line
     var exome_wide_cnv_rate :  '1e-03',
@@ -32,7 +33,7 @@ xhmm_init = {
     branch.xhmm_params = xhmm_batch_name + '.params.txt'
     branch.min_sample_mean = min_sample_mean
 
-    println "Using XHMM exome wide CNV rate = $exome_wide_cnv_rate"
+    println "Using XHMM ($caller_label) exome wide CNV rate = $exome_wide_cnv_rate Output dir="+output.dir
 
     produce(xhmm_params) {
           exec """
@@ -223,6 +224,8 @@ xhmm_discover = {
                       -a $output.aux_xcnv 
         """
     }
+    
+    branch.caller_result = output.xcnv
 }
 
 xhmm_pipeline = segment {

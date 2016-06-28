@@ -223,11 +223,15 @@ load_ranked_run_results = function(truth, analysis.names, exclude.bed=NULL, batc
   
   sim.results = lapply(callers, function(caller) {
     
-    if(is.null(sim.caller.loaders[[caller]]))
-      stop(sprintf("A CNV caller %s was specified in the callers argument but is not found in the list of loaders: %s",
-                   caller, paste0(names(sim.caller.loaders),collapse=",")))
+    # Callers can have suffixes separated by underscores - the caller type is the first
+    # part of the caller
+    caller_type = gsub("_.*$", "", caller)
     
-    cnvs = sim.caller.loaders[[caller]](batch,analysis.names,...)
+    if(is.null(sim.caller.loaders[[caller_type]]))
+      stop(sprintf("A CNV caller %s was specified in the callers argument but is not found in the list of loaders: %s",
+                   caller_type, paste0(names(sim.caller.loaders),collapse=",")))
+    
+    cnvs = sim.caller.loaders[[caller_type]](caller, batch,analysis.names,...)
     
     if(!is.null(filter.samples)) {
       cnvs = cnvs[filter.samples(cnvs$sample)]
@@ -372,6 +376,15 @@ load.truth = function(sims) {
   return(truth)
 }
 
+get.caller.label = function(caller) {
+  
+  label = sim.caller.labels[[caller]]  
+  if(is.null(label)) {
+    label = caller
+  }
+  return(label)
+}
+
 plot.exome.result.set = function(optimal.results,
                                  truth,
                                  newPlot=T, 
@@ -399,7 +412,8 @@ plot.exome.result.set = function(optimal.results,
     plot.lwd = plot.lwd + plot.lwd.increment
     printf("Plot offset = %f, Width=%f", plot.offset, plot.lwd)
   }
-  legend("topright", fill=cols[1:length(sim.callers)], legend=lapply(sim.callers,function(caller) sim.caller.labels[[caller]]), cex=legend.cex)
+  legend.labels = lapply(sim.callers,get.caller.label)
+  legend("topright", fill=cols[1:length(sim.callers)], legend=legend.labels, text.width=max(strwidth(legend.labels))*1.5, cex=legend.cex)
 }
 
 compute_deletion_metrics = function(deletion.ranges, exome_bed_file) {  # "../design/EXOME.bed"
@@ -561,7 +575,7 @@ plot.binned.performance = function(r,bin.levels,pch=19,points.cex=1,palette=nice
   
   # Legend
   legend(legend.pos,
-         legend= paste(sapply(callers,function(s) caller.labels[[s]])),  
+         legend= paste(sapply(callers,get.caller.label)),  
          pch=c(rep(19,length(callers)), rep(18, length(callers))), 
          col=rep(palette[1:4],18), 
          bg="white")
@@ -667,7 +681,7 @@ plot.qscore.calibration = function(caller, qscore.results.all, newPlot=T, plot.t
   }
   
   if(is.na(plot.title)) {
-   plot.title = sprintf("Quality Score Calibration for %s", sim.caller.labels[[caller]])
+   plot.title = sprintf("Quality Score Calibration for %s", get.caller.label(caller))
   }
   
   if(length(qscore.results)>0) {

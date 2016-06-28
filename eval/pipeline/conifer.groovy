@@ -53,6 +53,7 @@ conifer_call = {
         --output $output.tsv
         """
    }
+   branch.caller_result = output.tsv
 }
 
 run_conifer = segment {

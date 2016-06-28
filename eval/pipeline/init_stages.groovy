@@ -1,10 +1,10 @@
 // Initialization stages - these just set specific output directories for each 
 // analysis tool
-init_excavator = { branch.dir="$batch_name/excavator"; branch.excavator_batch=batch_name }
-init_xhmm = { branch.dir="$batch_name/xhmm"; branch.xhmm_batch_name=batch_name }
-init_exome_depth = { branch.dir="$batch_name/exome_depth" }
-init_cn_mops = { branch.dir="${batch_name}/cn_mops" }
-init_conifer = { branch.dir="${batch_name}/conifer" }
+init_excavator = { branch.excavator_batch=batch_name }
+init_xhmm = { branch.xhmm_batch_name=batch_name }
+init_exome_depth = {  }
+init_cn_mops = { }
+init_conifer = { }
 
 create_analysable_target = {
     doc """

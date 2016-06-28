@@ -130,6 +130,8 @@ merge_ed = {
     exec """
         cat $inputs.exome_depth.tsv | grep -v '^"sample"' | awk '{ if(NR==1 || \$1 != "start.p") print \$0 }' > ${output(batch_name + ".exome_depth.cnvs.tsv")}
     """, "local"
+    
+    branch.caller_result = output.tsv
 }
 
 exome_depth_pipeline = segment {

@@ -99,9 +99,12 @@ finish = {
 
 batch_dirs = batches.tokenize(",")
 
-init = { 
+init_batch = { 
     
     branch.batch_name = branch.name
+    
+    // Map of caller label (eg: "xhmm_1") to the result file for that label
+    branch.batch_cnv_results = [:]
     
     branch.dir = batch_name 
     println "=" * 100
@@ -110,36 +113,58 @@ init = {
     println "Chromosomes: " + chromosomes
     println "=" * 100
     
-    load batch_name + '/caller.params.txt'
+    List<String> param_files = file(batch_name).listFiles().grep { it.name.endsWith('.params.txt') }*.path
+    
+    println "Parameter files for $batch_name are $param_files"
+    
+    forward param_files
 }
 
+init_caller_params = {
+    
+    requires caller: 'A caller should be passed by the using() function'
+    
+    branch.params = branch.name
+    
+    branch.caller_label = (params == "default") ? caller : "${caller}_${params}"
+    
+    branch.dir = branch.dir + "/$caller_label"
+    
+    println "Using parameters " + params + " with output to " + branch.dir
+    
+    load("$batch_name/${caller}.${params}.params.txt")
+}
+
+register_caller_result = {
+    
+    batch_cnv_results[caller_label] = caller_result
+}
 
 run {
     
-    caller_stages = [ ]
-    
     common_stages = [ ]
 
-    if('ex' in cnv_callers) 
-        caller_stages << (init_excavator + excavator_pipeline)
-
-    if('ed' in cnv_callers) 
-        caller_stages << (init_exome_depth + exome_depth_pipeline)
-
     if('xhmm' in cnv_callers)  {
-        caller_stages << (init_xhmm + xhmm_pipeline)
         common_stages << "%.bam" * [ gatk_depth_of_coverage ]
     }
+       
+    caller_pipelines = [
+       ex  :  (init_excavator + excavator_pipeline),
+       
+       ed  : (init_exome_depth + exome_depth_pipeline),
+       
+       xhmm: (init_xhmm + xhmm_pipeline),
+       
+       cnmops: (init_cn_mops + cn_mops_call_cnvs)
+    ]    
 
-    if('cnmops' in cnv_callers)
-        caller_stages << (init_cn_mops + cn_mops_call_cnvs)
-        
-    if('cfr' in cnv_callers)
-        caller_stages << (init_conifer + run_conifer)
-
+    caller_stages = cnv_callers.collect { caller ->
+        (caller + '.%.params.txt') * [ init_caller_params.using(caller:caller) + caller_pipelines[caller] + register_caller_result ]
+    }
+    
     common_stages + 
         batch_dirs * [
-            init + create_analysable_target + caller_stages + create_cnv_report +
+            create_analysable_target + init_batch + caller_stages + create_cnv_report +
                  INCLUDE_CHROMOSOMES * [ touch_chr + plot_cnv_coverage ]  +
                  sample_names * [ extract_sample_files ] 
          ]

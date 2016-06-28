@@ -45,15 +45,21 @@ plot_cnv_coverage = {
 
     output.dir="$branch.dir/report"
 
-    var reportSamples : false
+    var reportSamples : false,
+        draw_cnvs : true
 
     def reportSamplesFlag = reportSamples ? reportSamples.split(",")*.trim().collect { " -sample " + it }.sum()  : ""
-
+    if(!draw_cnvs) {
+        println "Skip drawing CNVs because disabled by setting"
+        return
+    }
+    
     uses(threads:2..8) {
         from("cnv_report.tsv") { produce("cnv_${chr}_*.png") {
 
             def caller_opts = []
 
+            /*
             if('xhmm' in cnv_callers)
                caller_opts << "-xhmm $input.xcnv"
 
@@ -69,6 +75,14 @@ plot_cnv_coverage = {
             if('cfr' in cnv_callers) 
                caller_opts << "-cfr $input.conifer.cnvs.tsv"
                
+            */
+               
+            batch_cnv_results.each { resultsEntry ->
+                String caller = resultsEntry.key.tokenize('_')[0]
+                String caller_label = resultsEntry.key
+                caller_opts << "-$caller $caller_label:$resultsEntry.value"
+            }
+              
             if(simulation) 
                 caller_opts << "-generic truth:$input.true_cnvs.bed"
                  
@@ -109,6 +123,7 @@ create_cnv_report = {
     
     def caller_opts = []
 
+    /*
     if('xhmm' in cnv_callers)
        caller_opts << "-xhmm $input.xcnv"
 
@@ -124,6 +139,14 @@ create_cnv_report = {
     
     if('cfr' in cnv_callers)
        caller_opts << "-cfr $input.conifer.cnvs.tsv"
+   */
+       
+    batch_cnv_results.each { resultsEntry ->
+            String caller = resultsEntry.key.tokenize('_')[0]
+            String caller_label = resultsEntry.key
+            caller_opts << "-$caller $caller_label:$resultsEntry.value"
+    }
+        
        
     produce("cnv_report.html", "cnv_report.tsv") {
 

@@ -45,17 +45,34 @@ class SummarizeCNVs {
     
     def log = System.err
     
+    /**
+     * Parse an option specifying a CNV caller
+     * 
+     * @param caller    the caller to parse the config for
+     * @param opt       a list of the parameters supplied for the given caller
+     * @param factory   a closure that creates a parser for the caller
+     */
+    static void parseCallerOpt(String caller, List<String> opt, Closure factory, Map<String,RangedData> results) {
+        for(String cfg in opt) { 
+            List<String> parts = cfg.tokenize(":")
+            if(parts.size()==1) {
+                parts.add(0,caller)
+            }
+            results[parts[0]] = factory(parts[1]).load()
+        }        
+    }
+    
     static void main(String [] args) {
         
         Cli cli = new Cli(usage: "SummarizeCNVs <options>")
         
         cli.with {
-            ed 'ExomeDepth results', args:1
-            xhmm 'XHMM results', args:1
-            cnmops 'CN Mops results', args:1
-            cfr 'Conifer results', args:1
-            angel 'Angel results', args:1
-            ex 'Excavator results', args:1
+            ed 'ExomeDepth results', args:Cli.UNLIMITED
+            xhmm 'XHMM results', args:Cli.UNLIMITED
+            cnmops 'CN Mops results', args:Cli.UNLIMITED
+            cfr 'Conifer results', args:Cli.UNLIMITED
+            angel 'Angel results', args:Cli.UNLIMITED
+            ex 'Excavator results', args:Cli.UNLIMITED
             truth 'Postiive control CNVs', args:1
             vcf 'VCF file containing variants for a sample in results', args:Cli.UNLIMITED
             target 'Target regions with id for each region to annotate', args:1, required:true
@@ -77,22 +94,23 @@ class SummarizeCNVs {
             System.exit(1)
         
         def results = [:]
-        if(opts.ed)
-            results.ed = new ExomeDepthResults(opts.ed).load()
+        
+        if(opts.eds) 
+            parseCallerOpt("ed", opts.eds, { new ExomeDepthResults(it) }, results)
             
-        if(opts.xhmm)
-            results.xhmm = new XHMMResults(opts.xhmm).load()
+        if(opts.xhmms) 
+            parseCallerOpt("xhmm", opts.xhmms, { new XHMMResults(it) }, results)
+        
+        if(opts.cnmopss)
+            parseCallerOpt("cnmops", opts.cnmopss, { new CNMopsResults(it) }, results)
             
-        if(opts.cnmops)
-            results.cnmops = new CNMopsResults(opts.cnmops).load()
+        if(opts.angelss)
+            parseCallerOpt("angel", opts.angels, { new AngelResults(it) }, results)
             
-        if(opts.angel)
-            results.angel = new AngelResults(opts.angel).load()
+        if(opts.cfrs)
+            parseCallerOpt("cfr", opts.cfrs, { new ConiferResults(it) }, results)
             
-        if(opts.cfr)
-            results.cfr = new ConiferResults(opts.cfr).load()
-            
-         if(opts.truth) 
+        if(opts.truth) 
             results.truth = new PositiveControlResults(opts.truth).load() 
             
         List exportSamples = null

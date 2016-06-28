@@ -12,6 +12,13 @@ import htsjdk.samtools.BAMIndexer;
 import htsjdk.samtools.SAMFileReader
 import htsjdk.samtools.SAMRecord;
 
+class AnalysisConfig {
+    
+    String analysisName
+    
+    List<String> callerCfgs
+}
+
 /**
  * The main entry point for the Ximmer simulation framework
  * 
@@ -27,11 +34,20 @@ class Ximmer {
      * space is constrained.
      */
     Map<String,String> callerIdMap = [
-        exome_depth : "ed", 
+        exomedepth : "ed", 
         cnmops : "cnmops",
         xhmm: "xhmm",
         conifer: "cfr"
     ]
+    
+    String mapCallerId(String caller) {
+        for(String callerId in callerIdMap.keySet()) {
+            if(caller.startsWith(callerId)) {
+                return caller.replaceAll('^'+callerId, callerIdMap[callerId])
+            }
+        }
+        return caller
+    }
     
     ConfigObject cfg = null
     
@@ -103,9 +119,9 @@ class Ximmer {
         this.simulate()
         
         if(analyse) {
-            List<String> analyses = this.runAnalysis()
+            List<AnalysisConfig> analyses = this.runAnalysis()
         
-            for(String analysis in analyses) {
+            for(AnalysisConfig analysis in analyses) {
                 this.generateReport(analysis)
             }
         }
@@ -157,15 +173,15 @@ class Ximmer {
         }
     }
     
-    List<String> runAnalysis() {
-        List<String> analyses
+    List<AnalysisConfig> runAnalysis() {
+        List<AnalysisConfig> analyses
         for(File runDir in runDirectories) {
             analyses = runAnalysisForRun(runDir)
         }
         return analyses
     }
     
-    List<String> runAnalysisForRun(File runDir) {
+    List<AnalysisConfig> runAnalysisForRun(File runDir) {
         
         List<String> bamFiles 
         if(this.enableSimulation) {
@@ -183,8 +199,8 @@ class Ximmer {
         int concurrency = cfg.containsKey("concurrency") ? cfg.concurrency : 2
         
         
-        List<String> batches = ["analysis"]
-        createAnalysis(runDir, batches[0])
+        List<AnalysisConfig> batches = []
+//        batches << createAnalysis(runDir, "analysis") // default analysis
         
         if(cfg.containsKey('analyses')) {
             for(String analysisName in cfg.analyses.keySet()) {
@@ -193,7 +209,7 @@ class Ximmer {
             }
         }
         
-        if(batches.every { new File(runDir,it+"/report/cnv_report.html").exists()}) {
+        if(batches.every { new File(runDir,it.analysisName+"/report/cnv_report.html").exists()}) {
             log.info("Skipping bpipe run for $runDir because cnv_report.html already exists for all analyses (${batches.join(',')})")
             return batches
         }
@@ -209,7 +225,7 @@ class Ximmer {
                 "-p", "callers=${callerIds.join(',')}",
                 "-p", "refgene=${hg19RefGeneFile.absolutePath}",
                 "-p", "simulation=${enableSimulation}",
-                "-p", "batches=${batches.join(',')}",
+                "-p", "batches=${batches*.analysisName.join(',')}",
                 "-p", "target_bed=$targetRegionsPath", 
                 "-p", "imgpath=${runDir.name}/analysis/report/",
                 new File("eval/pipeline/exome_cnv_pipeline.groovy").absolutePath
@@ -256,22 +272,30 @@ class Ximmer {
      * @param runDir
      * @param analysisName
      */
-    String createAnalysis(File runDir, String analysisName) {
+    AnalysisConfig createAnalysis(File runDir, String analysisName) {
         
         // Clone the default configuration
         ConfigObject analysisCfg = cfg.callers.clone() 
                 
-        // If customised, merge the customised values for the analysis
         if(analysisName != "analysis") {
-            analysisCfg.merge(cfg.analyses[analysisName])
+            analysisCfg = cfg.analyses[analysisName]
             analysisName = "analysis-" + analysisName
         }
                 
         
         File batchDir = new File(runDir, analysisName)
         batchDir.mkdirs()
-        writeCallerParameterFile(batchDir, analysisCfg)
-        return analysisName
+        
+        // The total list of all CNV caller configurations. 
+        // A single caller might have multiple configurations within an analysis,
+        // eg: xhmm_1, xhmm_2 etc.
+        List<String> callerCfgs = []
+        
+        for(String caller in callerIds) {
+            callerCfgs.addAll(writeCallerParameterFile(caller, batchDir, cfg.callers, analysisCfg))
+        }
+        
+        return new AnalysisConfig(analysisName:analysisName, callerCfgs: callerCfgs)
     }
     
     /**
@@ -280,18 +304,41 @@ class Ximmer {
      * 
      * @param outputDir
      * @param callersObj
+     * @return a list of the analysis configs to run (caller ids with suffixes)
      */
-    void writeCallerParameterFile(File outputDir, ConfigObject callersObj) {
-        String paramText = callersObj.collect { caller ->
-            caller.value.collect { paramEntry ->
-                "$paramEntry.key=$paramEntry.value"
-            }
-
-        }.flatten().join('\n')
+    List<String> writeCallerParameterFile(String caller, File outputDir, ConfigObject defaultCfg, ConfigObject analysisConfig) {
         
-        File paramFile = new File(outputDir, "caller.params.txt")
-        paramFile.text = paramText
-        log.info "Write file $paramFile with caller parameters"
+       
+        List<String> callerCfgs = []
+        for(String key in analysisConfig.keySet()) {
+            
+            log.info "Analysis has caller configuration: $key"
+            List callerParts = key.tokenize('_')
+            String callerId = this.callerIdMap[callerParts[0]] ?:callerParts[0]
+            if(callerParts.size() == 1)
+                callerParts << "default"
+            
+            callerParts[0] = callerId
+                
+            ConfigObject callerParams = defaultCfg.clone()[callerId]
+            
+            // Override defaults with analysis specific value
+            analysisConfig[key].each {
+                callerParams[it.key] = it.value
+            }
+            
+            String paramText = callerParams.value.collect { paramEntry ->
+                    "$paramEntry.key=$paramEntry.value"
+            }.join('\n')
+            
+            File paramFile = new File(outputDir, callerParts.join(".")+".params.txt")
+            paramFile.text = paramText
+            log.info "Write file $paramFile with caller parameters"
+            
+            callerCfgs << key
+        }
+        
+        return callerCfgs
     }
     
     void resolveBamFiles() {
@@ -590,13 +637,15 @@ class Ximmer {
         }        
     }
     
-    void generateReport(String analysisName) {
+    void generateReport(AnalysisConfig analysis) {
+        
+        String analysisName = analysis.analysisName
         
         log.info "Generating consolidated report for " + this.runDirectories.size() + " runs in analysis $analysisName"
         
-        String summaryHTML = generateSummary(analysisName)
+        String summaryHTML = generateSummary(analysis)
         
-        generateROCPlots(analysisName)
+        generateROCPlots(analysis)
         
         log.info("Generating HTML Report ...")
         File mainTemplate = new File("src/main/resources/index.html")
@@ -688,13 +737,13 @@ class Ximmer {
      * 
      * @return
      */
-    String generateSummary(String analysisName) {
+    String generateSummary(AnalysisConfig analysisCfg) {
         
         List<Region> cnvs = readCnvs()
         
         // Load the results
         List<RangedData> results = runDirectories.collect { runDir ->
-            new RangedData(new File(runDir,"$analysisName/report/cnv_report.tsv").path).load([:], { r ->
+            new RangedData(new File(runDir,"$analysisCfg.analysisName/report/cnv_report.tsv").path).load([:], { r ->
                     callerIds.each { r[it] = r[it] == "TRUE" }
           })
         }
@@ -734,20 +783,23 @@ class Ximmer {
         runPython([:], outputDirectory, new File("src/main/python/cnv_size_histogram.py"), [combinedCnvs.absolutePath, new File(outputDirectory,"cnv_size_histogram.png").absolutePath])
     }
     
-    void generateROCPlots(String analysisName) {
+    void generateROCPlots(AnalysisConfig analysisCfg) {
         
        if(!this.enableSimulation)
             return
             
-        log.info "Creating combined report for callers " + this.callerIds.join(",")
+        String callerCfgs = analysisCfg.callerCfgs.collect { mapCallerId(it) }.unique().join(',')
+        
+        log.info "Creating combined report for callers " + callerCfgs + " with configurations " + analysisCfg.callerCfgs.join(",")
   
+        
         runR(outputDirectory, 
             new File("src/main/R/ximmer_cnv_plots.R"), 
-                ANALYSIS: analysisName,
+                ANALYSIS: analysisCfg.analysisName,
                 SRC: new File("src/main/R").absolutePath, 
                 XIMMER_RUNS: runDirectories.size(),
                 TARGET_REGION: new File(cfg.target_regions).absolutePath,
-                XIMMER_CALLERS: this.callerIds.join(",")
+                XIMMER_CALLERS: callerCfgs
             )
     }
     

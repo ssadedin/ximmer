@@ -1,5 +1,5 @@
 
-# setwd("/Users/simon/work/ximmer/debug_runs")
+#setwd("/Users/simon/work/ximmer/debug_runs")
 
 TOOLS = Sys.getenv("TOOLS")
 if(is.na(TOOLS) || TOOLS=="")
@@ -11,17 +11,20 @@ if(is.na(SRC) || SRC=="")
 
 XIMMER_RUNS = as.integer(Sys.getenv("XIMMER_RUNS"))
 if(is.na(XIMMER_RUNS))
-    XIMMER_RUNS = 5
+    XIMMER_RUNS = 1
 
+# XIMMER_CALLERS=c('cfr','xhmm','cnmops')
 XIMMER_CALLERS=unlist(strsplit(Sys.getenv("XIMMER_CALLERS"),split=","))
 
 ANALYSIS=Sys.getenv("ANALYSIS")
 if(is.na(ANALYSIS))
-    ANALYSIS = "analysis"
+    ANALYSIS = "analysis-1"
 
 print(sprintf("SRC=%s", SRC))
+print(sprintf("Callers=%s", XIMMER_CALLERS))
 
-# TARGET_REGION="/Users/simon/work/ximmer/eval/data/haloplex/target_regions.bed"
+#TARGET_REGION="/Users/simon/work/ximmer/eval/data/haloplex/target_regions.bed"
+#TARGET_REGION="/Users/simon/work/ximmer/eval/data/haloplex.x/target_regions.bed"
 TARGET_REGION=Sys.getenv("TARGET_REGION")
 
 source(sprintf("%s/cnv_utils.R", SRC))
@@ -29,8 +32,13 @@ source(sprintf("%s/cnv_roc_lib.R", SRC))
 
 sim.callers=XIMMER_CALLERS
 
+# sim.callers = c("xhmm_1","xhmm_2")
+
 sim.names = paste0("run",0:(XIMMER_RUNS-1))
-ximmer.sims = lapply(sim.names, function(run) { list(name=run)})
+ximmer.sims = lapply(sim.names, function(run) { 
+  list(name=run)}
+)
+
 names(ximmer.sims) = sim.names
 
 truth = load.truth(names(ximmer.sims))
@@ -39,49 +47,44 @@ truth$id = paste(truth$id, truth$source, sep="_")
 combined.results = load.combined.results(ximmer.sims, ANALYSIS, pattern=paste0("%s/",ANALYSIS,"/report/cnv_report.tsv"))
 combined.results$sample = paste(combined.results$sample,combined.results$sim,sep='_')
 
+combined.results
 
 ximmer_sim_loaders = list(
   
-  ed=function(batch,sims) {
-    do.call(c,lapply(sims,function(sim) load_exomedepth_results(sprintf("%s/%s/exome_depth/%s.exome_depth.cnvs.tsv", sim, ANALYSIS, ANALYSIS),sim)))
+  ed=function(label, batch,sims) {
+    do.call(c,lapply(sims,function(sim) load_exomedepth_results(sprintf("%s/%s/%s/%s.exome_depth.cnvs.tsv", sim, ANALYSIS, label, ANALYSIS),sim)))
   },
   
-  xhmm=function(batch,sims) {
+  xhmm=function(label, batch,sims) {
 
     do.call(c,lapply(sims, {
       function(sim) {
-        glob = sprintf("%s/%s/xhmm/*.xhmm_discover.xcnv",sim, ANALYSIS)
+        glob = sprintf("%s/%s/%s/*.xhmm_discover.xcnv",sim, ANALYSIS,label)
         print(sprintf("glob = %s",glob))  
         load_xhmm_results(Sys.glob(glob)[[1]],sim)
       } 
     }))
   },
   
-  cnmops=function(batch,sims) {
+  cnmops=function(label, batch,sims) {
     do.call(c,lapply(sims,
        function(sim) {
-         load_cn_mops_results(Sys.glob(sprintf("%s/%s/cn_mops/*.cnmops.cnvs.tsv",sim, ANALYSIS)[[1]]), sim)
+         load_cn_mops_results(Sys.glob(sprintf("%s/%s/%s/*.cnmops.cnvs.tsv",sim, ANALYSIS,label)[[1]]), sim)
        }))
   },
   
-  cfr=function(batch,sims) {
-    do.call(c,lapply(sims,function(sim) load_conifer_results(Sys.glob(sprintf("%s/%s/conifer/*.conifer.cnvs.tsv",sim, ANALYSIS)[[1]]),sim)))
+  cfr=function(label, batch,sims) {
+    do.call(c,lapply(sims,function(sim) load_conifer_results(Sys.glob(sprintf("%s/%s/%s/*.conifer.cnvs.tsv",sim, ANALYSIS, label)[[1]]),sim)))
   },
   
-  anghmm=function(batch,sims) {
+  anghmm=function(label, batch,sims) {
     do.call(c,lapply(sims,function(sim) {
-      pattern = sprintf("%s/%s/%s.*counts.angelhmm*.cnvs.bed", sim, ANALYSIS, ANALYSIS)
+      pattern = sprintf("%s/%s/%s/%s.*counts.angelhmm*.cnvs.bed", sim, ANALYSIS, label, ANALYSIS) # note: not tested yet for angel, may need pipeline adjustment
       print(sprintf("Pattern = %s", pattern))
       load_angel_results(Sys.glob(pattern)[[1]],sim)
     }))
   }
 )
-
-#ximmer.sims = list(
-#  "run0" = list(name = "run0"),
-#  "run1" = list(name = "run1"),
-#  "run2" = list(name = "run2")
-#)
 
 sim.caller.loaders = ximmer_sim_loaders
 ranked = load_ranked_run_results(truth, names(ximmer.sims), filterChrX=F)

@@ -487,6 +487,24 @@ class CNVDiagram {
         return true
     }
     
+    /**
+     * Parse an option specifying a CNV caller
+     * 
+     * @param caller    the caller to parse the config for
+     * @param opt       a list of the parameters supplied for the given caller
+     * @param factory   a closure that creates a parser for the caller
+     */
+    static void parseCallerOpt(String caller, List<String> opt, Closure factory, Map<String,RangedData> results) {
+        for(String cfg in opt) { 
+            List<String> parts = cfg.tokenize(":")
+            if(parts.size()==1) {
+                parts.add(0,caller)
+            }
+            results[parts[0]] = factory(parts[1]).load()
+        }        
+    }
+    
+    
     public static void main(String [] args) {
         
         println "=" * 100
@@ -497,11 +515,11 @@ class CNVDiagram {
         cli.with {
             cnvs 'Consolidated CNV summary report', args:1
             region 'A single region to plot, alternative to providing -cnvs', args:1
-            xhmm 'CNV calls from XHMM', args:1
-            cnmops 'CNV calls from CN.mops', args:1
-            cfr 'CNV calls from Conifer', args:1
-            angel 'Deletion calls from Angel', args:1
-            ed 'CNV calls from Exome Depth', args:1
+            xhmm 'CNV calls from XHMM', args:Cli.UNLIMITED
+            cnmops 'CNV calls from CN.mops', args:Cli.UNLIMITED
+            cfr 'CNV calls from Conifer', args:Cli.UNLIMITED
+            angel 'Deletion calls from Angel', args:Cli.UNLIMITED
+            ed 'CNV calls from Exome Depth', args:Cli.UNLIMITED
             generic  'CNV calls in BED format, sample in id column', args:Cli.UNLIMITED
             vcf 'VCF files containing variant calls for samples (optional) for annotation', args:Cli.UNLIMITED
             bam 'BAM file, one for each sample', args:Cli.UNLIMITED
@@ -529,14 +547,23 @@ class CNVDiagram {
         }
         
         Map<String,RangedData> cnvCalls = [:]
-        if(opts.ed) 
-            cnvCalls.ed = new ExomeDepthResults(opts.ed).load()
-        if(opts.xhmm) 
-            cnvCalls.xhmm = new XHMMResults(opts.xhmm).load()
-        if(opts.cnmops) 
-            cnvCalls.mops = new CNMopsResults(opts.cnmops).load()
-        if(opts.cfr) 
-            cnvCalls.cfr = new ConiferResults(opts.cfr).load()
+           
+        if(opts.eds) 
+            parseCallerOpt("ed", opts.eds, { new ExomeDepthResults(it) }, cnvCalls)
+            
+        if(opts.xhmms) 
+            parseCallerOpt("xhmm", opts.xhmms, { new XHMMResults(it) }, cnvCalls)
+        
+        if(opts.cnmopss)
+            parseCallerOpt("cnmops", opts.cnmopss, { new CNMopsResults(it) }, cnvCalls)
+            
+        if(opts.angelss)
+            parseCallerOpt("angel", opts.angels, { new AngelResults(it) }, cnvCalls)
+            
+        if(opts.cfrs)
+            parseCallerOpt("cfr", opts.cfrs, { new ConiferResults(it) }, cnvCalls)
+            
+            
         if(opts.generics) {
             opts.generics.each { cnvBedFileAndName ->
                 
