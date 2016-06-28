@@ -320,7 +320,7 @@ class Ximmer {
                 callerParams[it.key] = it.value
             }
             
-            String paramText = callerParams.value.collect { paramEntry ->
+            String paramText = callerParams.collect { paramEntry ->
                     "$paramEntry.key=$paramEntry.value"
             }.join('\n')
             
