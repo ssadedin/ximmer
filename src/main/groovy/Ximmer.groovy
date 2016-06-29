@@ -159,7 +159,7 @@ class Ximmer {
             runDirectories << dir
             if(!this.enableSimulation) {
                 log.info "Simulation disabled: analysis will be performed directly from source files"
-                File trueCnvsFile = new File(runDir,"true_cnvs.bed")
+                File trueCnvsFile = new File(dir,"true_cnvs.bed")
                 trueCnvsFile.withWriter { w ->        
                     writeKnownCNVs(w)
                 }
