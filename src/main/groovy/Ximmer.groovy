@@ -211,6 +211,11 @@ class Ximmer {
             return batches
         }
         
+        List drawCnvsParam = []
+        if(cfg.containsKey('draw_cnvs') && !cfg.draw_cnvs) {
+            drawCnvsParam = ["-p","draw_cnvs=false"]
+        }
+        
         List<String> bpipeCommand = [
                 "bash",
                 bpipe.absolutePath,
@@ -224,10 +229,10 @@ class Ximmer {
                 "-p", "simulation=${enableSimulation}",
                 "-p", "batches=${batches*.analysisName.join(',')}",
                 "-p", "target_bed=$targetRegionsPath", 
-                "-p", "imgpath=${runDir.name}/analysis/report/",
+                "-p", "imgpath=${runDir.name}/analysis/report/", 
+            ] + drawCnvsParam + [
                 new File("eval/pipeline/exome_cnv_pipeline.groovy").absolutePath
-                
-            ] + bamFiles  + (enableSimulation ? ["true_cnvs.bed"] : [])
+            ]  + bamFiles  + (enableSimulation ? ["true_cnvs.bed"] : [])
             
         log.info("Executing Bpipe command: " + bpipeCommand.join(" "))
         
