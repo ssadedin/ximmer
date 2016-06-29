@@ -66,4 +66,5 @@ cn_mops_call_cnvs = {
 
         """}, "cnmops")
     }
+    branch.caller_result = output.tsv
 }
