@@ -140,9 +140,14 @@ register_caller_result = {
     batch_cnv_results[caller_label] = caller_result
 }
 
+init_common = {
+    println "Running Common Stages"
+}
+
 run {
     
-    common_stages = [ ]
+    
+    common_stages = [ init_common ]
 
     if('xhmm' in cnv_callers)  {
         common_stages << "%.bam" * [ gatk_depth_of_coverage ]
