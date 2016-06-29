@@ -80,7 +80,7 @@ class Ximmer {
         this.outputDirectory = new File(outputDirectory)
         this.cfg = cfg
         this.random = this.seed != null ? new Random(this.seed)  : new Random()
-        this.enableSimulation = simulate
+        this.enableSimulation = simulate && cfg.simulation_type != 'none'
         
         if(cfg.containsKey('deletionsPerSample'))
             this.deletionsPerSample = cfg.deletionsPerSample
@@ -124,7 +124,7 @@ class Ximmer {
         if(!cfg.containsKey('simulation_type')) 
             throw new RuntimeException("The key simulation_type is not found in the configuration file. Please set this to 'replace' or 'downsample'.")
             
-        if(!(cfg.simulation_type in ["replace","downsample"])) 
+        if(!(cfg.simulation_type in ["replace","downsample","none"])) 
             throw new RuntimeException("The key simulation_type is set to unknown value ${cfg.simulation_type}. Please set this to 'replace' or 'downsample'.")
     }
     
@@ -159,6 +159,10 @@ class Ximmer {
             runDirectories << dir
             if(!this.enableSimulation) {
                 log.info "Simulation disabled: analysis will be performed directly from source files"
+                File trueCnvsFile = new File(runDir,"true_cnvs.bed")
+                trueCnvsFile.withWriter { w ->        
+                    writeKnownCNVs(w)
+                }
             }
             else {
                 simulateRun(runDir)
@@ -462,12 +466,16 @@ class Ximmer {
                 [r.chr, r.from, r.to+1, r.sample ].join("\t") 
             }.join("\n")
                 
-            if('known_cnvs' in cfg) {
-                RangedData cnvs = new RangedData(cfg.known_cnvs).load(columnNames: ['chr','start','end','sample','type'])
-                w.println cnvs.collect { r -> 
-                    [r.chr, r.from, r.to+1, r.sample ].join("\t") 
-                }.join("\n")
-            }
+            writeKnownCNVs(w)
+        }
+    }
+    
+    void writeKnownCNVs(Writer w) {
+        if('known_cnvs' in cfg) {
+            RangedData cnvs = new RangedData(cfg.known_cnvs).load(columnNames: ['chr','start','end','sample','type'])
+            w.println cnvs.collect { r -> 
+                [r.chr, r.from, r.to+1, r.sample ].join("\t") 
+            }.join("\n")
         }
     }
     
