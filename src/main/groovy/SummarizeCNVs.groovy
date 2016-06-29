@@ -331,7 +331,6 @@ class SummarizeCNVs {
         }
         
         for(Region cnv in result) {
-            println "Set scount to " + result.numberOfRanges
             cnv.stotal = result.numberOfRanges
         }
         
