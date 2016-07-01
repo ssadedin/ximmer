@@ -160,7 +160,9 @@ run {
        
        xhmm: (init_xhmm + xhmm_pipeline),
        
-       cnmops: (init_cn_mops + cn_mops_call_cnvs)
+       cnmops: (init_cn_mops + cn_mops_call_cnvs),
+       
+       cfr:  (init_conifer + run_conifer)
     ]    
 
     caller_stages = cnv_callers.collect { caller ->
