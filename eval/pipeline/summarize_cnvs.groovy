@@ -158,7 +158,7 @@ create_cnv_report = {
             JAVA_OPTS=-Xmx8g $GROOVY -cp $GNGS_JAR:$XIMMER_SRC:$XIMMER_SRC/../resources $XIMMER_SRC/SummarizeCNVs.groovy
                 -target $target_bed ${caller_opts.join(" ")}
                 ${inputs.snpeff.vcf.withFlag("-vcf")} -bampath "$bam_file_path"
-                -tsv $output.tsv ${imgpath?"-imgpath $imgpath":""}
+                -tsv $output.tsv ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""}
                 -o $output.html ${batch_name ? "-name $batch_name" : ""} ${inputs.bam.withFlag('-bam')}
                 -dgv $DGV_CNVS $true_cnvs
         """, "create_cnv_report"
