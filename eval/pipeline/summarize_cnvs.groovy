@@ -123,24 +123,6 @@ create_cnv_report = {
     
     def caller_opts = []
 
-    /*
-    if('xhmm' in cnv_callers)
-       caller_opts << "-xhmm $input.xcnv"
-
-    if('ed' in cnv_callers)
-       caller_opts << "-ed $input.exome_depth.cnvs.tsv"
-
-    if('cnmops' in cnv_callers)
-       caller_opts << "-cnmops $input.cnmops.cnvs.tsv"
-       //caller_opts << "-cnmops $input.cn_mops_call_cnvs.tsv"
-
-    if('angelhmm' in cnv_callers) 
-       caller_opts << "-angel $input.angelhmm.cnvs.bed"
-    
-    if('cfr' in cnv_callers)
-       caller_opts << "-cfr $input.conifer.cnvs.tsv"
-   */
-       
     batch_cnv_results.each { resultsEntry ->
             String caller = resultsEntry.key.tokenize('_')[0]
             String caller_label = resultsEntry.key
