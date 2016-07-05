@@ -96,6 +96,7 @@ class Ximmer {
     
     List<File> runDirectories = []
     
+    boolean enableTruePositives = false
    
     void run(analyse=true) {
         
@@ -126,6 +127,8 @@ class Ximmer {
             
         if(!(cfg.simulation_type in ["replace","downsample","none"])) 
             throw new RuntimeException("The key simulation_type is set to unknown value ${cfg.simulation_type}. Please set this to 'replace' or 'downsample'.")
+            
+        this.enableTruePositives = this.enableSimulation || ('known_cnvs' in cfg)
     }
     
     void cacheReferenceData() {
@@ -232,7 +235,7 @@ class Ximmer {
                 "-p", "imgpath=${runDir.name}/#batch#/report/", 
             ] + drawCnvsParam + [
                 new File("eval/pipeline/exome_cnv_pipeline.groovy").absolutePath
-            ]  + bamFiles  + (enableSimulation ? ["true_cnvs.bed"] : [])
+            ]  + bamFiles  + (enableTruePositives ? ["true_cnvs.bed"] : [])
             
         log.info("Executing Bpipe command: " + bpipeCommand.join(" "))
         
@@ -719,7 +722,7 @@ class Ximmer {
        cnvFile.withWriter { w ->
             w.println([ "chr","start","end","sample","tgbp","targets" ].join("\t"))
             
-            if(!enableSimulation) 
+            if(!enableTruePositives) 
                 return   
             
             cnvs.collect { 
@@ -781,7 +784,7 @@ class Ximmer {
     
     void plotCNVSizeHistograms(List<Region> cnvs) {
         
-        if(!this.enableSimulation && !('known_cnvs' in cfg))
+        if(!enableTruePositives)
             return
         
         File combinedCnvs = writeCombinedCNVInfo(cnvs)
@@ -791,7 +794,7 @@ class Ximmer {
     
     void generateROCPlots(AnalysisConfig analysisCfg) {
         
-       if(!this.enableSimulation && !('known_cnvs' in cfg))
+       if(!enableTruePositives)
             return
             
         String callerCfgs = analysisCfg.callerCfgs.collect { mapCallerId(it) }.unique().join(',')
