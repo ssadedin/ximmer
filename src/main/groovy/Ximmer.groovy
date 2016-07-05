@@ -207,7 +207,7 @@ class Ximmer {
         }
         
         if(batches.every { new File(runDir,it.analysisName+"/report/cnv_report.html").exists()}) {
-            log.info("Skipping bpipe run for $runDir because cnv_report.html already exists for all analyses (${batches.join(',')})")
+            log.info("Skipping bpipe run for $runDir because cnv_report.html already exists for all analyses (${batches*.analysisName.join(',')})")
             return batches
         }
         
@@ -781,7 +781,7 @@ class Ximmer {
     
     void plotCNVSizeHistograms(List<Region> cnvs) {
         
-        if(!this.enableSimulation)
+        if(!this.enableSimulation && !('known_cnvs' in cfg))
             return
         
         File combinedCnvs = writeCombinedCNVInfo(cnvs)
@@ -791,7 +791,7 @@ class Ximmer {
     
     void generateROCPlots(AnalysisConfig analysisCfg) {
         
-       if(!this.enableSimulation)
+       if(!this.enableSimulation && !('known_cnvs' in cfg))
             return
             
         String callerCfgs = analysisCfg.callerCfgs.collect { mapCallerId(it) }.unique().join(',')
@@ -935,6 +935,10 @@ class AnalysisConfig {
     String analysisName
     
     List<String> callerCfgs
+    
+    List<String> getCallerIds() {
+        return callerCfgs.collect { String cfg -> cfg.tokenize('_')[0] }
+    }
 }
 
 
