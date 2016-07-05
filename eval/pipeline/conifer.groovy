@@ -29,7 +29,7 @@ conifer_analyze = {
     
     var conifer_svd_num : 1
 
-    produce(batch_name+".conifer.hdf5",batch_name+".scree.png", batch_name+"singular_values.txt", batch_name+".sd_values.txt") {
+    produce(batch_name+".conifer.hdf5",batch_name+".scree.png", batch_name+".singular_values.txt", batch_name+".sd_values.tsv") {
         exec """
 
         LD_LIBRARY_PATH=$HDF5_DIR/lib $PYTHON $CONIFER analyze 
@@ -38,7 +38,7 @@ conifer_analyze = {
           --output $output.hdf5
           --svd $conifer_svd_num
           --write_svals $output.singular_values.txt
-          --write_sd $output.sd_values.txt
+          --write_sd $output.sd_values.tsv
           --plot_scree $output.png
         """
     }
