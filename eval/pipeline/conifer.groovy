@@ -37,8 +37,8 @@ conifer_analyze = {
           --rpkm_dir ${file(input.rpkm).parentFile.absolutePath}
           --output $output.hdf5
           --svd $conifer_svd_num
-          --write_svals singular_values.txt
-          --write_sd sd_values.txt
+          --write_svals $output.singular_values.txt
+          --write_sd $output.sd_values.txt
           --plot_scree $output.png
         """
     }
