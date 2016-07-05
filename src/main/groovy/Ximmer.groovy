@@ -229,7 +229,7 @@ class Ximmer {
                 "-p", "simulation=${enableSimulation}",
                 "-p", "batches=${batches*.analysisName.join(',')}",
                 "-p", "target_bed=$targetRegionsPath", 
-                "-p", "imgpath=${runDir.name}/analysis/report/", 
+                "-p", "imgpath=${runDir.name}/#batch#/report/", 
             ] + drawCnvsParam + [
                 new File("eval/pipeline/exome_cnv_pipeline.groovy").absolutePath
             ]  + bamFiles  + (enableSimulation ? ["true_cnvs.bed"] : [])
