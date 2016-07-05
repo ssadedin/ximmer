@@ -42,11 +42,15 @@ cn_mops_call_cnvs = {
             print(sprintf("Counting reads from %d bam files for %d regions",length(bam.files), length(target.region)))
             mops.counts = getSegmentReadCountsFromBAM(bam.files, GR=target.region,mode="paired")
 
+            # the function above names each column by the file name, but we
+            # want sample id there instead (assumption: single sample per bam).
+            names(mcols(mops.counts)) = bam.samples
+
             print("Normalizing read counts ...")
             mops.counts.norm <- normalizeChromosomes(mops.counts)
 
             print("Fitting MOPs ...")
-            mops.results = exomecn.mops(mops.counts.norm,norm=FALSE,
+            mops.results = exomecn.mops(mops.counts.norm, norm=FALSE,
                     priorImpact=$prior_impact,
                     minWidth=$min_width,
                     lowerThreshold=$lower_threshold)
@@ -54,9 +58,6 @@ cn_mops_call_cnvs = {
             mops.results.cn = calcIntegerCopyNumbers(mops.results)
 
             mops.cnvs = mops.results.cn@cnvs
-            mops.cnvs$sampleName = sapply(mops.cnvs$sampleName, function(sn) {
-                bam.samples[[sn]]
-            })
 
             print(sprintf("Writing results ..."))
             write.table(file="$output.tsv", 
