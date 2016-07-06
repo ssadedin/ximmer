@@ -93,6 +93,7 @@ plot_cnv_coverage = {
                     -chr $chromosome
                     -cnvs $input.tsv
                     -targets $target_bed
+                    -ignoremissing
                     -o ${output.dir+"/cnv.png"} $reportSamplesFlag
                     -t $threads ${caller_opts.join(" ")} ${inputs.vcf.withFlag("-vcf")} ${inputs.bam.withFlag("-bam")}
                     -refseq $refgene
