@@ -381,7 +381,7 @@
                                 <%if(cnv_callers.contains("truth")) {%>
                                     <td><%=cnv["truth"]!=null?"Yes":"No"%></td>
                                 <%}%>
-                                <td><%=cnv_callers.grep { it != "truth" && cnv[it] !=null }.join(",")%></td>
+                              <td><%=cnv_callers.grep { it != "truth" && cnv[it] !=null }.collect { clr -> "<span class='qual' title='QUAL="+ cnv[clr].quality+"'>$clr</span>"}.join(",")%></td>
                                 <td>${cnv.sample}</td>
                                 <td>${cnv.count}</td>
                                 <%if(hasVariants) {%>
