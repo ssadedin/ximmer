@@ -229,7 +229,7 @@ class Ximmer {
                 "-p","XIMMER_SRC=$ximmerSrc",
                 "-p", "callers=${callerIds.join(',')}",
                 "-p", "refgene=${hg19RefGeneFile.absolutePath}",
-                "-p", "simulation=${enableSimulation}",
+                "-p", "simulation=${enableTruePositives}",
                 "-p", "batches=${batches*.analysisName.join(',')}",
                 "-p", "target_bed=$targetRegionsPath", 
                 "-p", "imgpath=${runDir.name}/#batch#/report/", 
