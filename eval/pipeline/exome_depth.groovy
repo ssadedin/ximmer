@@ -7,8 +7,7 @@
 run_exome_depth = {
 
     requires target_bed : "BED file containing regions to analyse",
-            sample_names : "List of sample names to process (comma separated, or List object)",
-            chr : "Chromosome to process for"
+            sample_names : "List of sample names to process (comma separated, or List object)"
 
     var transition_probability : "0.0001"
 
