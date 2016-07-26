@@ -131,6 +131,10 @@ class Ximmer {
         if(!(cfg.simulation_type in ["replace","downsample","none"])) 
             throw new RuntimeException("The key simulation_type is set to unknown value ${cfg.simulation_type}. Please set this to 'replace', 'downsample' or 'none'.")
             
+        if(!cfg.containsKey("runs") || !cfg.runs.isInteger())
+            throw new RuntimeException("The key 'runs' must be set to an integer in the configuration file (current value is ${cfg.runs})")
+  
+            
         this.enableTruePositives = this.enableSimulation || ('known_cnvs' in cfg)
     }
     
