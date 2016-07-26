@@ -123,10 +123,10 @@ class Ximmer {
     
     void checkConfig() {
         if(!cfg.containsKey('simulation_type')) 
-            throw new RuntimeException("The key simulation_type is not found in the configuration file. Please set this to 'replace' or 'downsample'.")
+            throw new RuntimeException("The key simulation_type is not found in the configuration file. Please set this to 'replace', 'downsample', or 'none'.")
             
         if(!(cfg.simulation_type in ["replace","downsample","none"])) 
-            throw new RuntimeException("The key simulation_type is set to unknown value ${cfg.simulation_type}. Please set this to 'replace' or 'downsample'.")
+            throw new RuntimeException("The key simulation_type is set to unknown value ${cfg.simulation_type}. Please set this to 'replace', 'downsample' or 'none'.")
             
         this.enableTruePositives = this.enableSimulation || ('known_cnvs' in cfg)
     }
