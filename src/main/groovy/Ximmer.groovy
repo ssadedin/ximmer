@@ -81,6 +81,9 @@ class Ximmer {
         this.cfg = cfg
         this.random = this.seed != null ? new Random(this.seed)  : new Random()
         this.enableSimulation = simulate && cfg.simulation_type != 'none'
+
+        if(!enableSimulation)
+            log.info "Simulation disabled!"
         
         if(cfg.containsKey('deletionsPerSample'))
             this.deletionsPerSample = cfg.deletionsPerSample
