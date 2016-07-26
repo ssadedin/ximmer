@@ -109,10 +109,10 @@ class Ximmer {
         
         this.resolveBamFiles()
         
-        this.resolvePedigrees()
-        
         this.targetRegion = new BED(cfg.target_regions).load().reduce()
-        
+
+        this.resolvePedigrees()
+       
         this.simulate()
         
         if(analyse) {
@@ -409,6 +409,36 @@ class Ximmer {
             Pedigrees females = Pedigrees.fromSingletons(cfg.samples.females)
             females.subjects*.value.each { ped -> ped.individuals.each { it.sex = Sex.FEMALE }}
             this.pedigrees.add(females)
+        }
+    }
+
+    void inferSexes() {
+        cfg.samples.females = []
+        cfg.samples.males = []
+
+        List<SexKaryotyper> unknownResults = []
+
+        for(SAM sam in this.bamFiles*.value) {
+            log.info "Checking sex of ${sam.samples[0]} ..."
+            SexKaryotyper typer = new SexKaryotyper(sam, this.targetRegion)
+            typer.run()
+            if(typer.sex == Sex.FEMALE)
+                cfg.samples.females << sam.samples[0]
+            else
+            if(typer.sex == Sex.MALE)
+                cfg.samples.males << sam.samples[0]
+            else
+                unknownResults << typer
+        }
+
+        if(unknownResults) {
+            throw new RuntimeException("""
+                Unable to infer sex for one or more samples: 
+
+                ${unknownResults.collect{it.bam.samples[0]+'('+it.sex.name()+')'}.join(', ')}
+
+                Please add sexes manually in the samples block of the configuration file.
+            """.stripIndent())
         }
     }
 
