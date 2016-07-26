@@ -410,9 +410,6 @@ class Ximmer {
         // TODO
     }
     
-    void simulateByDownsample() {
-    }
-    
     List<Region> simulateRun(String runId) {
         
         // Make a directory for the run
@@ -468,7 +465,7 @@ class Ximmer {
      * @param trueCnvsFile
      * @param simulatedCNVs
      */
-    void writeCNVFile(File trueCnvsFile, simulatedCNVs) {
+    void writeCNVFile(File trueCnvsFile, List<Region> simulatedCNVs) {
         trueCnvsFile.withWriter { w -> 
             w.println simulatedCNVs.collect { it as List }.flatten().collect { r -> 
                 [r.chr, r.from, r.to+1, r.sample ].join("\t") 
@@ -481,10 +478,20 @@ class Ximmer {
     void writeKnownCNVs(Writer w) {
         if('known_cnvs' in cfg) {
             RangedData cnvs = new RangedData(cfg.known_cnvs).load(columnNames: ['chr','start','end','sample','type'])
-            w.println cnvs.collect { r -> 
+            List knownCnvs = cnvs.collect { r -> 
                 [r.chr, r.from, r.to+1, r.sample ].join("\t") 
-            }.join("\n")
+            }
+            w.println knownCnvs.join("\n")
         }
+        
+//        if('known_cnvs' in cfg) {
+//            RangedData cnvs = new RangedData(cfg.known_cnvs).load(columnNames: ['chr','start','end','sample','type'])
+//            List knownCnvs = cnvs.grep { r.sample in bamFiles }.collect { r -> 
+//                [r.chr, r.from, r.to+1, r.sample ].join("\t") 
+//            }
+//            w.println knownCnvs.join("\n")
+//        }
+//        
     }
     
     Regions simulateSampleCNVs(File bamDir, List<String> existingSamples, List<SAM> existingBams, SAM targetSAM) {
