@@ -379,18 +379,24 @@ class Ximmer {
             
             this.bamFiles = this.bamFiles.grep { it.key in sampleSet }.collectEntries()
         }
+
+        if(this.bamFiles.isEmpty())
+            throw new RuntimeException("After comparing the samples specified in the 'samples' block with the available BAM files, no samples remain to analyse. Please check that sample ids are consistent with those in the BAM files supplied")
         
     }
     
     void resolvePedigrees() {
-        
+
         if(cfg.containsKey('ped_file')) {
             this.pedigrees = Pedigrees.parse(cfg.ped_file)
             return
         }
-        
-        if(!cfg.samples.containsKey('males') && !cfg.samples.containsKey('females'))
-            throw new IllegalArgumentException("Please specify either a PED file in the configuration, or the samples.males and samples.femeales keys")
+
+        if(!cfg.samples.containsKey('males') && !cfg.samples.containsKey('females')) {
+            log.info "Sex of samples is not specified in configuration. Sex will be infered from data which can take additional processing time. Please consider adding sample sex to your configuration file"
+            this.inferSexes()
+        }
+        //    throw new IllegalArgumentException("Please specify either a PED file in the configuration, or the samples.males and samples.females keys")
         
         this.pedigrees = new Pedigrees()
         if(cfg.samples.containsKey('males')) {
