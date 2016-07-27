@@ -169,9 +169,9 @@ run {
         (caller + '.%.params.txt') * [ init_caller_params.using(caller:caller) + caller_pipelines[caller] + register_caller_result ]
     }
     
-    common_stages + 
+    create_analysable_target + common_stages + 
         batch_dirs * [
-            create_analysable_target + init_batch + caller_stages + create_cnv_report +
+            init_batch + caller_stages + create_cnv_report +
                  INCLUDE_CHROMOSOMES * [ touch_chr + plot_cnv_coverage ]  +
                  sample_names * [ extract_sample_files ] 
          ]

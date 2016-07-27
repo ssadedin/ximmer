@@ -63,7 +63,7 @@ gatk_depth_of_coverage = {
             $JAVA -Xmx2g -jar $GATK/GenomeAnalysisTK.jar 
                  -T DepthOfCoverage 
                  ${inputs.bam.withFlag("-I")}
-                 -L $target_bed
+                 -L $input.bed
                  -R $HGFA
                  -dt BY_SAMPLE 
                  -dcov 5000 
