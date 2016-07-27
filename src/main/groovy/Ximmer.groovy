@@ -353,6 +353,25 @@ class Ximmer {
         return callerCfgs
     }
     
+    void addBamFiles(List<String> bamFilePaths) {
+       
+       Set knownSamples = (this.bamFiles*.key) as Set
+        
+       this.bamFiles += bamFilePaths.collectEntries { bamPath ->
+            SAM sam = new SAM(bamPath)
+            if(sam.samples.size() > 1)
+                throw new IllegalArgumentException("BAM file $bamPath contains mulitiple samples (${sam.samples.join(",")}). This program only supports single-sample BAM files")
+            
+            String sampleId = sam.samples[0]
+            if(sampleId in knownSamples) 
+                throw new IllegalArgumentException("Sample $sampleId appears in more than one BAM file. This program only supports a sample appearing in a single BAM file")
+                
+            knownSamples << sampleId
+            
+            [sampleId, new SAM(bamPath)]
+        } 
+    }
+    
     void resolveBamFiles() {
         
         if(!cfg.containsKey("bam_files")) 
@@ -369,14 +388,7 @@ class Ximmer {
         
         log.info("Resolved BAM files: " + bamFiles)
         
-        this.bamFiles = bamFiles.collectEntries { bamPath ->
-            SAM sam = new SAM(bamPath)
-            
-            if(sam.samples.size() > 1)
-                throw new IllegalArgumentException("This program only supports single-sample BAM files")
-                
-            [sam.samples[0], new SAM(bamPath)]
-        }
+        this.addBamFiles(bamFiles)
         
         if(cfg.containsKey("samples")) {
             Set<String> sampleSet =  (cfg.samples.males + cfg.samples.females) as Set
@@ -964,6 +976,8 @@ class Ximmer {
             System.exit(1)
         }
         
+        def additionalBams = opts.arguments()
+        
         MiscUtils.configureSimpleLogging("ximmer.log")
         if(opts.v) {
             MiscUtils.configureVerboseLogging()
@@ -978,6 +992,9 @@ class Ximmer {
         if(opts.seed != false) {
             ximmer.seed = opts.seed.toInteger()
         }
+        
+        if(!additionalBams.isEmpty())
+            ximmer.addBamFiles(additionalBams)
         
         ximmer.run(!opts.simonly)
     }
