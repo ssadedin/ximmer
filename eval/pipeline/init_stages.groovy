@@ -32,8 +32,8 @@ create_analysable_target = {
                (it.chr in INCLUDE_CHROMOSOMES) && (chrCounts[it.chr] > $numSamples)
            } as Regions
 
-           filteredTargets.save("$output.bed")
-     
+           
+           filteredTargets.save("$output.bed", sorted:true)
         """
    }
 }
