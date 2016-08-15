@@ -360,7 +360,7 @@ class Ximmer {
         
        this.bamFiles += bamFilePaths.collectEntries { bamPath ->
             SAM sam = new SAM(bamPath)
-            if(sam.samples.size() > 1)
+            if(sam.samples.toUnique().size() > 1)
                 throw new IllegalArgumentException("BAM file $bamPath contains mulitiple samples (${sam.samples.join(",")}). This program only supports single-sample BAM files")
             
             String sampleId = sam.samples[0]
