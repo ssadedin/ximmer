@@ -731,7 +731,8 @@ class Ximmer {
                 runDirectories: runDirectories,
                 outputDirectory : outputDirectory.name,
                 summaryHTML : summaryHTML,
-                callers: this.callerIds
+                callers: this.callerIds,
+                enableTruePositives: this.enableTruePositives
             ).writeTo(w)
         }
         

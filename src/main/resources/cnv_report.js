@@ -180,6 +180,12 @@ $(document).ready(function() {
     if(initialized)
         return;
 
+    
+    if(typeof(window.cnvs) == 'undefined') {
+        console.log('CNVs not defined for page: do not set up CNV report');
+        return;
+    }
+    
     console.log("init");
 
     columns = []
