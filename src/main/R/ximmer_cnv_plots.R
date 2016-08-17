@@ -9,9 +9,9 @@ SRC = Sys.getenv("SRC")
 if(is.na(SRC) || SRC=="")
   SRC="/Users/simon/work/ximmer/src/main/R"
 
-XIMMER_RUNS = as.integer(Sys.getenv("XIMMER_RUNS"))
+XIMMER_RUNS = strsplit(Sys.getenv("XIMMER_RUNS"), ",")
 if(is.na(XIMMER_RUNS))
-    XIMMER_RUNS = 1
+    XIMMER_RUNS = c("run0")
 
 # XIMMER_CALLERS=c('cfr','xhmm','cnmops')
 XIMMER_CALLERS=unlist(strsplit(Sys.getenv("XIMMER_CALLERS"),split=","))
@@ -34,7 +34,7 @@ sim.callers=XIMMER_CALLERS
 
 # sim.callers = c("xhmm_1","xhmm_2")
 
-sim.names = paste0("run",0:(XIMMER_RUNS-1))
+sim.names = XIMMER_RUNS
 ximmer.sims = lapply(sim.names, function(run) { 
   list(name=run)}
 )

@@ -131,8 +131,8 @@ class Ximmer {
         if(!(cfg.simulation_type in ["replace","downsample","none"])) 
             throw new RuntimeException("The key simulation_type is set to unknown value ${cfg.simulation_type}. Please set this to 'replace', 'downsample' or 'none'.")
             
-        if(!cfg.containsKey("runs") || !String.valueOf(cfg.runs).isInteger())
-            throw new RuntimeException("The key 'runs' must be set to an integer in the configuration file (current value is ${cfg.runs})")
+//        if(!cfg.containsKey("runs") || !String.valueOf(cfg.runs).isInteger())
+//            throw new RuntimeException("The key 'runs' must be set to an integer in the configuration file (current value is ${cfg.runs})")
             
         this.enableTruePositives = this.enableSimulation || ('known_cnvs' in cfg)
     }
@@ -159,12 +159,38 @@ class Ximmer {
         }
     }
     
+    Map<String,String> runs
+    
+    
+    void parseRuns() {
+        // Map of run id to true_cnvs file
+        def cfgRuns = cfg.runs
+        if(cfgRuns instanceof String || cfgRuns instanceof Integer) {
+            runs = (0..String.valueOf(cfgRuns).toInteger()).collectEntries { runId ->
+                if('known_cnvs' in cfg)
+                    [runId, cfg.known_cnvs]
+                else
+                    [runId, null]
+            }
+        }
+        else
+        if(cfgRuns instanceof ConfigObject) {
+            runs = cfg.runs
+        }
+        else 
+            throw new Exception("The 'runs' configuration parameter is not in a recognised format. Expect either an integer or a child configuration, got $cfgRuns.")
+    }
+    
     void simulate() {
         
-        int numRuns = String.valueOf(cfg.runs).toInteger()
+        this.parseRuns()
         
-        for(int i=0; i<numRuns; ++i) {
-            String runDir = runDirectoryPrefix+i
+        for(Map.Entry runEntry in runs) {
+            
+            String runId = runEntry.key
+            String trueCnvs = runEntry.value
+            
+            String runDir = runDirectoryPrefix+runId
             File dir = new File(outputDirectory, runDir)
             dir.mkdirs()
             runDirectories << dir
@@ -172,7 +198,7 @@ class Ximmer {
                 log.info "Simulation disabled: analysis will be performed directly from source files"
                 File trueCnvsFile = new File(dir,"true_cnvs.bed")
                 trueCnvsFile.withWriter { w ->        
-                    writeKnownCNVs(w)
+                    writeKnownCNVs(w, runId)
                 }
             }
             else {
@@ -509,7 +535,7 @@ class Ximmer {
             simulatedCNVs = targetSamples.collectParallel(me.&simulateSampleCNVs.curry(bamDir,existingSamples,existingBams))
         }
             
-        writeCNVFile(trueCnvsFile, simulatedCNVs)
+        writeCNVFile(trueCnvsFile, simulatedCNVs, runId)
         
         return simulatedCNVs
     }
@@ -521,33 +547,37 @@ class Ximmer {
      * @param trueCnvsFile
      * @param simulatedCNVs
      */
-    void writeCNVFile(File trueCnvsFile, List<Region> simulatedCNVs) {
+    void writeCNVFile(File trueCnvsFile, List<Region> simulatedCNVs, String runId) {
         trueCnvsFile.withWriter { w -> 
             w.println simulatedCNVs.collect { it as List }.flatten().collect { r -> 
                 [r.chr, r.from, r.to+1, r.sample ].join("\t") 
             }.join("\n")
                 
-            writeKnownCNVs(w)
+            writeKnownCNVs(w, runId)
         }
     }
     
-    void writeKnownCNVs(Writer w) {
+    void writeKnownCNVs(Writer w, String runId) {
+        
+        String knownCnvsFile
+        
+        if(this.runs[runId]) {
+            knownCnvsFile = this.runs[runId]
+        }
+        else
         if('known_cnvs' in cfg) {
-            RangedData cnvs = new RangedData(cfg.known_cnvs).load(columnNames: ['chr','start','end','sample','type'])
-            List knownCnvs = cnvs.collect { r -> 
-                [r.chr, r.from, r.to+1, r.sample ].join("\t") 
-            }
-            w.println knownCnvs.join("\n")
+            knownCnvsFile = cfg.known_cnvs
+        }
+        else {
+            log.info "No true positive CNVs configured for run $runId"
+            return
         }
         
-//        if('known_cnvs' in cfg) {
-//            RangedData cnvs = new RangedData(cfg.known_cnvs).load(columnNames: ['chr','start','end','sample','type'])
-//            List knownCnvs = cnvs.grep { r.sample in bamFiles }.collect { r -> 
-//                [r.chr, r.from, r.to+1, r.sample ].join("\t") 
-//            }
-//            w.println knownCnvs.join("\n")
-//        }
-//        
+        RangedData cnvs = new RangedData(knownCnvsFile).load(columnNames: ['chr','start','end','sample','type'])
+        List knownCnvs = cnvs.collect { r -> 
+            [r.chr, r.from, r.to+1, r.sample ].join("\t") 
+        }
+        w.println knownCnvs.join("\n")
     }
     
     Regions simulateSampleCNVs(File bamDir, List<String> existingSamples, List<SAM> existingBams, SAM targetSAM) {
@@ -870,7 +900,7 @@ class Ximmer {
             new File("src/main/R/ximmer_cnv_plots.R"), 
                 ANALYSIS: analysisCfg.analysisName,
                 SRC: new File("src/main/R").absolutePath, 
-                XIMMER_RUNS: runDirectories.size(),
+                XIMMER_RUNS: runDirectories.join(","),
                 TARGET_REGION: new File(cfg.target_regions).absolutePath,
                 XIMMER_CALLERS: callerCfgs
             )

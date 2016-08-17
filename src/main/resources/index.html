@@ -338,7 +338,7 @@
             <div id=runcalls<%=runIndex%> >
                 <iframe id="run<%=runIndex%>Iframe" style="position: absolute; height: 100%; border: none" src="about:blank" width='100%' height='100%'></iframe>
                 <script id=run0IframeContents type="text/javascript">
-                var run<%=runIndex%>HTML = "<%=new File(outputDirectory + '/run'+runIndex+'/' + analysisName +'/report/cnv_report.html').text.bytes.encodeBase64()%>";
+                var run<%=runIndex%>HTML = "<%=new File(outputDirectory + '/' + runDir.name+'/' + analysisName +'/report/cnv_report.html').text.bytes.encodeBase64()%>";
                 </script>
             </div>             
             <%}%>
