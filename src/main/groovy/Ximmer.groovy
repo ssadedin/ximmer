@@ -200,7 +200,7 @@ class Ximmer {
             String runId = runEntry.key
             String trueCnvs = runEntry.value
             
-            String runDir = runDirectoryPrefix+'_'+runId
+            String runDir = runDirectoryPrefix+runId
             File dir = new File(outputDirectory, runDir)
             dir.mkdirs()
             runDirectories << dir
