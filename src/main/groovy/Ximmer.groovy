@@ -176,7 +176,7 @@ class Ximmer {
         else
         if(cfgRuns instanceof ConfigObject) {
             log.info "Found named runs configured"
-            runs = cfg.runs.collectEntries { [it.key, it.known_cnvs] }
+            runs = cfg.runs.collectEntries { [it.key, it.value.known_cnvs] }
             
             List missingRuns = runs.grep { !new File(it.value).exists() } 
             if(missingRuns)
