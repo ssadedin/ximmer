@@ -175,7 +175,13 @@ class Ximmer {
         }
         else
         if(cfgRuns instanceof ConfigObject) {
-            runs = cfg.runs
+            log.info "Found named runs configured"
+            runs = cfg.runs.collectEntries { [it.key, it.known_cnvs] }
+            
+            List missingRuns = runs.grep { !new File(it.value).exists() } 
+            if(missingRuns)
+                throw new Exception("One or more of the configured known_cnvs files does not exist: " + missingRuns*.value)
+            
         }
         else 
             throw new Exception("The 'runs' configuration parameter is not in a recognised format. Expect either an integer or a child configuration, got $cfgRuns.")
