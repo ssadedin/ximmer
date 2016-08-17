@@ -95,6 +95,10 @@ class Ximmer {
                 throw new RuntimeException("Unknown CNV caller " + it + " referenced in configuration.")
             callerIdMap[it]
         }
+        
+        if('run_directory_prefix' in cfg) {
+            this.runDirectoryPrefix = cfg.run_directory_prefix
+        }
     }
     
     List<File> runDirectories = []
@@ -196,7 +200,7 @@ class Ximmer {
             String runId = runEntry.key
             String trueCnvs = runEntry.value
             
-            String runDir = runDirectoryPrefix+runId
+            String runDir = runDirectoryPrefix+'_'+runId
             File dir = new File(outputDirectory, runDir)
             dir.mkdirs()
             runDirectories << dir
