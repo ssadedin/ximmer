@@ -9,7 +9,7 @@ SRC = Sys.getenv("SRC")
 if(is.na(SRC) || SRC=="")
   SRC="/Users/simon/work/ximmer/src/main/R"
 
-XIMMER_RUNS = strsplit(Sys.getenv("XIMMER_RUNS"), ",")
+XIMMER_RUNS = unlist(strsplit(Sys.getenv("XIMMER_RUNS"), ","))
 if(is.na(XIMMER_RUNS))
     XIMMER_RUNS = c("run0")
 
