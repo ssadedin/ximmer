@@ -181,9 +181,9 @@ class Ximmer {
         else
         if(cfgRuns instanceof ConfigObject) {
             log.info "Found named runs configured"
-            runs = cfg.runs.collectEntries { [it.key, it.value.known_cnvs] }
+            runs = cfg.runs.collectEntries { [it.key, it.value.isSet('known_cnvs') ? it.value.known_cnvs : null ] }
             
-            List missingRuns = runs.grep { !new File(it.value).exists() } 
+            List missingRuns = runs.grep { it.value && !new File(it.value).exists() } 
             if(missingRuns)
                 throw new Exception("One or more of the configured known_cnvs files does not exist: " + missingRuns*.value)
             
