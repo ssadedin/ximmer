@@ -98,6 +98,7 @@ class Ximmer {
         
         if('run_directory_prefix' in cfg) {
             this.runDirectoryPrefix = cfg.run_directory_prefix
+            log.info "Setting run directory prefix to $runDirectoryPrefix"
         }
     }
     
