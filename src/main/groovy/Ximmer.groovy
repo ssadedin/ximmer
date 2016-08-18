@@ -899,12 +899,14 @@ class Ximmer {
     
     void generateROCPlots(AnalysisConfig analysisCfg) {
         
-       if(!enableTruePositives)
-            return
+       if(!enableTruePositives) {
+           log.info "True positives not enabled: skipping ROC plots"
+           return
+       }
             
         String callerCfgs = analysisCfg.callerCfgs.collect { mapCallerId(it) }.unique().join(',')
         
-        log.info "Creating combined report for callers " + callerCfgs + " with configurations " + analysisCfg.callerCfgs.join(",")
+        log.info "Creating combined ROC plots for callers " + callerCfgs + " with configurations " + analysisCfg.callerCfgs.join(",")
   
         
         runR(outputDirectory, 
