@@ -102,8 +102,6 @@ class Ximmer {
         }
     }
     
-    List<File> runDirectories = []
-    
     boolean enableTruePositives = false
    
     void run(analyse=true) {
@@ -111,8 +109,6 @@ class Ximmer {
         this.checkConfig()
         
         this.cacheReferenceData()
-        
-        this.resolveBamFiles()
         
         this.targetRegion = new BED(cfg.target_regions).load().reduce()
 
@@ -164,50 +160,20 @@ class Ximmer {
         }
     }
     
-    Map<String,String> runs
-    
-    
-    void parseRuns() {
-        // Map of run id to true_cnvs file
-        def cfgRuns = cfg.runs
-        if(cfgRuns instanceof String || cfgRuns instanceof Integer) {
-            runs = (0..String.valueOf(cfgRuns).toInteger()).collectEntries { runId ->
-                if('known_cnvs' in cfg)
-                    [runId, cfg.known_cnvs]
-                else
-                    [runId, null]
-            }
-        }
-        else
-        if(cfgRuns instanceof ConfigObject) {
-            log.info "Found named runs configured"
-            runs = cfg.runs.collectEntries { [it.key, it.value.isSet('known_cnvs') ? it.value.known_cnvs : null ] }
-            
-            List missingRuns = runs.grep { it.value && !new File(it.value).exists() } 
-            if(missingRuns)
-                throw new Exception("One or more of the configured known_cnvs files does not exist: " + missingRuns*.value)
-            
-        }
-        else 
-            throw new Exception("The 'runs' configuration parameter is not in a recognised format. Expect either an integer or a child configuration, got $cfgRuns.")
-    }
+    Map<String,SimulationRun> runs
     
     void simulate() {
         
-        this.parseRuns()
+        this.runs = SimulationRun.configureRuns(this.outputDirectory, this.runDirectoryPrefix, cfg)
         
-        for(Map.Entry runEntry in runs) {
+        for(Map.Entry<String,SimulationRun> runEntry in runs) {
             
             String runId = runEntry.key
             String trueCnvs = runEntry.value
-            
-            String runDir = runDirectoryPrefix+runId
-            File dir = new File(outputDirectory, runDir)
-            dir.mkdirs()
-            runDirectories << dir
+            def runDir = runEntry.value.runDirectory
             if(!this.enableSimulation) {
                 log.info "Simulation disabled: analysis will be performed directly from source files"
-                File trueCnvsFile = new File(dir,"true_cnvs.bed")
+                File trueCnvsFile = new File(runDir,"true_cnvs.bed")
                 trueCnvsFile.withWriter { w ->        
                     writeKnownCNVs(w, runId)
                 }
@@ -220,20 +186,25 @@ class Ximmer {
     
     List<AnalysisConfig> runAnalysis() {
         List<AnalysisConfig> analyses
-        for(File runDir in runDirectories) {
-            analyses = runAnalysisForRun(runDir)
+        for(SimulationRun run in runs.values()) {
+            analyses = runAnalysisForRun(run)
         }
         return analyses
     }
     
-    List<AnalysisConfig> runAnalysisForRun(File runDir) {
+    // TODO: change the runDir to take a SimulationRun
+    List<AnalysisConfig> runAnalysisForRun(SimulationRun run) {
+        
+        File runDir = run.runDirectory
         
         List<String> bamFiles 
         if(this.enableSimulation) {
-            bamFiles = new File(runDir, "bams").listFiles().grep { File f -> f.name.endsWith(".bam") }.collect { "bams/"+it.name}
+            bamFiles = new File(run.runDirectory, "bams").listFiles().grep { File f -> f.name.endsWith(".bam") }.collect { "bams/"+it.name}
         } 
         else {
-            bamFiles = this.bamFiles*.value*.samFile*.absolutePath
+            // TODO: change this to come from the SimulationRun
+//            bamFiles = this.bamFiles*.value*.samFile*.absolutePath
+            bamFiles = run.bamFiles.collect { it.value.samFile.absolutePath }
         }
         
         File bpipe = new File("eval/bpipe")
@@ -254,7 +225,7 @@ class Ximmer {
             }
         }
         
-        if(batches.every { new File(runDir,it.analysisName+"/report/cnv_report.html").exists()}) {
+        if(batches.every { new File(run.runDirectory,it.analysisName+"/report/cnv_report.html").exists()}) {
             log.info("Skipping bpipe run for $runDir because cnv_report.html already exists for all analyses (${batches*.analysisName.join(',')})")
             return batches
         }
@@ -391,53 +362,6 @@ class Ximmer {
         return callerCfgs
     }
     
-    void addBamFiles(List<String> bamFilePaths) {
-       
-       Set knownSamples = (this.bamFiles*.key) as Set
-        
-       this.bamFiles += bamFilePaths.collectEntries { bamPath ->
-            SAM sam = new SAM(bamPath)
-            if(sam.samples.toUnique().size() > 1)
-                throw new IllegalArgumentException("BAM file $bamPath contains mulitiple samples (${sam.samples.join(",")}). This program only supports single-sample BAM files")
-            
-            String sampleId = sam.samples[0]
-            if(sampleId in knownSamples) 
-                throw new IllegalArgumentException("Sample $sampleId appears in more than one BAM file. This program only supports a sample appearing in a single BAM file")
-                
-            knownSamples << sampleId
-            
-            [sampleId, new SAM(bamPath)]
-        } 
-    }
-    
-    void resolveBamFiles() {
-        
-        if(!cfg.containsKey("bam_files")) 
-            throw new IllegalArgumentException("The configuration setting 'bam_files' is required")
-            
-        def bamFiles = cfg.bam_files
-        if(bamFiles instanceof String) {
-            bamFiles = MiscUtils.glob(bamFiles)
-        }
-        else 
-        if(bamFiles instanceof List) {
-            bamFiles = bamFiles.collect { MiscUtils.glob(it) }.flatten()
-        }
-        
-        log.info("Resolved BAM files: " + bamFiles)
-        
-        this.addBamFiles(bamFiles)
-        
-        if(cfg.containsKey("samples")) {
-            Set<String> sampleSet =  (cfg.samples.males + cfg.samples.females) as Set
-            
-            this.bamFiles = this.bamFiles.grep { it.key in sampleSet }.collectEntries()
-        }
-
-        if(this.bamFiles.isEmpty())
-            throw new RuntimeException("After comparing the samples specified in the 'samples' block with the available BAM files, no samples remain to analyse. Please check that sample ids are consistent with those in the BAM files supplied")
-        
-    }
     
     void resolvePedigrees() {
 
@@ -573,13 +497,14 @@ class Ximmer {
         String knownCnvsFile
         
         if(this.runs[runId]) {
-            knownCnvsFile = this.runs[runId]
+            knownCnvsFile = this.runs[runId].knownCnvs
         }
         else
         if('known_cnvs' in cfg) {
             knownCnvsFile = cfg.known_cnvs
         }
-        else {
+        
+        if(!knownCnvsFile) {
             log.info "No true positive CNVs configured for run $runId"
             return
         }
@@ -754,7 +679,7 @@ class Ximmer {
         
         String analysisName = analysis.analysisName
         
-        log.info "Generating consolidated report for " + this.runDirectories.size() + " runs in analysis $analysisName"
+        log.info "Generating consolidated report for " + this.runs.size() + " runs in analysis $analysisName"
         
         String summaryHTML = generateSummary(analysis)
         
@@ -769,7 +694,7 @@ class Ximmer {
             SimpleTemplateEngine templateEngine = new SimpleTemplateEngine()
             templateEngine.createTemplate(mainTemplate.newReader()).make(
                 analysisName : analysisName,
-                runDirectories: runDirectories,
+                runDirectories: runs*.value*.runDirectory,
                 outputDirectory : outputDirectory.name,
                 summaryHTML : summaryHTML,
                 callers: this.callerIds,
@@ -795,7 +720,7 @@ class Ximmer {
      */
     List<Region> readCnvs() {
         List<Region> cnvs = []
-        for(runDir in runDirectories) {
+        for(File runDir in runs*.value*.runDirectory) {
             File cnvFile = new File(runDir,"true_cnvs.bed")
             if(cnvFile.exists()) {
                 new BED(cnvFile,withExtra:true).load().each { Region r ->
@@ -856,7 +781,7 @@ class Ximmer {
         List<Region> cnvs = readCnvs()
         
         // Load the results
-        List<RangedData> results = runDirectories.collect { runDir ->
+        List<RangedData> results = runs*.value*.runDirectory.collect { runDir ->
             new RangedData(new File(runDir,"$analysisCfg.analysisName/report/cnv_report.tsv").path).load([:], { r ->
                     callerIds.each { r[it] = r[it] == "TRUE" }
           })
@@ -913,7 +838,7 @@ class Ximmer {
             new File("src/main/R/ximmer_cnv_plots.R"), 
                 ANALYSIS: analysisCfg.analysisName,
                 SRC: new File("src/main/R").absolutePath, 
-                XIMMER_RUNS: runDirectories*.name.join(","),
+                XIMMER_RUNS: runs*.value*.runDirectory*.name.join(","),
                 TARGET_REGION: new File(cfg.target_regions).absolutePath,
                 XIMMER_CALLERS: callerCfgs
             )
