@@ -96,7 +96,7 @@ class Ximmer {
             callerIdMap[it]
         }
         
-        if('run_directory_prefix' in cfg) {
+        if(cfg.isSet('run_directory_prefix')) {
             this.runDirectoryPrefix = cfg.run_directory_prefix
             log.info "Setting run directory prefix to $runDirectoryPrefix"
         }
