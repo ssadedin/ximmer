@@ -186,11 +186,24 @@ class Ximmer {
     
     List<AnalysisConfig> runAnalysis() {
         List<AnalysisConfig> analyses
-        for(SimulationRun run in runs.values()) {
-            analyses = runAnalysisForRun(run)
+        
+        if(cfg.isSet('enable_parallel_analyses') && cfg.enable_parallel_analyses) {
+            GParsPool.withPool(8) {      
+                analyses = runs.values().collectParallel { run ->
+                    runAnalysisForRun(run)
+                }[0]
+            }
+            
+        }
+        else {
+            for(SimulationRun run in runs.values()) {
+                analyses = runAnalysisForRun(run)
+            }
         }
         return analyses
     }
+    
+    Object analysisLock = new Object()
     
     // TODO: change the runDir to take a SimulationRun
     List<AnalysisConfig> runAnalysisForRun(SimulationRun run) {
@@ -198,43 +211,44 @@ class Ximmer {
         File runDir = run.runDirectory
         
         List<String> bamFiles 
-        if(this.enableSimulation) {
-            bamFiles = new File(run.runDirectory, "bams").listFiles().grep { File f -> f.name.endsWith(".bam") }.collect { "bams/"+it.name}
-        } 
-        else {
-            // TODO: change this to come from the SimulationRun
-//            bamFiles = this.bamFiles*.value*.samFile*.absolutePath
-            bamFiles = run.bamFiles.collect { it.value.samFile.absolutePath }
-        }
-        
-        File bpipe = new File("eval/bpipe")
-        
-        String targetRegionsPath = new File(cfg.target_regions).absolutePath
-        String toolsPath = new File("eval/pipeline/tools").absolutePath
-        String ximmerSrc = new File("src/main/groovy").absolutePath
-        int concurrency = cfg.containsKey("concurrency") ? cfg.concurrency : 2
-        
-        
+        String targetRegionsPath 
+        int concurrency
         List<AnalysisConfig> batches = []
-//        batches << createAnalysis(runDir, "analysis") // default analysis
+        List drawCnvsParam = []
         
-        if(cfg.containsKey('analyses')) {
-            for(String analysisName in cfg.analyses.keySet()) {
-                // Create the corresponding analysis
-                batches << createAnalysis(runDir, analysisName)
+        synchronized(analysisLock) { // Avoid any potential multi-threading issues since all the below
+                                     // are reading from non-threadsafe maps, config objects, etc.
+            if(this.enableSimulation) {
+                bamFiles = new File(run.runDirectory, "bams").listFiles().grep { File f -> f.name.endsWith(".bam") }.collect { "bams/"+it.name}
+            } 
+            else {
+                bamFiles = run.bamFiles.collect { it.value.samFile.absolutePath }
+            }
+            
+            targetRegionsPath = new File(cfg.target_regions).absolutePath
+            concurrency = cfg.containsKey("concurrency") ? cfg.concurrency : 2 
+           
+            if(cfg.containsKey('analyses')) {
+                for(String analysisName in cfg.analyses.keySet()) {
+                    // Create the corresponding analysis
+                    batches << createAnalysis(runDir, analysisName)
+                }
+            }
+            
+            if(batches.every { new File(run.runDirectory,it.analysisName+"/report/cnv_report.html").exists()}) {
+                log.info("Skipping bpipe run for $runDir because cnv_report.html already exists for all analyses (${batches*.analysisName.join(',')})")
+                return batches
+            }
+            
+            if(cfg.containsKey('draw_cnvs') && !cfg.draw_cnvs) {
+                drawCnvsParam = ["-p","draw_cnvs=false"]
             }
         }
-        
-        if(batches.every { new File(run.runDirectory,it.analysisName+"/report/cnv_report.html").exists()}) {
-            log.info("Skipping bpipe run for $runDir because cnv_report.html already exists for all analyses (${batches*.analysisName.join(',')})")
-            return batches
-        }
-        
-        List drawCnvsParam = []
-        if(cfg.containsKey('draw_cnvs') && !cfg.draw_cnvs) {
-            drawCnvsParam = ["-p","draw_cnvs=false"]
-        }
-        
+            
+        File bpipe = new File("eval/bpipe")
+        String toolsPath = new File("eval/pipeline/tools").absolutePath
+        String ximmerSrc = new File("src/main/groovy").absolutePath
+            
         List<String> bpipeCommand = [
                 "bash",
                 bpipe.absolutePath,
