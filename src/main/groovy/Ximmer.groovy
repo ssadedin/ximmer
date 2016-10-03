@@ -166,6 +166,8 @@ class Ximmer {
         
         this.runs = SimulationRun.configureRuns(this.outputDirectory, this.runDirectoryPrefix, cfg)
         
+        this.bamFiles = this.runs.collect { it.value.bamFiles }.sum()
+        
         for(Map.Entry<String,SimulationRun> runEntry in runs) {
             
             String runId = runEntry.key
