@@ -61,7 +61,7 @@ class SimulationRun {
     static Map<String,SimulationRun> configureRuns(File outputDirectory, String runDirectoryPrefix, ConfigObject cfg) {
         
         // Map of run id to true_cnvs file
-        def cfgRuns = cfg.runs
+        def cfgRuns = 'runs' in cfg ? cfg.runs : false
         if(cfgRuns instanceof String || cfgRuns instanceof Integer) {
             configureIntegerRuns(outputDirectory, runDirectoryPrefix, cfgRuns, cfg)
         }
@@ -106,13 +106,17 @@ class SimulationRun {
         return runs
     }
 
-    private static Map<String,SimulationRun> configureIntegerRuns(File outputDirectory, String runDirectoryPrefix, ConfigObject cfgRuns, ConfigObject cfg) {
+    private static Map<String,SimulationRun> configureIntegerRuns(File outputDirectory, String runDirectoryPrefix, /* Integer or String */ Object cfgRuns, ConfigObject cfg) {
         
         String defaultKnownCnvs = cfg.isSet('known_cnvs') ? cfg.known_cnvs : null
         
         Map<String,SimulationRun> runs = [:]
-        if(String.valueOf(cfgRuns).isInteger())
-            throw new IllegalArgumentException("The runs parameter must be an integer if not specified as a nested configuration.")
+        if(!String.valueOf(cfgRuns).isInteger())
+            throw new IllegalArgumentException("The runs parameter (" + String.valueOf(cfgRuns) + ") must be an integer if not specified as a nested configuration.")
+            
+        if(cfg.bam_files instanceof ConfigObject)
+            throw new Exception("The 'bam_files' configuration element was not set. Please set this to a glob style path matching the bam files you wish to include")
+  
         
         runs = (0..String.valueOf(cfgRuns).toInteger()).collectEntries { runId ->
             
