@@ -181,7 +181,7 @@ class Ximmer {
                 }
             }
             else {
-                simulateRun(runDir)
+                simulateRun(runId)
             }
         }
     }
