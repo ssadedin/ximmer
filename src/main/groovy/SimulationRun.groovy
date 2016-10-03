@@ -14,6 +14,8 @@ class SimulationRun {
     void addBamFiles(List<String> bamFilePaths) {
        
        Set knownSamples = (this.bamFiles*.key) as Set
+       
+       log.info "Processing BAM Files: \n" + bamFilePaths.join('\n')
         
        this.bamFiles += bamFilePaths.collectEntries { bamPath ->
             SAM sam = new SAM(bamPath)
@@ -94,10 +96,16 @@ class SimulationRun {
             // Bam file could be specified globally (same for all runs, from cfg.bam_files)
             // or it could be specified specifically for this run
             def bamFileSpec  = runEntry.value.isSet('bam_files') ? runEntry.value.bam_files : cfg.bam_files
+            
+            if(bamFileSpec instanceof ConfigObject)
+                throw new Exception("The 'bam_files' configuration element was not set. Please set this to a glob style path matching the bam files you wish to include")
+            
             run.resolveBamFiles(bamFileSpec, cfg)
             
             [runEntry.key, run] 
         }
+        
+        log.info "Configured runs: " + runs.keySet().join(',')
 
         List missingRuns = runs.grep { it.value.knownCnvs && !new File(it.value.knownCnvs).exists() }
         if(missingRuns)
