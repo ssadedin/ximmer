@@ -20,6 +20,8 @@ ANALYSIS=Sys.getenv("ANALYSIS")
 if(is.na(ANALYSIS))
     ANALYSIS = "analysis-1"
 
+SIMULATION_TYPE=Sys.getenv("SIMULATION_TYPE")
+
 print(sprintf("SRC=%s", SRC))
 print(sprintf("Callers=%s", XIMMER_CALLERS))
 
@@ -87,7 +89,19 @@ ximmer_sim_loaders = list(
 )
 
 sim.caller.loaders = ximmer_sim_loaders
-ranked = load_ranked_run_results(truth, names(ximmer.sims), filterChrX=F)
+
+filterChrX=FALSE
+deletionsOnly=FALSE
+
+if(SIMULATION_TYPE == "replace") {
+  filterChrX=TRUE
+  deletionsOnly=TRUE
+} else if(SIMULATION_TYPE == "downsample") {
+    deletionsOnly=TRUE
+}
+
+ranked = load_ranked_run_results(truth, names(ximmer.sims), filterChrX=filterChrX, deletionsOnly=deletionsOnly)
+
 nice_colors = plot.colors = c('orange','blue','green','black','purple','red')
 
 png(sprintf("%s_roc.png",ANALYSIS))

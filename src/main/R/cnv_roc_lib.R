@@ -212,7 +212,7 @@ find.tp.overlaps.opt3 = function(cnv.calls, truth) {
   return(cnv.calls)
 }
 
-load_ranked_run_results = function(truth, analysis.names, exclude.bed=NULL, batch=batch.name, callers=sim.callers, filter.samples=NULL, filterChrX=T, ...) {
+load_ranked_run_results = function(truth, analysis.names, exclude.bed=NULL, batch=batch.name, callers=sim.callers, filter.samples=NULL, filterChrX=T, deletionsOnly=T,...) {
   
   if(!is.null(filter.samples)) {
     truth = truth[filter.samples(truth$id)]
@@ -240,8 +240,12 @@ load_ranked_run_results = function(truth, analysis.names, exclude.bed=NULL, batc
     printf("Loaded %d raw CNVs for %s", length(cnvs), caller)
     
     if(filterChrX) {
-      cnvs = cnvs[cnvs$type == "DEL" & seqnames(cnvs)=='chrX']
+      cnvs = cnvs[seqnames(cnvs)=='chrX']
       seqlevels(cnvs) = "chrX"
+    }
+    
+    if(deletionsOnly) {
+      cnvs = cnvs[cnvs$type == "DEL"]
     }
     
     printf("%d deletion CNVs for %s", length(cnvs), caller)

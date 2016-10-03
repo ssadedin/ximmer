@@ -856,7 +856,8 @@ class Ximmer {
                 SRC: new File("src/main/R").absolutePath, 
                 XIMMER_RUNS: runs*.value*.runDirectory*.name.join(","),
                 TARGET_REGION: new File(cfg.target_regions).absolutePath,
-                XIMMER_CALLERS: callerCfgs
+                XIMMER_CALLERS: callerCfgs,
+                SIMULATION_TYPE: cfg.simulation_type
             )
     }
     
