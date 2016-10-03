@@ -134,10 +134,10 @@ class SimulationRun {
              
             SimulationRun run = null
             if('known_cnvs' in cfg) {
-                run = new SimulationRun(id:runId, knownCnvs:defaultKnownCnvs)
+                run = new SimulationRun(id:runId, knownCnvs:defaultKnownCnvs,runDirectory:dir)
             }
             else {
-                run = new SimulationRun(id:runId, knownCnvs:null)
+                run = new SimulationRun(id:runId, knownCnvs:null, runDirectory:dir)
             }
             
             // When configured as a simple integer, the bam files are assumed to be the same for all runs
