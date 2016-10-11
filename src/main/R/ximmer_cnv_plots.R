@@ -11,19 +11,21 @@ if(is.na(SRC) || SRC=="")
 
 XIMMER_RUNS = unlist(strsplit(Sys.getenv("XIMMER_RUNS"), ","))
 if(is.na(XIMMER_RUNS))
-    XIMMER_RUNS = c("run0")
+    XIMMER_RUNS = c("1")
 
-# XIMMER_CALLERS=c('cfr','xhmm','cnmops')
+# XIMMER_CALLERS=c('cnmops_1e1','cnmops_1e2')
 XIMMER_CALLERS=unlist(strsplit(Sys.getenv("XIMMER_CALLERS"),split=","))
 
 ANALYSIS=Sys.getenv("ANALYSIS")
 if(is.na(ANALYSIS))
-    ANALYSIS = "analysis-1"
+    ANALYSIS = "analysis-cnmops_tuning"
 
 SIMULATION_TYPE=Sys.getenv("SIMULATION_TYPE")
+if(is.na(SIMULATION_TYPE))
+    SIMULATION_TYPE = "replace"
 
 print(sprintf("SRC=%s", SRC))
-print(sprintf("Callers=%s", XIMMER_CALLERS))
+print(sprintf("Callers=%s", paste(XIMMER_CALLERS,collapse=',')))
 
 #TARGET_REGION="/Users/simon/work/ximmer/eval/data/haloplex/target_regions.bed"
 #TARGET_REGION="/Users/simon/work/ximmer/eval/data/haloplex.x/target_regions.bed"
@@ -40,6 +42,11 @@ sim.names = XIMMER_RUNS
 ximmer.sims = lapply(sim.names, function(run) { 
   list(name=run)}
 )
+
+# XIMMER_CALLER_LABELS = c('pi=5','pi=10')
+XIMMER_CALLER_LABELS = unlist(strsplit(Sys.getenv('XIMMER_CALLER_LABELS'), split=','))
+
+print(sprintf("Labels = %s", paste(XIMMER_CALLER_LABELS,sep=',',collapse=',')))
 
 names(ximmer.sims) = sim.names
 
@@ -101,8 +108,10 @@ if(SIMULATION_TYPE == "replace") {
 }
 
 ranked = load_ranked_run_results(truth, names(ximmer.sims), filterChrX=filterChrX, deletionsOnly=deletionsOnly)
-
 nice_colors = plot.colors = c('orange','blue','green','black','purple','red')
+
+sim.caller.labels = XIMMER_CALLER_LABELS
+names(sim.caller.labels) = XIMMER_CALLERS
 
 png(sprintf("%s_roc.png",ANALYSIS))
 plot.exome.result.set(ranked, truth)

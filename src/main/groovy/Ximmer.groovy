@@ -33,6 +33,13 @@ class Ximmer {
         conifer: "cfr"
     ]
     
+    /**
+     * Convert the expanded form of the configuration id into the simplified
+     * form that is used in the analysis (eg: exomedepth => ed).
+     * 
+     * @param caller (possibly followed by underscore)
+     * @return  caller with id replaced by compact form
+     */
     String mapCallerId(String caller) {
         for(String callerId in callerIdMap.keySet()) {
             if(caller.startsWith(callerId)) {
@@ -227,6 +234,8 @@ class Ximmer {
                 bamFiles = run.bamFiles.collect { it.value.samFile.absolutePath }
             }
             
+            assert !bamFiles.isEmpty()
+            
             targetRegionsPath = new File(cfg.target_regions).absolutePath
             concurrency = cfg.containsKey("concurrency") ? cfg.concurrency : 2 
            
@@ -256,9 +265,9 @@ class Ximmer {
                 bpipe.absolutePath,
                 "run",
                 "-n", "$concurrency",
-                "-p","TOOLS=$toolsPath",
-                "-p","DGV_CNVS=${dgvMergedFile.absolutePath}",
-                "-p","XIMMER_SRC=$ximmerSrc",
+                "-p", "TOOLS=$toolsPath",
+                "-p", "DGV_CNVS=${dgvMergedFile.absolutePath}",
+                "-p", "XIMMER_SRC=$ximmerSrc",
                 "-p", "callers=${callerIds.join(',')}",
                 "-p", "refgene=${hg19RefGeneFile.absolutePath}",
                 "-p", "simulation=${enableTruePositives}",
@@ -328,11 +337,18 @@ class Ximmer {
         // eg: xhmm_1, xhmm_2 etc.
         List<String> callerCfgs = []
         
-        for(String caller in callerIds) {
-            callerCfgs.addAll(writeCallerParameterFile(caller, batchDir, cfg.callers, analysisCfg))
+        callerCfgs.addAll(writeCallerParameterFile(batchDir, cfg.callers, analysisCfg))
+        
+        List<String> callerLabels = callerCfgs.collect { caller ->
+            if(analysisCfg[caller].containsKey('label')) {
+                analysisCfg[caller].label
+            }
+            else {
+                caller
+            }
         }
         
-        return new AnalysisConfig(analysisName:analysisName, callerCfgs: callerCfgs)
+        return new AnalysisConfig(analysisName:analysisName, callerCfgs: callerCfgs, callerLabels: callerLabels)
     }
     
     /**
@@ -340,10 +356,12 @@ class Ximmer {
      * as the file caller.params.txt to the given directory.
      * 
      * @param outputDir
-     * @param callersObj
+     * @param defaultCfg        the default settings to apply to each caller
+     * @param analysisConfig    the specific analysis to configure
+     * 
      * @return a list of the analysis configs to run (caller ids with suffixes)
      */
-    List<String> writeCallerParameterFile(String caller, File outputDir, ConfigObject defaultCfg, ConfigObject analysisConfig) {
+    List<String> writeCallerParameterFile(File outputDir, ConfigObject defaultCfg, ConfigObject analysisConfig) {
         
        
         List<String> callerCfgs = []
@@ -446,6 +464,8 @@ class Ximmer {
     List<Region> simulateRun(String runId) {
         
         // Make a directory for the run
+        log.info "Run directory = " + this.outputDirectory + "/" + runId
+       
         File runDir = new File(this.outputDirectory,  runId)
         File trueCnvsFile = new File(runDir,"true_cnvs.bed")
         
@@ -465,6 +485,8 @@ class Ximmer {
         if(!bamDir.exists())
             throw new IOException("Unable to create run directory: $bamDir")
          
+        log.info "Simulated BAMs will appear in $bamDir"
+        
         int concurrency = cfg.containsKey("concurrency") ? cfg.concurrency : 2
         
         log.info "Creating output BAM files with concurrency $concurrency"
@@ -671,6 +693,9 @@ class Ximmer {
      * @return
      */
     List<SAM> computeTargetSamples() {
+        
+        assert !this.bamFiles.isEmpty()
+        
         if(cfg.simulation_type == "downsample") {
             return this.bamFiles*.value
         }
@@ -683,6 +708,8 @@ class Ximmer {
             List<SAM> results = this.bamFiles.grep { Map.Entry e ->
                 e.key in cfg.samples.females
             }*.value
+        
+            log.info "Females are " + cfg.samples.females.join(',') + " with bam files " + this.bamFiles.keySet().join(',')
         
             if(results.isEmpty()) 
                 throw new IllegalStateException("To use X replacement, there must be at least one female sample configured")
@@ -848,7 +875,6 @@ class Ximmer {
         String callerCfgs = analysisCfg.callerCfgs.collect { mapCallerId(it) }.unique().join(',')
         
         log.info "Creating combined ROC plots for callers " + callerCfgs + " with configurations " + analysisCfg.callerCfgs.join(",")
-  
         
         runR(outputDirectory, 
             new File("src/main/R/ximmer_cnv_plots.R"), 
@@ -857,6 +883,7 @@ class Ximmer {
                 XIMMER_RUNS: runs*.value*.runDirectory*.name.join(","),
                 TARGET_REGION: new File(cfg.target_regions).absolutePath,
                 XIMMER_CALLERS: callerCfgs,
+                XIMMER_CALLER_LABELS: analysisCfg.callerLabels.join(','),
                 SIMULATION_TYPE: cfg.simulation_type
             )
     }
@@ -992,6 +1019,8 @@ class AnalysisConfig {
     String analysisName
     
     List<String> callerCfgs
+    
+    List<String> callerLabels
     
     List<String> getCallerIds() {
         return callerCfgs.collect { String cfg -> cfg.tokenize('_')[0] }

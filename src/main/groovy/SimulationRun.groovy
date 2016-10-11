@@ -126,7 +126,7 @@ class SimulationRun {
             throw new Exception("The 'bam_files' configuration element was not set. Please set this to a glob style path matching the bam files you wish to include")
   
         
-        runs = (0..String.valueOf(cfgRuns).toInteger()).collectEntries { runId ->
+        runs = (1..String.valueOf(cfgRuns).toInteger()).collectEntries { runId ->
             
             String runDir = runDirectoryPrefix+runId
             File dir = new File(outputDirectory, runDir)
