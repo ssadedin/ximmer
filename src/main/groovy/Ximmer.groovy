@@ -107,6 +107,9 @@ class Ximmer {
             this.runDirectoryPrefix = cfg.run_directory_prefix
             log.info "Setting run directory prefix to $runDirectoryPrefix"
         }
+        else {
+            log.info "No run directory configured: run directory = " + this.runDirectoryPrefix 
+        }
     }
     
     boolean enableTruePositives = false
@@ -466,9 +469,9 @@ class Ximmer {
     List<Region> simulateRun(String runId) {
         
         // Make a directory for the run
-        log.info "Run directory = " + this.outputDirectory + "/" + runId
-       
-        File runDir = new File(this.outputDirectory,  runId)
+        File runDir = new File(this.outputDirectory,  this.runDirectoryPrefix + runId)
+        
+        log.info "Run directory = " + runDir
         File trueCnvsFile = new File(runDir,"true_cnvs.bed")
         
         if(trueCnvsFile.exists()) {
