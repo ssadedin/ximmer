@@ -228,13 +228,15 @@ class Ximmer {
         synchronized(analysisLock) { // Avoid any potential multi-threading issues since all the below
                                      // are reading from non-threadsafe maps, config objects, etc.
             if(this.enableSimulation) {
-                bamFiles = new File(run.runDirectory, "bams").listFiles().grep { File f -> f.name.endsWith(".bam") }.collect { "bams/"+it.name}
+                File bamDir = new File(run.runDirectory, "bams")
+                log.info "Search for bam files in $bamDir"
+                bamFiles = bamDir.listFiles().grep { File f -> f.name.endsWith(".bam") }.collect { "bams/"+it.name}
             } 
             else {
                 bamFiles = run.bamFiles.collect { it.value.samFile.absolutePath }
             }
             
-            assert !bamFiles.isEmpty()
+            assert !bamFiles.isEmpty() 
             
             targetRegionsPath = new File(cfg.target_regions).absolutePath
             concurrency = cfg.containsKey("concurrency") ? cfg.concurrency : 2 
