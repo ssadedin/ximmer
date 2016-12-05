@@ -5,6 +5,6 @@ unset GROOVY_HOME
 mkdir -p .ximmertmp
 
 JAVA_OPTS="-Xmx52g -Dsnappy.disable=true -Djava.io.tmpdir=./.ximmertmp" ./eval/pipeline/tools/groovy/2.4.6/bin/groovy \
-           -cp src/main/groovy:eval/pipeline/tools/groovy-ngs-utils/1.0.5/groovy-ngs-utils.jar \
+           -cp src/main/groovy:eval/pipeline/tools/groovy-ngs-utils/1.0.6/groovy-ngs-utils.jar \
            src/main/groovy/Ximmer.groovy $*
 
