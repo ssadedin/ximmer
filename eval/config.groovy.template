@@ -41,10 +41,10 @@ callers {
     xhmm {
     }
 
-    exome_depth {
+    exomedepth {
     }
 
-    mops {
+    cnmops {
     }
     
     cfr {
