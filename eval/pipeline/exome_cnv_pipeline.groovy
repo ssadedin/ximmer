@@ -58,12 +58,15 @@ else
 
 sample_names = run_samples
 
+// Sniff the target BED file to see if there is a 'chr' prefix or not
+chr_prefix = new File(target_bed).withReader { r -> r.readLine().startsWith('chr') ? "chr" : "" }
+
 // The list of chromosomes to consider for analysis
 // Not all of them will be analysed - they will be filtered
 // by other checks, such as which of them overlaps the target 
 // region, which have enough targets within them to be analysable,
 // etc.
-INCLUDE_CHROMOSOMES = (["chrX"] + (1..22).collect { "chr" + it })
+INCLUDE_CHROMOSOMES = ([chr_prefix + "X"] + (1..22).collect { chr_prefix + it })
 
 // Only parallelise over the chromosomes actually in the target bed file
 chromosomes = new BED(target_bed).load()*.chr.unique().grep { it in INCLUDE_CHROMOSOMES }
