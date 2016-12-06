@@ -260,10 +260,12 @@ class Ximmer {
                 drawCnvsParam = ["-p","draw_cnvs=false"]
             }
         }
+        
+        String ximmerBase=System.properties['ximmer.base']
             
-        File bpipe = new File("eval/bpipe")
-        String toolsPath = new File("eval/pipeline/tools").absolutePath
-        String ximmerSrc = new File("src/main/groovy").absolutePath
+        File bpipe = new File("$ximmerBase/eval/bpipe")
+        String toolsPath = new File("$ximmerBase/eval/pipeline/tools").absolutePath
+        String ximmerSrc = new File("$ximmerBase/src/main/groovy").absolutePath
             
         List<String> bpipeCommand = [
                 "bash",
