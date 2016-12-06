@@ -282,7 +282,7 @@ class Ximmer {
                 "-p", "target_bed=$targetRegionsPath", 
                 "-p", "imgpath=${runDir.name}/#batch#/report/", 
             ] + drawCnvsParam + [
-                new File("eval/pipeline/exome_cnv_pipeline.groovy").absolutePath
+                "$ximmerBase/eval/pipeline/exome_cnv_pipeline.groovy"
             ]  + bamFiles  + (enableTruePositives ? ["true_cnvs.bed"] : [])
             
         log.info("Executing Bpipe command: " + bpipeCommand.join(" "))
