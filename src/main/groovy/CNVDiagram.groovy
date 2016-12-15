@@ -642,7 +642,7 @@ class CNVDiagram {
         }
         
         if(opts.refseq) {
-            diagram.geneDb = new RefGenes(opts.refseq)
+            diagram.geneDb = new RefGenes(opts.refseq, stripChr: cnvs.numberOfRanges>0 && !cnvs[0].chr.startsWith('chr'))
         }
         
         if(opts.amplicons) {
