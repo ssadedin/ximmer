@@ -43,6 +43,8 @@ class SummarizeCNVs {
     
     TargetedCNVAnnotator cnvAnnotator = null
     
+    RefGenes refGenes = null
+    
     def log = System.err
     
     /**
@@ -84,8 +86,10 @@ class SummarizeCNVs {
             bam 'BAM file for a sample (if provided, used to customize IGV access)', args:Cli.UNLIMITED
             bampath 'Path to BAM files to enable access using IGV (can be URL)', args:1
             name 'Name for report (displayed in header)', args:1
+            refgene 'Path to RefGene file downloaded from UCSC to annotate genes (optional)', args:1
             tsv 'Write consolidated CNV report in tab separated format to <file>', args:1
             imgpath 'Additional path to add for images', args:1
+            genome 'Genome build to use when annotating CNVs', args:1
             o 'Output file name', args:1
         }
         
@@ -134,7 +138,7 @@ class SummarizeCNVs {
                 [ parts[0], parts[1].toFloat() ]
             }
         }
-            
+        
         List<VCF> vcfList = opts.vcfs ? opts.vcfs.collect { VCF.parse(it) } : []
         
         Regions target = new BED(opts.target, withExtra:true).load()
@@ -147,6 +151,14 @@ class SummarizeCNVs {
             Regions cnvs = summarizer.run(exportSamples)
             if(opts.tsv) {
                 summarizer.writeTSV(cnvs, opts.tsv)
+            }
+            
+            if(opts.refgene == "download") {
+                summarizer.refGenes = RefGenes.download(opts.genome?:"hg19")
+            }
+            else
+            if(opts.refgene) {
+                summarizer.refGenes = new RefGenes(opts.refgene)
             }
             
             summarizer.log.println "Writing output to " + outputFileName
@@ -391,7 +403,12 @@ class SummarizeCNVs {
             
         cnv.count = callers.grep { it != "truth" }.count { cnv[it] != null } 
             
-        cnv.genes = targetRegions.getOverlaps(cnv)*.extra.unique().join(",")
+        if(refGenes != null) {
+            cnv.genes = refGenes.getGenes(cnv).join(",")
+        }
+        else {
+            cnv.genes = targetRegions.getOverlaps(cnv)*.extra.unique().join(",")
+        }
         
         // Annotate the variants if we have a VCF for this sample
         if(variants[sample]) {
