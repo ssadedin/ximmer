@@ -32,7 +32,7 @@ create_analysable_target = {
            chrCounts = targetRegion.countBy { it.chr }
 
            filteredTargets = targetRegion.grep { 
-               (it.chr in INCLUDE_CHROMOSOMES) && (chrCounts[it.chr] > $numSamples) && (it.to - it.from > $min_target_size)"
+               (it.chr in INCLUDE_CHROMOSOMES) && (chrCounts[it.chr] > $numSamples) && (it.to - it.from > $min_target_size)
            } as Regions
 
            
