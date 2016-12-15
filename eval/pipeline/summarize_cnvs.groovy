@@ -109,8 +109,14 @@ create_cnv_report = {
         bam_file_path : "http://172.16.56.202/$batch_name/",
         sample_info : false,
         simulation: false,
-        imgpath: false
+        imgpath: false,
+        genome_build : false
 
+    String refGeneOpts = ""
+    if(genome_build != false) {
+        refGeneOpts = "-refgene download -genome $genome_build"
+    }
+    
     List vcfs = []
     /*
     if(sample_info) 
@@ -138,7 +144,7 @@ create_cnv_report = {
         
         exec """
             JAVA_OPTS="-Xmx8g -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC:$XIMMER_SRC/../resources $XIMMER_SRC/SummarizeCNVs.groovy
-                -target $target_bed ${caller_opts.join(" ")}
+                -target $target_bed ${caller_opts.join(" ")} $refGeneOpts
                 ${inputs.snpeff.vcf.withFlag("-vcf")} -bampath "$bam_file_path"
                 -tsv $output.tsv ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""}
                 -o $output.html ${batch_name ? "-name $batch_name" : ""} ${inputs.bam.withFlag('-bam')}
