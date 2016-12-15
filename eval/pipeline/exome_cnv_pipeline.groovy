@@ -45,7 +45,20 @@ else {
 }
 */
 
-println "Parsing samples from " + args
+println "=" * bpipe.Config.config.columns 
+
+println """
+  | |/ /(_)___ ___  ____ ___  ___  _____
+  |   // / __ `__ \\/ __ `__ \\/ _ \\/ ___/
+ /   |/ / / / / / / / / / / /  __/ /    
+/_/|_/_/_/ /_/ /_/_/ /_/ /_/\\___/_/     
+
+Ximmer Integrated CNV Analysis Pipeline 
+"""
+
+println "=" * bpipe.Config.config.columns 
+
+// println "Parsing samples from " + args
 
 sample_info = SampleInfo.fromFiles(args)
 
