@@ -135,6 +135,8 @@ class Ximmer {
         }
     }
     
+    List vcfFiles = []
+    
     void checkConfig() {
         if(!cfg.containsKey('simulation_type')) 
             throw new RuntimeException("The key simulation_type is not found in the configuration file. Please set this to 'replace', 'downsample', or 'none'.")
@@ -146,6 +148,24 @@ class Ximmer {
 //            throw new RuntimeException("The key 'runs' must be set to an integer in the configuration file (current value is ${cfg.runs})")
             
         this.enableTruePositives = this.enableSimulation || ('known_cnvs' in cfg)
+        
+        if(cfg.containsKey('variants')) {
+            if(cfg.variants instanceof List) {
+                vcfFiles = cfg.variants
+            }
+            else
+            if(cfg.variants instanceof String) {
+                vcfFiles = cfg.variants.tokenize(',')*.trim()
+            }
+            else {
+                throw new IllegalArgumentException("Configuration specificies variants using unsupported type " + cfg.variants.class.name)
+            }
+            
+            List invalidVCFs = vcfFiles.grep { !new File(it).exists() }
+            if(invalidVCFs)
+                throw new IllegalArgumentException("The following VCF files were specified but do not exist: " + invalidVCFs.join(","))
+        }
+        
     }
     
     void cacheReferenceData() {
@@ -283,7 +303,7 @@ class Ximmer {
                 "-p", "imgpath=${runDir.name}/#batch#/report/", 
             ] + drawCnvsParam + [
                 "$ximmerBase/eval/pipeline/exome_cnv_pipeline.groovy"
-            ]  + bamFiles  + (enableTruePositives ? ["true_cnvs.bed"] : [])
+            ]  + bamFiles + vcfFiles.join(" ")  + (enableTruePositives ? ["true_cnvs.bed"] : [])
             
         log.info("Executing Bpipe command: " + bpipeCommand.join(" "))
         
