@@ -13,8 +13,10 @@ create_analysable_target = {
         """
 
     requires target_bed : "The target region BED file",
-             sample_names : "The names of samples to analyse",
-             min_target_size: 30
+             sample_names : "The names of samples to analyse"
+             
+             
+    var min_target_size : 30
 
     def numSamples = sample_names.size()
 
