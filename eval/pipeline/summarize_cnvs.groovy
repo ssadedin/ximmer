@@ -33,8 +33,8 @@ extract_cnv_regions = {
         exec """
              set -o pipefail
 
-             JAVA_OPTS="-Xmx1g" $GROOVY -cp $TOOLS/groovy-ngs-utils/1.0/groovy-ngs-utils.jar -e 'new RangedData("$input.tsv").load().each { println([it.chr, it.from-$slop, it.to+$slop].join("\\t"))  }' | 
-                 $SAMTOOLS view -b -L - $input.bam > $output.bam
+             JAVA_OPTS="-Xmx1g -noverify" $GROOVY -cp $TOOLS/groovy-ngs-utils/1.0/groovy-ngs-utils.jar -e 'new RangedData("$input.tsv").load().each { println([it.chr, it.from-$slop, it.to+$slop].join("\\t"))  }' | 
+                 $SAMTOOLS view -b -L - jinput.bam > $output.bam
         """
     }
 }
@@ -89,7 +89,7 @@ plot_cnv_coverage = {
             exec """
                 unset GROOVY_HOME 
 
-                JAVA_OPTS="-Xmx8g -Djava.awt.headless=true" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/CNVDiagram.groovy
+                JAVA_OPTS="-Xmx8g -Djava.awt.headless=true -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/CNVDiagram.groovy
                     -chr $chromosome
                     -cnvs $input.tsv
                     -targets $input.bed
