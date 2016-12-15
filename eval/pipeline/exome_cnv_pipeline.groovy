@@ -82,6 +82,7 @@ chr_prefix = new File(target_bed).withReader { r -> r.readLine().startsWith('chr
 INCLUDE_CHROMOSOMES = ([chr_prefix + "X"] + (1..22).collect { chr_prefix + it })
 
 // Only parallelise over the chromosomes actually in the target bed file
+println "Scanning target region ..."
 chromosomes = new BED(target_bed).load()*.chr.unique().grep { it in INCLUDE_CHROMOSOMES }
 
 // If provided on command line as option
