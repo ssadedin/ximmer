@@ -13,7 +13,8 @@ create_analysable_target = {
         """
 
     requires target_bed : "The target region BED file",
-             sample_names : "The names of samples to analyse"
+             sample_names : "The names of samples to analyse",
+             min_target_size: 30
 
     def numSamples = sample_names.size()
 
@@ -29,7 +30,7 @@ create_analysable_target = {
            chrCounts = targetRegion.countBy { it.chr }
 
            filteredTargets = targetRegion.grep { 
-               (it.chr in INCLUDE_CHROMOSOMES) && (chrCounts[it.chr] > $numSamples)
+               (it.chr in INCLUDE_CHROMOSOMES) && (chrCounts[it.chr] > $numSamples) && (it.to - it.from > $min_target_size)"
            } as Regions
 
            
