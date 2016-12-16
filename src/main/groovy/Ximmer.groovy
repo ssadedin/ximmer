@@ -303,7 +303,7 @@ class Ximmer {
                 "-p", "imgpath=${runDir.name}/#batch#/report/", 
             ] + drawCnvsParam + [
                 "$ximmerBase/eval/pipeline/exome_cnv_pipeline.groovy"
-            ]  + bamFiles + vcfFiles.join(" ")  + (enableTruePositives ? ["true_cnvs.bed"] : [])
+            ]  + bamFiles + vcfFiles + (enableTruePositives ? ["true_cnvs.bed"] : [])
             
         log.info("Executing Bpipe command: " + bpipeCommand.join(" "))
         
