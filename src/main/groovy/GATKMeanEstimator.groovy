@@ -31,10 +31,11 @@ class GATKMeanEstimator {
     }
     
     Map<String,Double> calculateMeans(List<String> samples) {
-        
         samples.collectEntries { sample ->
             GATKIntervalSummary summary = new GATKIntervalSummary(intervalFiles[sample].absolutePath)
             summary.load()
+            
+            log.info "Loading mean for $sample"
             [
                 sample,
                 summary*.average_coverage.sum() / summary.numberOfRanges
