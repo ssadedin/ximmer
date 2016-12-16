@@ -95,6 +95,8 @@ class SummarizeCNVs {
             o 'Output file name', args:1
         }
         
+        Utils.configureSimpleLogging()
+        
         log.info "Starting ...."
         
         def opts = cli.parse(args)
