@@ -1,12 +1,14 @@
 // vim: sw=4 expandtab cindent ts=4
-import groovy.text.SimpleTemplateEngine;
+import groovy.text.SimpleTemplateEngine
+import groovy.util.logging.Log;
 
 import org.codehaus.groovy.runtime.StackTraceUtils;
 import org.omg.CORBA.SystemException
 
-import graxxia.Matrix;;
+import graxxia.Matrix;
 
 
+@Log
 class SummarizeCNVs {
     
     /**
@@ -45,8 +47,6 @@ class SummarizeCNVs {
     
     RefGenes refGenes = null
     
-    def log = System.err
-    
     /**
      * Parse an option specifying a CNV caller
      * 
@@ -65,6 +65,8 @@ class SummarizeCNVs {
     }
     
     static void main(String [] args) {
+        
+        XimmerBanner.banner("Ximmer CNV Summarizer")
         
         Cli cli = new Cli(usage: "SummarizeCNVs <options>")
         
@@ -93,11 +95,13 @@ class SummarizeCNVs {
             o 'Output file name', args:1
         }
         
+        log.info "Starting ...."
+        
         def opts = cli.parse(args)
         if(!opts)
             System.exit(1)
         
-        def results = [:]
+        Map<String,RangedData> results = [:]
         
         if(opts.eds) 
             parseCallerOpt("ed", opts.eds, { new ExomeDepthResults(it) }, results)
@@ -139,7 +143,15 @@ class SummarizeCNVs {
             }
         }
         
-        List<VCF> vcfList = opts.vcfs ? opts.vcfs.collect { VCF.parse(it) } : []
+        Regions mergedCalls = results*.value.inject(new Regions()) { Regions regions, RangedData calls  ->
+            calls.each { regions.addRegion(it) }
+        }.reduce()
+        
+        List<VCF> vcfList = opts.vcfs ? opts.vcfs.collect { 
+            VCF.parse(it) { Variant v ->
+                mergedCalls.overlaps(v)
+            }
+        } : []
         
         Regions target = new BED(opts.target, withExtra:true).load()
         try {
@@ -161,7 +173,7 @@ class SummarizeCNVs {
                 summarizer.refGenes = new RefGenes(opts.refgene)
             }
             
-            summarizer.log.println "Writing output to " + outputFileName
+            summarizer.log.info "Writing output to " + outputFileName
             summarizer.writeReport(
                 cnvs, 
                 reportName, 
@@ -198,7 +210,7 @@ class SummarizeCNVs {
         for(s in exportSamples) {
             Regions sampleCnvs = extractSampleCnvs(s)
             for(cnv in sampleCnvs) {
-                log.println "Merging CNV $cnv for sample '$s' type = $cnv.type"
+                log.info "Merging CNV $cnv for sample '$s' type = $cnv.type"
 
                 results.addRegion(cnv)
             }
@@ -301,7 +313,7 @@ class SummarizeCNVs {
             e.value*.sample
         }.flatten().unique()
         
-        log.println "Extracted samples from calls: $samples"
+        log.info "Extracted samples from calls: $samples"
     }
     
     Regions extractSampleCnvs(String sample) {
@@ -316,7 +328,7 @@ class SummarizeCNVs {
         
         Regions flattened = merged.reduce()
         
-        log.println "Sample $sample has ${flattened.numberOfRanges} CNVs"
+        log.info "Sample $sample has ${flattened.numberOfRanges} CNVs"
         
         List callers = results.keySet() as List
 
@@ -334,12 +346,12 @@ class SummarizeCNVs {
             }
             
             if(!qualityFiltering.any { it.value == false }) {
-                log.println "CNV $cnv filtered out by low quality score in $qualityFiltering"
+                log.info "CNV $cnv filtered out by low quality score in $qualityFiltering"
                 continue
             }
             
             result.addRegion(cnv)
-            log.println "Annotated CNV $cnv (${cnv.hashCode()}) for $sample of type $cnv.type"
+            log.info "Annotated CNV $cnv (${cnv.hashCode()}) for $sample of type $cnv.type"
         }
         
         for(Region cnv in result) {
@@ -383,10 +395,10 @@ class SummarizeCNVs {
         
         List foundInCallers = []
         for(String caller in callers) {
-            // log.println "Find best CNV call for $caller"
+            // log.info "Find best CNV call for $caller"
             Region best = results[caller].grep { it.sample == sample && it.overlaps(cnv) }.max { it.quality?.toFloat() }
             if(best != null) {
-                log.println "Best CNV for $caller is " + best + " with quality " + best?.quality
+                log.info "Best CNV for $caller is " + best + " with quality " + best?.quality
                 foundInCallers << caller
             }
             cnv[caller] = best
@@ -394,7 +406,7 @@ class SummarizeCNVs {
             
         def types = foundInCallers.collect { cnv[it]?.type }.grep { it }.unique()
         if(types.size()>1)
-            log.println "WARNING: CNV $cnv has conflicting calls: " + types
+            log.info "WARNING: CNV $cnv has conflicting calls: " + types
             
             
         cnv.type = types.join(",")
@@ -404,6 +416,7 @@ class SummarizeCNVs {
         cnv.count = callers.grep { it != "truth" }.count { cnv[it] != null } 
             
         if(refGenes != null) {
+            log.info "Annotating $cnv using RefGene database"
             cnv.genes = refGenes.getGenes(cnv).join(",")
         }
         else {
@@ -425,6 +438,6 @@ class SummarizeCNVs {
             })
         }
             
-        log.println "$cnv.count callers found $cnv of type $cnv.type in sample $sample covering genes $cnv.genes with ${cnv.variants?.size()} variants"
+        log.info "$cnv.count callers found $cnv of type $cnv.type in sample $sample covering genes $cnv.genes with ${cnv.variants?.size()} variants"
     }
 }
