@@ -162,11 +162,6 @@ class SummarizeCNVs {
                 summarizer.cnvAnnotator = new TargetedCNVAnnotator(target, opts.dgv)
             }
             
-            Regions cnvs = summarizer.run(exportSamples)
-            if(opts.tsv) {
-                summarizer.writeTSV(cnvs, opts.tsv)
-            }
-            
             if(opts.refgene == "download") {
                 summarizer.refGenes = RefGenes.download(opts.genome?:"hg19")
             }
@@ -175,6 +170,10 @@ class SummarizeCNVs {
                 summarizer.refGenes = new RefGenes(opts.refgene)
             }
             
+            Regions cnvs = summarizer.run(exportSamples)
+            if(opts.tsv) {
+                summarizer.writeTSV(cnvs, opts.tsv)
+            }
             summarizer.log.info "Writing output to " + outputFileName
             summarizer.writeReport(
                 cnvs, 
@@ -238,6 +237,7 @@ class SummarizeCNVs {
                     cnv.from,
                     cnv.to, 
                     cnv.sample,
+                    cnv.genes,
                     cnv.type, 
                     cnv.count, 
                     cnv.stotal 
@@ -286,8 +286,9 @@ class SummarizeCNVs {
             }
         }
         
+        File outputDir = new File(fileName).absoluteFile.parentFile
         if(!inlineJs) {
-            File jsFile = new File(new File(fileName).parentFile, 'cnv.js')
+            File jsFile = new File(outputDir, 'cnv.js')
             println "Writing cnv.js to " + jsFile.absolutePath
             jsFile.text = jsCode
         }
