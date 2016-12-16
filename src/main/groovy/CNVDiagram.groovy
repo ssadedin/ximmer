@@ -7,6 +7,7 @@ import org.apache.commons.math3.analysis.interpolation.LoessInterpolator
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 
 import graxxia.*
+import groovy.util.logging.Log;
 import groovy.xml.Namespace;
 import groovyx.gpars.GParsPool;
 
@@ -16,6 +17,7 @@ import groovyx.gpars.GParsPool;
  * @author simon
  *
  */
+@Log
 class CNVDiagram {
     
     def err = System.err
@@ -81,6 +83,8 @@ class CNVDiagram {
     
     boolean noAmpliconLabels = false
     
+    String gatkMeanEstimator = null
+    
     /**
      * Trying to display too many target regions in plots makes them unreadable.
      * This count limits the number of flanking regions that will be drawn next
@@ -101,14 +105,23 @@ class CNVDiagram {
         this.sampleInfo = sampleInfo
         this.samples = samples  == null ? this.cnvs*.sample : samples
         
-        allSamples = (sampleInfo.keySet() as List)
+        allSamples = (sampleInfo.keySet() as List).grep { 
+            sampleInfo[it].files.bam
+        }
         this.cnvCalls = cnvCalls
         this.targetRegions = targetRegions 
     }
     
     void loadBAMs() {
-        bams = Collections.synchronizedMap([allSamples, 
-                                            allSamples.collect { new SAM(sampleInfo[it].files.bam[0]) }].transpose().collectEntries())
+        List<SAM> sampleBams = allSamples.collect { String sample ->
+            
+            if(!sampleInfo[sample].files.bam)
+                throw new IllegalArgumentException("Sample $sample does not have a BAM file provided")
+                
+            new SAM(sampleInfo[sample].files.bam[0]) 
+        }
+        
+        bams = Collections.synchronizedMap([allSamples, sampleBams].transpose().collectEntries())
     }
     
     void loadMeans() {
@@ -117,7 +130,7 @@ class CNVDiagram {
             loadBAMs()
         
         GParsPool.withPool(concurrency) {
-            println "Calculating coverage means for: $allSamples ..."
+            log.info "Calculating coverage means for: $allSamples ..."
             
             Regions meanRegions = targetRegions
             
@@ -126,11 +139,17 @@ class CNVDiagram {
                 meanRegions = findLiteMeanRegions()
             }
             
+            if(gatkMeanEstimator) {
+                GATKMeanEstimator estimator = new GATKMeanEstimator(this.gatkMeanEstimator)
+                log.info "Discovered ${estimator.intervalFiles.size()} samples with GATK coverage information"
+                means = estimator.calculateMeans(allSamples)
+            }
+            else
             if(extendedMeanEstimator || liteMeanEstimator) {
                 if(extendedMeanEstimator)
-                    println "Using extended mean coverage estimation ..."
+                    log.info "Using extended mean coverage estimation ..."
                 else
-                    println "Using lite mean coverage estimation ..."
+                    log.info "Using lite mean coverage estimation ..."
                 means = Collections.synchronizedMap([allSamples, 
                                                      allSamples.collectParallel { bams[it].coverageStatistics(meanRegions).mean }]
                                                                .transpose().collectEntries())
@@ -138,7 +157,7 @@ class CNVDiagram {
             else {
                 int targetSize = targetRegions.size()
                 means = Collections.synchronizedMap([allSamples, allSamples.collectParallel { 
-                        println "Counting reads for $it"; 
+                        log.info "Counting reads for $it"; 
                         if(!bams[it])
                             System.err.println "No BAM file provided for $it"
                             
@@ -148,7 +167,7 @@ class CNVDiagram {
                 ].transpose().collectEntries())
             }
         }
-        println "Sample means are $means"
+        log.info "Sample means are $means"
     }
     
     void draw(String outputFileBase, int width, int height) {
@@ -513,6 +532,8 @@ class CNVDiagram {
         println "SeeCNV Diagram"
         println "=" * 100
         
+        Utils.configureSimpleLogging()
+        
         Cli cli = new Cli(usage: "CNVDiagram <options>")
         cli.with {
             cnvs 'Consolidated CNV summary report', args:1
@@ -538,6 +559,7 @@ class CNVDiagram {
             sampleinfo 'A sample meta data file containing VCF and BAM files (replaces -vcf and -bam)', args:1
             xmean 'Use extended, but more accurate / slower estimator of sample mean read depth'
             litemean 'Use extremely quick, less accurate mean coverage estimator'
+            gatkcov 'Use precalculated coverage information from gatk, located in given directory', args:1
             ignoremissing 'Ignore samples that are missing coverage information'
             noamplabels 'Omit drawing read counts over each amplicon'
             chr 'Limit drawing to CNVs overlapping given chromosome (eg: chrX)', args:1
@@ -565,7 +587,6 @@ class CNVDiagram {
         if(opts.cfrs)
             parseCallerOpt("cfr", opts.cfrs, { new ConiferResults(it) }, cnvCalls)
             
-            
         if(opts.generics) {
             opts.generics.each { cnvBedFileAndName ->
                 
@@ -592,10 +613,10 @@ class CNVDiagram {
             System.exit(1)
         }
         
-        println "BAM Files are $opts.bams"
+        log.info "BAM Files are $opts.bams"
         
         if(opts.samples) {
-            println "Diagrams will be drawn only for $opts.samples"
+            log.info "Diagrams will be drawn only for $opts.samples"
         }
         
         List bamFiles = opts.bams ? opts.bams : []
@@ -630,6 +651,11 @@ class CNVDiagram {
         if(opts.t)
             diagram.concurrency = opts.t.toInteger()
             
+        if(opts.gatkcov) {
+            diagram.gatkMeanEstimator = opts.gatkcov
+            log.info "Using coverage estimates from GATK DepthOfCoverage output"
+        }
+        else
         if(opts.xmean)
             diagram.extendedMeanEstimator = true
         else

@@ -92,6 +92,7 @@ plot_cnv_coverage = {
                 JAVA_OPTS="-Xmx8g -Djava.awt.headless=true -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/CNVDiagram.groovy
                     -chr $chromosome
                     -cnvs $input.tsv
+                    -gatkcov common/xhmm
                     -targets $input.bed
                     -o ${output.dir+"/cnv.png"} $reportSamplesFlag
                     -t $threads ${caller_opts.join(" ")} ${inputs.vcf.withFlag("-vcf")} ${inputs.bam.withFlag("-bam")}
