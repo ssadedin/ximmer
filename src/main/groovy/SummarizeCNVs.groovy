@@ -227,7 +227,7 @@ class SummarizeCNVs {
         
         new File(fileName).withWriter { w ->
             
-            w.println((["chr","start","end","sample","type","count","stotal"] + 
+            w.println((["chr","start","end","sample","genes", "type","count","stotal"] + 
                        cnvCallers + 
                        cnvCallers.collect { it+"_qual" }).join("\t"))
             
