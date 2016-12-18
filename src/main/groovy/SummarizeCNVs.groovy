@@ -66,7 +66,7 @@ class SummarizeCNVs {
     
     static void main(String [] args) {
         
-        XimmerBanner.banner("Ximmer CNV Summarizer")
+        println XimmerBanner.banner("Ximmer CNV Summarizer")
         
         Cli cli = new Cli(usage: "SummarizeCNVs <options>")
         
