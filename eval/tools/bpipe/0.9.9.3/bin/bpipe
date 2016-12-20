@@ -20,12 +20,12 @@
 
 # Version of Bpipe - this should be 0.0.0 in the source tree,
 # it will be replaced by the build script at build time
-VERSION=0.9.9.2
+VERSION=0.9.9.3
 
 # Build date as an integer (unix epoch time)
 # This should be 0 in the source tree, 
 # it will be replaced by the build script at build time
-BUILDDATE=1471398561993
+BUILDDATE=1482251592362
 
 # Default memory used
 # Mainly here to limit memory on systems with very large memory
@@ -119,11 +119,21 @@ create_pid_file() {
 #---------------------------------------------------------
 get_last_run_pid() {
 
+    STOP_IF_NO_PID="$1"
+
     # Note: it's possible for the .bpipe/jobs folder to get created
     # but be empty here when bpipe is run for the first time
     if [ ! -e .bpipe/jobs ] || [ `ls -1A .bpipe/jobs/ | wc -l` == 0 ];
     then
-      LAST_PID="-1"
+      if [ "$STOP_IF_NO_PID" == "true" ];
+      then
+          echo
+          echo "No Bpipe pipeline was found to have run in this directory!"
+          echo
+          exit 0
+      else
+          LAST_PID="-1"
+      fi
     else
       LAST_PID=`ls -tc .bpipe/jobs/* | head -1 | xargs basename`
     fi
@@ -472,16 +482,28 @@ then
     shift 1
     display_log -e $*
     exit
+elif [ "$COMMAND" == "pause" ];
+then
+    get_last_run_pid
+    
+    echo
+    echo "Stopping Bpipe process $LAST_PID while leaving commands running."
+    echo
+    echo "Note: Bpipe will continue as idle process until commands finish."
+    echo
+    touch .bpipe/pause # creation of this file is noticed by Bpipe Java process
+    exit 0
+    
 elif [ "$COMMAND" == "stop" ];
 then
     shift 1
 
+    # Find all the process ids and kill it
+    get_last_run_pid
+    
     # Stop any commands that must be stopped by a custom resource
     # manager (non-local commands)
     java -Xmx${MAX_JAVA_MEM} -classpath "$CP" -Dbpipe.home="$JVM_BPIPE_HOME" -Dbpipe.mode=stopcommands bpipe.Runner
-    
-    # Find all the process ids and kill it
-    get_last_run_pid
 
     echo
     echo "PID of last job is $LAST_PID"
@@ -557,6 +579,16 @@ then
     shift 1
     COMMAND="run"
     MODEFLAG="-Dbpipe.mode=retry"
+elif [ "$COMMAND" == "remake" ];
+then
+    shift 1
+    COMMAND="run"
+    MODEFLAG="-Dbpipe.mode=remake" 
+elif [ "$COMMAND" == "resume" ];
+then
+    shift 1
+    COMMAND="run"
+    MODEFLAG="-Dbpipe.mode=resume"
 elif [ "$COMMAND" == "execute" ];
 then
     shift 1
