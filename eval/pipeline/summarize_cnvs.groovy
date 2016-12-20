@@ -54,51 +54,31 @@ plot_cnv_coverage = {
         return
     }
     
-    uses(threads:2..8) {
-        from("cnv_report.tsv") { produce("cnv_${chr}_*.png") {
+    from("cnv_report.tsv") { produce("cnv_${chr}_*.png") {
 
-            def caller_opts = []
+        def caller_opts = []
 
-            /*
-            if('xhmm' in cnv_callers)
-               caller_opts << "-xhmm $input.xcnv"
-
-            if('ed' in cnv_callers)
-               caller_opts << "-ed $input.exome_depth.cnvs.tsv"
-
-            if('mops' in cnv_callers)
-               caller_opts << "-cnmops $input.cnmops.cnvs.tsv"
-
-            if('angelhmm' in cnv_callers) 
-               caller_opts << "-angel $input.angelhmm.cnvs.bed"
-
-            if('cfr' in cnv_callers) 
-               caller_opts << "-cfr $input.conifer.cnvs.tsv"
-               
-            */
-               
-            batch_cnv_results.each { resultsEntry ->
-                String caller = resultsEntry.key.tokenize('_')[0]
-                String caller_label = resultsEntry.key
-                caller_opts << "-$caller $caller_label:$resultsEntry.value"
-            }
-              
-            if(simulation) 
-                caller_opts << "-generic truth:$input.true_cnvs.bed"
-                 
-            exec """
-                unset GROOVY_HOME 
-
-                JAVA_OPTS="-Xmx8g -Djava.awt.headless=true -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/CNVDiagram.groovy
-                    -chr $chromosome
-                    -cnvs $input.tsv
-                    -gatkcov common/xhmm
-                    -targets $input.bed
-                    -o ${output.dir+"/cnv.png"} $reportSamplesFlag
-                    -t $threads ${caller_opts.join(" ")} ${inputs.vcf.withFlag("-vcf")} ${inputs.bam.withFlag("-bam")}
-                    -refseq $refgene
-            ""","plot_cnv_coverage"
+        batch_cnv_results.each { resultsEntry ->
+            String caller = resultsEntry.key.tokenize('_')[0]
+            String caller_label = resultsEntry.key
+            caller_opts << "-$caller $caller_label:$resultsEntry.value"
         }
+              
+        if(simulation) 
+            caller_opts << "-generic truth:$input.true_cnvs.bed"
+                 
+        exec """
+            unset GROOVY_HOME 
+
+            JAVA_OPTS="-Xmx8g -Djava.awt.headless=true -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/CNVDiagram.groovy
+                -chr $chromosome
+                -cnvs $input.tsv
+                -gatkcov common/xhmm
+                -targets $input.bed
+                -o ${output.dir+"/cnv.png"} $reportSamplesFlag
+                -t $threads ${caller_opts.join(" ")} ${inputs.vcf.withFlag("-vcf")} ${inputs.bam.withFlag("-bam")}
+                -refseq $refgene
+        ""","plot_cnv_coverage"
       }
     }
 }
