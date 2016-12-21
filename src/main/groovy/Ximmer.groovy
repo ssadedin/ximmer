@@ -758,7 +758,7 @@ class Ximmer {
         generateROCPlots(analysis)
         
         log.info("Generating HTML Report ...")
-        File mainTemplate = new File("src/main/resources/index.html")
+        File mainTemplate = new File("$ximmerBase/src/main/resources/index.html")
         
         String outputName = analysisName + ".html"
         
@@ -779,7 +779,7 @@ class Ximmer {
         
         File cnvJs = new File(outputDirectory,"cnv.js")
         if(!cnvJs.exists()) {
-            Files.copy(new File("src/main/resources/cnv_report.js").toPath(), 
+            Files.copy(new File("$ximmerBase/src/main/resources/cnv_report.js").toPath(), 
                        cnvJs.toPath())
         }
     }
@@ -891,7 +891,8 @@ class Ximmer {
         
         File combinedCnvs = writeCombinedCNVInfo(cnvs)
         
-        runPython([:], outputDirectory, new File("src/main/python/cnv_size_histogram.py"), [combinedCnvs.absolutePath, new File(outputDirectory,"cnv_size_histogram.png").absolutePath])
+        runPython([:], outputDirectory, new File("$ximmerBase/src/main/python/cnv_size_histogram.py"), 
+                  [combinedCnvs.absolutePath, new File(outputDirectory,"cnv_size_histogram.png").absolutePath])
     }
     
     void generateROCPlots(AnalysisConfig analysisCfg) {
@@ -906,9 +907,9 @@ class Ximmer {
         log.info "Creating combined ROC plots for callers " + callerCfgs + " with configurations " + analysisCfg.callerCfgs.join(",")
         
         runR(outputDirectory, 
-            new File("src/main/R/ximmer_cnv_plots.R"), 
+            new File("$ximmerBase/src/main/R/ximmer_cnv_plots.R"), 
                 ANALYSIS: analysisCfg.analysisName,
-                SRC: new File("src/main/R").absolutePath, 
+                SRC: new File("$ximmerBase/src/main/R").absolutePath, 
                 XIMMER_RUNS: runs*.value*.runDirectory*.name.join(","),
                 TARGET_REGION: new File(cfg.target_regions).absolutePath,
                 XIMMER_CALLERS: callerCfgs,
