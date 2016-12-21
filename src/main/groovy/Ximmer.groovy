@@ -83,6 +83,8 @@ class Ximmer {
     
     List<String> callerIds = null
     
+    String ximmerBase
+    
     Ximmer(ConfigObject cfg, String outputDirectory, boolean simulate) {
         this.outputDirectory = new File(outputDirectory)
         this.cfg = cfg
@@ -110,6 +112,8 @@ class Ximmer {
         else {
             log.info "No run directory configured: run directory = " + this.runDirectoryPrefix 
         }
+        
+        ximmerBase=System.properties['ximmer.base']
     }
     
     boolean enableTruePositives = false
@@ -281,8 +285,6 @@ class Ximmer {
             }
         }
         
-        String ximmerBase=System.properties['ximmer.base']
-            
         File bpipe = new File("$ximmerBase/eval/bpipe")
         String toolsPath = new File("$ximmerBase/eval/pipeline/tools").absolutePath
         String ximmerSrc = new File("$ximmerBase/src/main/groovy").absolutePath
@@ -866,7 +868,7 @@ class Ximmer {
             [caller, results.sum { r -> r.count { cnv -> cnv.truth && cnv[caller] } }] 
         }
         
-        File mainTemplate = new File("src/main/resources/summary.html")
+        File mainTemplate = new File("$ximmerBase/src/main/resources/summary.html")
         
         StringWriter result = new StringWriter()
         SimpleTemplateEngine templateEngine = new SimpleTemplateEngine()
