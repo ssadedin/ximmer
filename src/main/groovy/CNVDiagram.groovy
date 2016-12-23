@@ -6,10 +6,13 @@ import jsr166y.ForkJoinPool;
 import org.apache.commons.math3.analysis.interpolation.LoessInterpolator
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 
-import graxxia.*
+import graxxia.Matrix
+import graxxia.Stats
+import groovy.transform.CompileStatic;
 import groovy.util.logging.Log;
 import groovy.xml.Namespace;
 import groovyx.gpars.GParsPool;
+import htsjdk.samtools.SAMFileReader
 
 /**
  * Draws a diagram of the region of each CNV in a provided CNV summary report
@@ -488,14 +491,35 @@ class CNVDiagram {
         }
         return normCovs
     }
+    
+    ThreadLocal<Map<String, SAMFileReader>> readers = new ThreadLocal()
 
-    def Matrix getCoverageMatrix(Region region) {
+    @CompileStatic
+    Matrix getCoverageMatrix(Region region) {
+        
         Matrix sampleCovs = new Matrix(allSamples.collectEntries { s ->
             //            println "Querying coverage for sample $s"
-            def pileup = bams[s].pileup(region.chr, region.from, region.to)
-            def sampleCov = pileup.collect { it.alignments.size() }
-            pileup.close()
-            [s, sampleCov ]
+            
+            if(readers.get() == null)
+                readers.set([:])
+                
+            SAMFileReader reader = readers.get().get(s)
+            if(reader == null) {
+                reader = bams[s].newReader()
+                readers.get().put(s, reader)
+            }
+            
+            PileupIterator pileup
+            try {
+                pileup = bams[s].pileup(reader, region.chr, region.from, region.to)
+                def sampleCov = pileup.collect { PileupIterator.Pileup pi -> pi.alignments.size() }
+                [s, sampleCov ]
+            }
+            finally {
+                if(pileup != null) {
+                    pileup.readIterator.close()
+                }
+            }
         })
         return sampleCovs
     }
