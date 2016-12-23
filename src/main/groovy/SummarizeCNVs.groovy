@@ -147,6 +147,7 @@ class SummarizeCNVs {
         
         Regions mergedCalls = results*.value.inject(new Regions()) { Regions regions, RangedData calls  ->
             calls.each { regions.addRegion(it) }
+            regions
         }.reduce()
         
         List<VCF> vcfList = opts.vcfs ? opts.vcfs.collect { 
