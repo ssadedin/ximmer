@@ -671,7 +671,7 @@ function show_cnv_details(cnvIndex) {
             $td(gene.toString())
             with($td()) {
                 with($ul()) {
-                    $li().$a({href:'http://www.genecards.org/cgi-bin/carddisp.pl?gene='+encodeURIComponent(gene)+'&search='+gene}).$span('GeneCards');
+                    $li().$a({href:'http://www.genecards.org/cgi-bin/carddisp.pl?gene='+encodeURIComponent(gene)+'&search='+gene+'#diseases'}).$span('GeneCards');
                     $li().$a({href:'http://www.omim.org/search?index=entry&start=1&limit=10&search='+gene+'&sort=score+desc%2C+prefix_sort+desc'}).$span('OMIM');
                     if(geneList && geneList[gene])
                         $li().$span('Category ' + geneList[gene]);
