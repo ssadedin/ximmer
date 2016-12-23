@@ -185,12 +185,19 @@ class CNVDiagram {
         List<String> palette = ["red","green","orange","blue","gray","magenta","yellow","cyan","black"]
         def colors = [ callers, palette[0..<callers.size()] ].transpose().collectEntries()
         
-        GParsPool.withPool(concurrency) {
-            cnvs.eachParallel { cnv ->
-                Utils.time("Draw CNV $cnv.chr:$cnv.from-$cnv.to") {
-                    drawCNV(cnv, outputFileBase, width, height, callers, colors)
-                }
-            } 
+        Closure processCnv = { cnv ->
+            Utils.time("Draw CNV $cnv.chr:$cnv.from-$cnv.to") {
+                drawCNV(cnv, outputFileBase, width, height, callers, colors)
+            }
+        }
+
+        if(concurrency > 1) {
+            GParsPool.withPool(concurrency) {
+                cnvs.eachParallel(processCnv)
+            }
+        }
+        else {
+            cnvs.each(processCnv)
         }
     }
 
