@@ -258,6 +258,9 @@ $(document).ready(function() {
             }
         });
         $button('Gene List').click(function() {
+            
+            if(document.getElementById('genelist')==null) {
+            }
 
             var formatted = [];
             var catToGenes = {
@@ -697,8 +700,8 @@ function show_cnv_details(cnvIndex) {
                         $a({href:'http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position='+v.chr+'%3A'+v.alleles[0].start+'&dgv=pack&knownGene=pack&omimGene=pack'}).$span(v.chr+':'+v.alleles[0].start)
                     }
                     $td().$a({href:'http://localhost:60151/goto?locus='+v.chr+'%3A'+v.alleles[0].start}).$span('igv');
-                    $td(v.effect.toLowerCase())
-                    $td(v.impact.toLowerCase());
+                    $td(v.effect ? v.effect.toLowerCase() : 'Unknown')
+                    $td(v.impact ? v.impact.toLowerCase() : 'Unknown');
                     $td(v.dosage == 1 ?  'Het' : 'Hom')
                     $td(v.depths[0])
                     $td(v.depths[1])
@@ -730,6 +733,7 @@ function addTagToRow(dataIndex, showFn) {
     saveSettings();
     showFn(dataIndex);
 }
+
 
 
 
