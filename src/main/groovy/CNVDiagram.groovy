@@ -115,7 +115,7 @@ class CNVDiagram {
         this.targetRegions = targetRegions 
         
         log.info "Parsing VCFs"
-        List<VCF> vcfs = vcfFiles.collect { VCF.parse { cnvs.overlaps(it) } }
+        List<VCF> vcfs = vcfFiles.collect { VCF.parse(it) { cnvs.overlaps(it) } }
         
         Map<VCF, Regions> vcfRegions = vcfs.collectEntries { [ it,  it.toRegions() ] }
         
