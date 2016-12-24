@@ -389,7 +389,7 @@ class CNVDiagram {
             synchronized(vcf) {
                 variants = targets.collect { vcf.getOverlaps(cnv)*.extra.grep { it.sampleDosage(cnv.sample) > 0 } }.sum()
             }
-            println "Found ${variants.size()} variants for CNV $cnv"
+            log.info "Found ${variants.size()} variants for CNV $cnv"
             for(variant in variants) {
                 
                 float variantHeight = 0.1f
@@ -405,7 +405,7 @@ class CNVDiagram {
                         d.line(variant.pos, yMax, variant.pos, yMax - variantHeight * ((float)refReads / (refReads+altReads)))
                     }
                     catch(ArithmeticException e) {
-                        println "WARNING: Unable to draw variant $variant (refReads=$refReads, altReads=$altReads)"
+                        log.warning "WARNING: Unable to draw variant $variant (refReads=$refReads, altReads=$altReads)"
                     }
                 }
             }
