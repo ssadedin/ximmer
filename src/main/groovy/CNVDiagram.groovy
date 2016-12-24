@@ -390,7 +390,7 @@ class CNVDiagram {
                 variants = targets.collect { vcf.getOverlaps(cnv)*.extra.grep { it.sampleDosage(cnv.sample) > 0 } }.sum()
             }
             println "Found ${variants.size()} variants for CNV $cnv"
-            for(variant in variants*.extra) {
+            for(variant in variants) {
                 
                 float variantHeight = 0.1f
                 d.color("red")
