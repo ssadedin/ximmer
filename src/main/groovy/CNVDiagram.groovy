@@ -96,7 +96,7 @@ class CNVDiagram {
      */
     int maxTargetCount = 20
     
-    CNVDiagram(Regions cnvs, Map<String,SampleInfo> sampleInfo, Map<String, RangedData> cnvCalls, Regions targetRegions, List<String> samples=null) {
+    CNVDiagram(Regions cnvs, Map<String,SampleInfo> sampleInfo, Map<String, RangedData> cnvCalls, Regions targetRegions, List<String> vcfFiles, List<String> samples=null) {
         
         this.cnvs = cnvs;
         
@@ -113,6 +113,16 @@ class CNVDiagram {
         }
         this.cnvCalls = cnvCalls
         this.targetRegions = targetRegions 
+        
+        log.info "Parsing VCFs"
+        List<VCF> vcfs = vcfFiles.collect { VCF.parse { cnvs.overlaps(it) } }
+        
+        Map<VCF, Regions> vcfRegions = vcfs.collectEntries { [ it,  it.toRegions() ] }
+        
+        this.vcfs = allSamples.collectEntries { String sample ->
+            VCF sampleVCF = vcfs.find { sample in it.samples }
+            [sample, sampleVCF? vcfRegions[sampleVCF] : null ]
+        }
     }
     
     void loadBAMs() {
@@ -373,14 +383,11 @@ class CNVDiagram {
             offset += 0.08
         }
         
-        if(sampleInfo[cnv.sample].files.vcf) {
-            if(!vcfs[cnv.sample]) {
-                vcfs[cnv.sample] = VCF.parse(sampleInfo[cnv.sample].files.vcf[0]).toBED()
-            }
+        if(vcfs[cnv.sample]) {
             Regions vcf = vcfs[cnv.sample]
             def variants = null
             synchronized(vcf) {
-                variants = targets.collect { vcf.getOverlaps(cnv) }.sum()
+                variants = targets.collect { vcf.getOverlaps(cnv)*.extra.grep { it.sampleDosage(cnv.sample) > 0 } }.sum()
             }
             println "Found ${variants.size()} variants for CNV $cnv"
             for(variant in variants*.extra) {
@@ -402,6 +409,9 @@ class CNVDiagram {
                     }
                 }
             }
+        }
+        else {
+            log.info "Sample $cnv.sample does not have an associated VCF"
         }
         d.save()
         
@@ -677,7 +687,7 @@ class CNVDiagram {
         int width = opts.w ? opts.w.toInteger() : 1024
         int height = opts.h ? opts.h.toInteger() : 480
         
-        def diagram = new CNVDiagram(cnvs, sampleInfo, cnvCalls, targetRegions, opts.samples?:null)
+        def diagram = new CNVDiagram(cnvs, sampleInfo, cnvCalls, targetRegions, opts.vcfs?:[], opts.samples?:null)
         
         if(opts.t)
             diagram.concurrency = opts.t.toInteger()
