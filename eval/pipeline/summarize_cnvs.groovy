@@ -91,7 +91,8 @@ create_cnv_report = {
         sample_info : false,
         simulation: false,
         imgpath: false,
-        genome_build : false
+        genome_build : false,
+        file_name_prefix : ""
     
     String refGeneOpts = ""
     if(genome_build != false) {
@@ -116,7 +117,7 @@ create_cnv_report = {
             caller_opts << "-$caller $caller_label:$resultsEntry.value"
     }
         
-    produce("cnv_report.html", "cnv_report.tsv") {
+    produce("${file_name_prefix}cnv_report.html", "${file_name_prefix}cnv_report.tsv") {
 
         def true_cnvs = ""
         if(simulation) 
