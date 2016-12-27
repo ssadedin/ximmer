@@ -122,6 +122,7 @@ init_batch = {
     
     // Map of caller label (eg: "xhmm_1") to the result file for that label
     branch.batch_cnv_results = [:]
+    branch.batch_quality_params = []
     
     branch.dir = batch_name 
     println "=" * 100
@@ -147,9 +148,21 @@ init_caller_params = {
     
     branch.dir = branch.dir + "/$caller_label"
     
-    println "Using parameters " + params + " with output to " + branch.dir
+    msg "Using parameters " + params + " with output to " + branch.dir
     
     load("$batch_name/${caller}.${params}.params.txt")
+    
+    String qualPropertyKey = caller_label + "_quality_filter"
+    
+    Map qualProps = [:]
+    qualProps[qualPropertyKey] = false
+    var(qualProps)
+    
+    if(delegate.getProperty(qualPropertyKey)) {
+        def qualFilterValue = getProperty(caller_label + '_quality_filter')
+        msg "Setting quality filter for $caller to $qualFilterValue"
+        batch_quality_params << " -quality ${caller_label}:quality=$qualFilterValue"
+    }
 }
 
 register_caller_result = {

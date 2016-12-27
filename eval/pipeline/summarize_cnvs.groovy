@@ -85,27 +85,25 @@ plot_cnv_coverage = {
 
 create_cnv_report = {
 
-    var angel_quality_threshold : 8.0f,
+    var ([ angel_quality_threshold : 8.0f,
         batch_name : false,
         bam_file_path : "http://172.16.56.202/$batch_name/",
         sample_info : false,
         simulation: false,
         imgpath: false,
         genome_build : false,
-        file_name_prefix : ""
+        file_name_prefix : "" ] + 
+            batch_cnv_results*.key.collectEntries {  caller_label ->
+                [ caller_label + '_quality_filter', false ]
+            }
+     ) 
     
     String refGeneOpts = ""
     if(genome_build != false) {
         refGeneOpts = "-refgene download -genome $genome_build"
     }
     
-    List vcfs = []
-    /*
-    if(sample_info) 
-        vcfs = sample_info.collect{it.value.files.vcf[0]}
-    else
-        vcfs = all_samples.collect{it.value.files.vcf[0]}
-    */
+    List qualityParams = []
 
     output.dir="$branch.dir/report"
     
@@ -128,7 +126,8 @@ create_cnv_report = {
                 -target $target_bed ${caller_opts.join(" ")} $refGeneOpts
                 ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} -bampath "$bam_file_path"
                 -tsv $output.tsv ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""}
-                -o $output.html ${batch_name ? "-name $batch_name" : ""} ${inputs.bam.withFlag('-bam')}
+                ${batch_quality_params.join(" ")} -o $output.html 
+                ${batch_name ? "-name $batch_name" : ""} ${inputs.bam.withFlag('-bam')}
                 -dgv $DGV_CNVS $true_cnvs
         """, "create_cnv_report"
     }

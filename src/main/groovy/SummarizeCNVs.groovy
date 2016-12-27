@@ -140,7 +140,9 @@ class SummarizeCNVs {
             qualityFilters = opts.qualitys.collectEntries { qs ->
                 def parts = qs.split(":")
                 if(parts.size()!=2)
-                throw new IllegalArgumentException("Quality filtering string should be in form <caller>:<quality threshold>")
+                    throw new IllegalArgumentException("Quality filtering string should be in form <caller>:<quality threshold>")
+                    
+                log.info "Set quality filter for ${parts[0]} to ${parts[1]}"
                 [ parts[0], parts[1].toFloat() ]
             }
         }

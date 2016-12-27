@@ -241,7 +241,12 @@ class Ximmer {
     
     Object analysisLock = new Object()
     
-    // TODO: change the runDir to take a SimulationRun
+    /**
+     * Execute Bpipe to perform an analysis for a simulation run.
+     * 
+     * @param run
+     * @return
+     */
     List<AnalysisConfig> runAnalysisForRun(SimulationRun run) {
         
         File runDir = run.runDirectory
@@ -288,7 +293,7 @@ class Ximmer {
         File bpipe = new File("$ximmerBase/eval/bpipe")
         String toolsPath = new File("$ximmerBase/eval/pipeline/tools").absolutePath
         String ximmerSrc = new File("$ximmerBase/src/main/groovy").absolutePath
-            
+        
         List<String> bpipeCommand = [
                 "bash",
                 bpipe.absolutePath,
@@ -406,14 +411,21 @@ class Ximmer {
                 
             ConfigObject callerParams = defaultCfg.clone()[callerId]
             
+            log.info "Anaysis keys are: " + analysisConfig[key]*.key
+            
             // Override defaults with analysis specific value
-            analysisConfig[key].each {
-                callerParams[it.key] = it.value
+            analysisConfig[key].each { Map.Entry entry ->
+                if(entry.key == "quality_filter") {
+                    callerParams[key + "_" + entry.key] = entry.value
+                }
+                else {
+                    callerParams[entry.key] = entry.value
+                }
             }
             
             String paramText = callerParams.collect { paramEntry ->
                     "$paramEntry.key=$paramEntry.value"
-            }.join('\n')
+            }.join('\n') + '\n'
             
             File paramFile = new File(outputDir, callerParts.join(".")+".params.txt")
             paramFile.text = paramText
