@@ -161,7 +161,7 @@ init_caller_params = {
     if(delegate.getProperty(qualPropertyKey)) {
         def qualFilterValue = getProperty(caller_label + '_quality_filter')
         msg "Setting quality filter for $caller to $qualFilterValue"
-        batch_quality_params << " -quality ${caller_label}:quality=$qualFilterValue"
+        batch_quality_params << " -quality ${caller_label}:$qualFilterValue"
     }
 }
 
