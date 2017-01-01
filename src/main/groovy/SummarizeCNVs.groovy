@@ -257,16 +257,25 @@ class SummarizeCNVs {
     
     void writeReport(Regions cnvs, String name, String fileName, String reportTemplate="cnv_report.html", boolean inlineJs=true, List bamFiles = [], def bamFilePath=false, String imgpath="") {
         
-        println "Using report template: " + reportTemplate
+        log.info "Using report template: " + reportTemplate
+        
+        File outputFile = new File(fileName).absoluteFile
+        log.info "Output path = " + outputFile.absolutePath
         
         SimpleTemplateEngine templateEngine = new SimpleTemplateEngine()
         String jsFileName = new File(reportTemplate).name.replaceAll('\\.html$','\\.js')
         String js = "<script src='cnv.js'></script>"
         InputStream templateStream 
         String jsCode = null
-        if(new File(reportTemplate).exists()) {
+        
+        File cnvReportFile = new File(reportTemplate)
+        
+        // Avoid using the output file as a template if it happens to exist!
+        if(cnvReportFile.exists() && (cnvReportFile.canonicalPath != outputFile.canonicalPath)) {
             templateStream = new File(reportTemplate).newInputStream()
-            jsCode = new File(new File(reportTemplate).parentFile, jsFileName).text
+            File jsFile = new File(new File(reportTemplate).absoluteFile.parentFile, jsFileName)
+            log.info "js file = " + jsFile
+            jsCode = jsFile.text
             if(inlineJs) {
                 js = '<script type="text/javascript">' + 
                     jsCode +
@@ -289,7 +298,7 @@ class SummarizeCNVs {
             }
         }
         
-        File outputDir = new File(fileName).absoluteFile.parentFile
+        File outputDir = outputFile.parentFile
         if(!inlineJs) {
             File jsFile = new File(outputDir, 'cnv.js')
             println "Writing cnv.js to " + jsFile.absolutePath
