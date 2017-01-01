@@ -69,8 +69,9 @@
     // Find the Variants for each CNV
     def sample_vcfs = cnvs.unique(false) {it.sample}.collectEntries { cnv ->
         log.println "Raw VCF for $cnv.sample = $cnv.vcf"
-	if(cnv.vcf == null)
-		return [ cnv.sample, null ]
+        if(cnv.vcf == null)
+             return [ cnv.sample, null ]
+
         def vcf = cnv.vcf.endsWith(".bgz") ? cnv.vcf.replaceAll('.bgz$','') : cnv.vcf
         log.println "Sample = $cnv.sample, used VCF = $vcf"
         [ cnv.sample, new VCFIndex(vcf) ]
@@ -155,7 +156,14 @@
             }
             .highlighted { background-color: #ffeeff !important; }
             .truncated { background-color: #ffffee !important; }
-            .genelist td:nth-of-type(3) { font-weight: bold; color: #ff6600 !important; }
+            
+            .truncated { background-color: #ffffee !important; }
+            .genelist td:nth-of-type(3) { font-weight: bold; color: #ffaa00 !important; }
+            .genelist1 td:nth-of-type(3) { font-weight: bold; color: #ffaa00 !important; }
+            .genelist2 td:nth-of-type(3) { font-weight: bold; color: #ff6600 !important; }
+            .genelist3 td:nth-of-type(3), .genelist4 td:nth-of-type(3), .genelist5 td:nth-of-type(3) { font-weight: bold; color: #ff0000 !important; }
+
+            
 
     	    /* jqModal base Styling courtesy of;
     		    Brice Burgess <bhb@iceburg.net> */
@@ -323,7 +331,9 @@
             <% log.println "Writing callers json" %>
             var callers = <%=groovy.json.JsonOutput.toJson(cnv_callers)%>;
             <% log.println "Writing annotations json" %>
-            <% def annotations = cnvs.collect { cnv -> cnvAnnotator ? cnvAnnotator.annotate(new Region(cnv.chr, cnv.from..cnv.to), anno_types[cnv.type]) : [spanning: 0f, spanningFreq: 0f] }; %>
+            <% def annotations = cnvs.collect { cnv -> 
+                   cnvAnnotator ? cnvAnnotator.annotate(new Region(cnv.chr, cnv.from..cnv.to), anno_types[cnv.type]) : [spanning: 0f, spanningFreq: 0f] }; 
+             %>
             var annotations = <%=groovy.json.JsonOutput.toJson(annotations)%>;
             
             var bam_file_path = <%=groovy.json.JsonOutput.toJson(bam_file_path)%>;
@@ -403,6 +413,15 @@
         </div> <%/* ui-layout-center */%>
 
         <div class="ui-layout-south" id="ui-layout-south">Report created ${new Date()}</div>
+
+      </div> <% /* innerLayout */ %>
+      
+        <div id='dialog' class='mydialog modal-dialog jqmWindow'>
+            <textarea id='genelist' name=genelist>
+            </textarea>
+            <button id='geneOk'>OK</button>
+            <button id='geneCancel'>Cancel</button>
+        </div>
             
         <div id='help' class='mydialog modal-dialog jqmWindow'>
                 <div id='helptitle'>Help</div>
@@ -501,8 +520,8 @@
                             <tr><th>tags.&lt;tag&gt;</th><td>True if tag &lt;tag&gt; was assigned to CNV</td><td>tags.followup</td></tr>
                         </tbody>
                     </table>
-                </div>             
-      </div> <% /* innerLayout */ %>
+                </div>                   
+            </div>
     </body>
 </html>
 <% } /* end log writer */ %>

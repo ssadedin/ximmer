@@ -157,8 +157,10 @@ function createCnvRow(row, data, dataIndex) {
     }
     
     for(key in geneList) {
-        if(cnv.genes.indexOf(key)>=0)
+        if(cnv.genes.indexOf(key)>=0) {
             $(row).addClass('genelist')
+            $(row).addClass('genelist'+geneList[key])
+        }
     }
 }
 
@@ -259,9 +261,6 @@ $(document).ready(function() {
         });
         $button('Gene List').click(function() {
             
-            if(document.getElementById('genelist')==null) {
-            }
-
             var formatted = [];
             var catToGenes = {
             }
@@ -276,7 +275,7 @@ $(document).ready(function() {
                 formatted.push(cat + ':' + catToGenes[cat].join(","));
             }
 
-            $('#genelist')[0].value = formatted.join(' ');
+            $('#genelist')[0].value = formatted.join('\n');
             
             $('#dialog').jqm();
             $('#dialog').jqmShow();
@@ -478,6 +477,8 @@ function filterTable() {
         
         var cnvTags = userAnnotations[index] && userAnnotations[index].tags;
         data.tags = cnvTags ? cnvTags : {};
+        
+        data.size = (data.end - data.start);
 
         if(data.spanning == null)
             data.spanning = [];
@@ -606,6 +607,13 @@ function initAnnotations(cnvIndex) {
 
 var southLayout = null;
 
+/**
+ * Add 'chr' to a chromosome reference if necessary
+ */
+function ucscChr(chr) {
+   chr.startsWith('chr') ? chr : 'chr' + v.chr
+}
+
 /** 
  * Show details of a CNV in the bottom pane
  */
@@ -654,7 +662,7 @@ function show_cnv_details(cnvIndex) {
     southWest.$p().$b("Region")
     with(southWest.$ul()) {
         $li().$a({href:'http://dgv.tcag.ca/gb2/gbrowse/dgv2_hg19/?name='+cnv.chr+'%3A'+cnv.start+'-'+cnv.end+';search=Search'}).$span('DGV')
-        $li().$a({href:'http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position='+cnv.chr+'%3A'+cnv.start+'-'+cnv.end+'&dgv=pack&knownGene=pack&omimGene=pack'}).$span('UCSC')
+        $li().$a({href:'http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position='+ucscChr(cnv.chr)+'%3A'+cnv.start+'-'+cnv.end+'&dgv=pack&knownGene=pack&omimGene=pack'}).$span('UCSC')
         with($li()) {
           with($a({href:'#'})) {
             $span('IGV')
@@ -696,10 +704,11 @@ function show_cnv_details(cnvIndex) {
             $.each(variants, function() {
                 var v = this;
                 with($tr()) {
+                    var encPos = ucscChr(v.chr) +'%3A'+v.alleles[0].start;
                     with($td()) { 
-                        $a({href:'http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position='+v.chr+'%3A'+v.alleles[0].start+'&dgv=pack&knownGene=pack&omimGene=pack'}).$span(v.chr+':'+v.alleles[0].start)
+                        $a({href:'http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position='+encPos+'&dgv=pack&knownGene=pack&omimGene=pack'}).$span(v.chr+':'+v.alleles[0].start)
                     }
-                    $td().$a({href:'http://localhost:60151/goto?locus='+v.chr+'%3A'+v.alleles[0].start}).$span('igv');
+                    $td().$a({href:'http://localhost:60151/goto?locus='+encPos}).$span('igv');
                     $td(v.effect ? v.effect.toLowerCase() : 'Unknown')
                     $td(v.impact ? v.impact.toLowerCase() : 'Unknown');
                     $td(v.dosage == 1 ?  'Het' : 'Hom')
