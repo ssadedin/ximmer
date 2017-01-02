@@ -113,6 +113,7 @@ function partial(fn) {
 var initialized = false;
 
 var cnvTable = null;
+var filteredTable = null;
 var cnvData = [];
 var filteredData = [];
 var columns = [];
@@ -465,6 +466,9 @@ var dataMap = {
 function filterTable() {
 
     saveSettings();
+    
+    // It's irritating if the text in search box disappears when adjusting other filters
+    var oldSearchText = $('#cnvTable_filter input')[0].value;
 
     // Update the filters from the fields
     // Filter out rows
@@ -513,13 +517,18 @@ function filterTable() {
     });
 
     $('#tableHolder').html('<table id=cnvTable class=stripe></table>')
-    $('#cnvTable').dataTable({ data: newTable, 
+    filteredCnvTable = $('#cnvTable').DataTable({ data: newTable, 
                                columns: columns, 
                                iDisplayLength: 25,
                                destroy: true,
                                createdRow: createCnvRow
                                });
     filteredTable = cnvTable.rows().data();
+    
+    if(oldSearchText) {
+        filteredCnvTable.search(oldSearchText).draw()
+        $('#cnvTable_filter input')[0].value = oldSearchText
+    }
     
     add_display_events();
 
