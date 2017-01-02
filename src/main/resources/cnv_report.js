@@ -611,7 +611,7 @@ var southLayout = null;
  * Add 'chr' to a chromosome reference if necessary
  */
 function ucscChr(chr) {
-   chr.startsWith('chr') ? chr : 'chr' + chr
+   return chr.startsWith('chr') ? chr : 'chr' + chr;
 }
 
 /** 
