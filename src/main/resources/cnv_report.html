@@ -506,7 +506,7 @@
                             <tr><th>chr</th><td>The chromosome portion from the Region column</td><td>chr == "chr8"</td></tr>
                             <tr><th>start</th><td>The start coordinate from the Region column</td><td>start &gt; 100304</td></tr>
                             <tr><th>end</th><td>The end coordinate from the Region column</td><td>end &lt; 250000</td></tr>
-                            <tr><th>width</th><td>Size column</td><td>width &gt; 5000</td></tr>
+                            <tr><th>size</th><td>Inner span of CNV in bp</td><td>size &gt; 5000</td></tr>
                             <tr><th>type</th><td>Type column</td><td>type == "DEL"</td></tr>
                             <tr><th>&lt;caller name&gt;</th><td>Each CNV caller by name, true if displayed in the Callers column</td><td>angelhmm &amp;&amp; xhmm</td></tr>
                             <tr><th>&lt;caller name&gt.quality;</th><td>N/A</td>
@@ -518,6 +518,7 @@
                             <tr><th>spanning</th><td>DGV Span column</td><td>spanning &lt; 10</td></tr>
                             <tr><th>spanningFreq</th><td>Freq column</td><td>spanningFreq &lt; 0.01</td></tr>
                             <tr><th>tags.&lt;tag&gt;</th><td>True if tag &lt;tag&gt; was assigned to CNV</td><td>tags.followup</td></tr>
+                            <tr><th>category</th><td>the numeric gene category if an overlapped gene is assigned a category</td><td>category &gt; 2</td></tr>
                         </tbody>
                     </table>
                 </div>                   
