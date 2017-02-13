@@ -64,7 +64,9 @@ class SimulationRun {
         
         // Map of run id to true_cnvs file
         def cfgRuns = 'runs' in cfg ? cfg.runs : false
-        if(cfgRuns instanceof String || cfgRuns instanceof Integer) {
+        if(cfgRuns instanceof String || cfgRuns instanceof Integer || cfgRuns instanceof Boolean) {
+            if(cfgRuns instanceof Boolean)
+                cfgRuns = 1
             configureIntegerRuns(outputDirectory, runDirectoryPrefix, cfgRuns, cfg)
         }
         else
