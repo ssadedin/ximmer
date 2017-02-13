@@ -1,7 +1,5 @@
-libs="./pipeline/tools/groovy-ngs-utils/1.0.6/groovy-ngs-utils.jar:../../eval/pipeline/tools/groovy-ngs-utils/1.0.6/groovy-ngs-utils.jar"
 R {
-    // TODO: fix path!
-    executable="/usr/local/bin/Rscript"
+    executable="Rscript"
 }
 
 groovy {

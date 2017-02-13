@@ -1,11 +1,3 @@
-// ======================= Required to Set =======================
-
-// Full path to base of Ximmer installation
-BASE="..."
-
-// Location of HG19 reference sequence
-// TODO: Edit this to put in the path to your HG19 reference fasta!
-HGFA="....."
 
 // TODO: set this to reference file containing CNVs from DGV
 // You can download the required file from the UCSC DGV annotation file, "dgvMerged.txt"
@@ -31,8 +23,6 @@ XHMM="$TOOLS/xhmm/trunk/build/execs"
 // samtools version
 SAMTOOLS="samtools"
 
-PERL5="$TOOLS/perl5"
-
 CRAMTOOLS="$TOOLS/cramtools/2.1/cramtools.jar"
 
 CONIFER="$TOOLS/conifer/0.2.2"
@@ -49,3 +39,6 @@ GROOVY="$TOOLS/groovy/2.4.6/bin/groovy"
 JAVA="java"
 
 PYTHON="python"
+
+PERL5="perl"
+

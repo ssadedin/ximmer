@@ -1,0 +1,63 @@
+#!/bin/bash
+
+echo '
+  | |/ /(_)___ ___  ____ ___  ___  _____
+  |   // / __ `__ \/ __ `__ \/ _ \/ ___/
+ /   |/ / / / / / / / / / / /  __/ /    
+/_/|_/_/_/ /_/ /_/_/ /_/ /_/\___/_/     
+'
+
+BASE=`pwd`
+
+if [ ! -e bin/install ];
+then
+    echo "Please run this command from the Ximmer install directory."
+    exit 1
+fi
+
+function init_config() {
+
+    CONFIG="eval/pipeline/config.groovy"
+    if [ ! -e $CONFIG ];
+    then
+
+        echo 'BASE="'"$BASE"'"' > $CONFIG
+
+        REF="doesnotexist"
+        while [ ! -e "$REF" ];
+        do 
+            echo "Please enter the location of the reference FASTA file you would like to use Ximmer with: "
+
+            read REF
+
+           [ ! -e "$REF" ] && { 
+                echo "That file could not be found - please try again" 
+           }
+
+        done
+
+        echo 'REF="'"$REF"'"' >> $CONFIG
+
+        cat eval/pipeline/config.groovy.template >> $CONFIG
+    fi
+}
+
+function init_bpipe_config() {
+    BPIPE_CONFIG="eval/pipeline/bpipe.config"
+
+    if [ ! -e $BPIPE_CONFIG ];
+    then
+        echo
+        echo "Creating $BPIPE_CONFIG"
+        echo 'libs="'"$BASE"'/eval/pipeline/tools/groovy-ngs-utils/1.0.6/groovy-ngs-utils.jar"' > $BPIPE_CONFIG
+
+        cat eval/pipeline/bpipe.config.template >> $BPIPE_CONFIG
+    fi
+
+}
+
+init_config
+
+init_bpipe_config
+
+./eval/bpipe install ./eval/pipeline/exome_cnv_pipeline.groovy
