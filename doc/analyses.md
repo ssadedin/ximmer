@@ -17,6 +17,14 @@ with many different settings, or the same caller with many different settings, a
 all the results together. Each separate set of settings applied across a selection 
 of CNV callers is called an "analysis". 
 
+Whether you're doing simulation or analysis or both, the starting point is to create 
+a configuration file that controls the analysis. This file can have a lot of settings,
+but in its most minimal form, all it needs is:
+
+ * bam_files setting describing where the BAM files to analyse or simulate from are
+ * target_regions setting describing the capture region
+ * callers section describing which CNV callers to run (see below)
+
 ## Default Analysis
 
 Some CNV callers have a lot of adjustable parameters. Therefore it is inconvenient to
@@ -80,6 +88,7 @@ is *inferred* from the prefix `xhmm_` for the label of each individual block
 within the analyses. The configuration parameters themselves are specified within each 
 block and are specific to each caller (see table TODO).
 
+TODO:
 
 | Caller | Parameter |  Description | Example |
 |--------|-----------|--------------|---------|
@@ -108,9 +117,9 @@ Once you have created a configuration file describing your run (we'll call it `c
 can start Ximmer. Ximmer can run in two different modes: Simulation Mode and Analysis Mode. 
 The default is to do both - first simulate, then analyse the results.
 
-### Simulation Mode
+### Simulation and Analysis Mode
 
-To run in simulation mode, use a command such as the following:
+To run in both modes, use a command such as the following:
 
 ```
 <ximmer install dir>/bin/ximmer -v -c config.groovy -o results
