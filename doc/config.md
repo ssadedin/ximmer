@@ -36,8 +36,12 @@ directly by editing eval/pipeline/config.groovy.
 ## Set Concurrency to Use
 
 By default Ximmer will try to use only 2 cores on the computer it runs on. If you have 
-more cores available (particularly, if you are using a computational cluster), add 
-a line such as the example below to your simulation/analysis config.groovy:
+more cores available (particularly, if you are using a computational cluster),
+you can instruct Ximmer to use them. This part is configured in the per-analysis configuration
+file (along with your BAM files, samples and target region, as described in  the
+[Analyses](analyses.md) section).
+
+Simply add a line such as the example below to your simulation/analysis config.groovy:
 
 ```
 concurrency=32

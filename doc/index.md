@@ -50,17 +50,15 @@ cd ximmer
 ./bin/install
 ```
 
-### Set Configuration Parameters
+
+## Configuring Ximmer
 
 Ximmer sets all the basic configuration parameters to sensible defaults all by 
 itself. You may like to inspect these and check if they are optimal for your
 environment.  To do this, open the file `eval/pipeline/config.groovy` in a text
 editor. 
 
-## Configuring Ximmer
-
 See the [Configuration](config.md) documentation for more details. 
-
 
 ## Running Ximmer
 
