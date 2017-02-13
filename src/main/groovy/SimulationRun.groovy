@@ -50,7 +50,10 @@ class SimulationRun {
         
         if(cfg.containsKey("samples")) {
             Set<String> sampleSet =  (cfg.samples.males + cfg.samples.females) as Set
-            
+            if(!sampleSet.isEmpty()) {
+                log.info "Intersecting ${this.bamFiles.size()} bam files with ${sampleSet.size()} samples configured for run $id"
+                this.bamFiles = this.bamFiles.grep { it.key in sampleSet }.collectEntries()
+            }
             this.bamFiles = this.bamFiles.grep { it.key in sampleSet }.collectEntries()
         }
 
