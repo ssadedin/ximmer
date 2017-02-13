@@ -1044,6 +1044,9 @@ class Ximmer {
         // Parse the configuration
         ConfigObject cfg = new ConfigSlurper().parse(new File(opts.c).text)
         
+        if(opts.nosim && !cfg.containsKey('simulation_type'))
+            cfg.simulation_type = 'none'
+        
         Ximmer ximmer = new Ximmer(cfg, opts.o, !opts.nosim)
         if(opts.seed != false) {
             ximmer.seed = opts.seed.toInteger()
