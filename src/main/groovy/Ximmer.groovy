@@ -279,6 +279,9 @@ class Ximmer {
                     batches << createAnalysis(runDir, analysisName)
                 }
             }
+            else {
+                batches << createAnalysis(runDir, 'analysis')
+            }
             
             if(batches.every { new File(run.runDirectory,it.analysisName+"/report/cnv_report.html").exists()}) {
                 log.info("Skipping bpipe run for $runDir because cnv_report.html already exists for all analyses (${batches*.analysisName.join(',')})")
@@ -361,7 +364,6 @@ class Ximmer {
             analysisCfg = cfg.analyses[analysisName]
             analysisName = "analysis-" + analysisName
         }
-                
         
         File batchDir = new File(runDir, analysisName)
         batchDir.mkdirs()
