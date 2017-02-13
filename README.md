@@ -1,56 +1,37 @@
 Ximmer
 ======
 
-Ximmer is a tool for simulation of single copy deletions in targeted sequencing data 
-such as exome data.
 
-Ximmer can simulate deletions by two methods:
+Ximmer is a tool designed to help users of targeted high throughput (or "next generation") 
+genomic sequencing data (such as exome data) to accurately detect copy number variants
+(CNVs). Ximmer is not a copy number detection tool itself. Rather, it is a framework for
+running and evaluating other copy number detection tools. It offers three essential features
+that users of CNV detection tools need:
 
-  * swapping reads into a female from a male on the X chromosome
-  * downsamping the number of reads by 50% over a select number of targets
+ * A suite of pipelines for running a variety of well known CNV detection tools
+ * A simulation tool that can create artificial CNVs in sequencing data for 
+   the purpose of evaluating performance
+ * A visualisation and curation tool that can combine results from multiple 
+   CNV detection tools and allow the user to inspect them, along with 
+   relevant annotations.
+
+We created Ximmer because although there are very many CNV detection tools,
+they can be hard to run and their performance can be highly variable and
+hard to estimate. This is why Ximmer builds in simulation: to allow 
+a quick and easy estimation of the performance of any tool on any data set.
+
 
 Requirements
 ============
 
-All you need is Java 1.6+
+ * Java 1.7 (note: Java 1.8 does not work, unless you upgrade the bundled GATK)
+ * Python 2.7, preferably the Anaconda installation
+ * R 3.2 or higher
 
-Building It
-===========
 
-Try this (on Unix-like environments):
+Building and Running It
+=======================
 
-    git clone https://github.com/ssadedin/ximmer.git
-    cd ximmer
-    ./gradlew jar
+See [documentation](doc/index.md) for more details!
 
-The result should be build/libs/ximmer.jar. This is a runnable JAR file you can use to launch Ximmer.
 
-Running It
-===========
-
-Ximmer is fairly simple to run. Since one of the simulation modes depends on the sex of the samples, 
-you currently need to specify the female sample names using the -f option (repeatedly, if you want) and 
-the male samples using -m. Deletions will currently only be simulatd in female samples.
-
-To see the help:
-
-    java -jar build/libs/ximmer.jar
-
-A simple example would be:
-
-    java -Xmx1g -jar ximmer.jar -n 1 -f NA12878 -m NA19239 -bam na12878.bam -bam na19239.bam -r target.bed -o deletions.bed 
-
-This will create a single output BAM file that isn named starting with
-the female sample name (NA12878) suffixed with the region of the deletion that was 
-simulated. An output BED file specifying the deletions would be created as 'deletions.bed'.
-
-Note that you could specify multiple males, in which case the male to use would be selected 
-randomly. If you specify multiple females, each female will have a single deletion simulated.
-
-Also note that for a reproducible result, you may like to specify the random seed using the 
--seed option.
-
-Limitations
-===========
-
-Ximmer currently assumes that there is only a single sample in each BAM file. 
