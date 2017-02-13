@@ -27,7 +27,7 @@ To make Ximmer easier to use we have included support to automatically
 download and build a range of tools. You should make sure before starting
 that you have at minimum the following requirements:
 
- * Java 1.7 or higher
+ * Java 1.7 (note: Java 1.8 does not work, unless you upgrade the bundled GATK)
  * Python 2.7, preferably the Anaconda installation
  * R 3.2 or higher
 
@@ -52,21 +52,17 @@ cd ximmer
 
 ### Set Configuration Parameters
 
-Ximmer needs some basic settings configured before it can be used. Copy the file 
-`eval/pipeline/config.groovy.template` to `eval/pipeline/config.groovy`. Then edit 
-the file to set the BASE install location 
-as the absolute path to the `eval` directory and the absolute path to the indexed
-FASTA file for your reference sequence.
-
+Ximmer sets all the basic configuration parameters to sensible defaults all by 
+itself. You may like to inspect these and check if they are optimal for your
+environment.  To do this, open the file `eval/pipeline/config.groovy` in a text
+editor. 
 
 ## Configuring Ximmer
 
-Ximmer is designed to run on _targeted_ sequencing data (where that term includes 
-the most common type of targeted data, _exomes_). That means to run it,
-you need three things:
+See the [Configuration](config.md) documentation for more details. 
 
- * Some exome or targeted capture data consisting of at least 5 
-   separate samples.
- * A BED file describing the target regions that were captured
- * An indexed human genome reference in FASTA format
 
+## Running Ximmer
+
+See information about how to run an analysis using Ximmer in the [Analysis](analyses.md) 
+section.
