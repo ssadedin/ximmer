@@ -95,6 +95,34 @@ TODO:
 | foo   | bar   | frog | house |
 
 
+## Specifying Variants
+
+It can be informative to know when variants such as SNVs and indels overlap CNV calls. 
+this is important for two reasons:
+
+ * Heterozygosity and allele balance helps inform about whether a CNV call is accurate
+ * Overlapping loss of function variants can form compound heterzygous configurations 
+   that result in a complete loss of a gene.
+
+Ximmer can incorporate variant calls for samples into the analysis. You can provide 
+these by specifying a list of variant calls under the `variants` attribute in the 
+configuration file:
+
+```
+ variants="/home/simon/bams/my_project_variants.vcf"
+```
+
+The variants attribute can also be specified as a list of VCF files:
+
+```groovy
+ variants=[
+     "/home/simon/bams/sample1_variants.vcf",
+     "/home/simon/bams/sample2_variants.vcf",
+     ...
+ ]
+     
+```
+
 ## Full Configuration Example
 
 Below is a very simple, minimal but working configuration which analyses
