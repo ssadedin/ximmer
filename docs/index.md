@@ -62,5 +62,5 @@ See the [Configuration](config.md) documentation for more details.
 
 ## Running Ximmer
 
-See information about how to run an analysis using Ximmer in the [Analysis](analyses.md) 
+See information about how to run an analysis using Ximmer in the [Running](running.md) 
 section.
