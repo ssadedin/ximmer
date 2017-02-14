@@ -32,6 +32,6 @@ Requirements
 Building and Running It
 =======================
 
-See [documentation](doc/index.md) for more details!
+See [documentation](docs/index.md) for more details!
 
 
