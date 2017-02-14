@@ -62,6 +62,7 @@ set of pre-defined true positives are considered as false positives.
 ### Analysis Mode
 
 To run in Analysis Mode, just add `-nosim` as an argument:
+
 ```
 <ximmer install dir>/bin/ximmer -v -nosim -c config.groovy -o results
 ```
