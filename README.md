@@ -32,6 +32,6 @@ Requirements
 Building and Running It
 =======================
 
-See [documentation](docs/index.md) for more details!
+See the online [documentation](https://ssadedin.github.io/ximmer/) for more details!
 
 
