@@ -111,41 +111,6 @@ callers {
 }
 ```
 
-## Running the Analysis
-
-Once you have created a configuration file describing your run (we'll call it `config.groovy`), you 
-can start Ximmer. Ximmer can run in two different modes: Simulation Mode and Analysis Mode. 
-The default is to do both - first simulate, then analyse the results.
-
-### Simulation and Analysis Mode
-
-To run in both modes, use a command such as the following:
-
-```
-<ximmer install dir>/bin/ximmer -v -c config.groovy -o results
-```
-
-This will run the full Ximmer process. You will find the results in the `results` directory, 
-as an HTML file.
-
-
-### Analysis Mode
-
-To run in Analysis Mode, just add `-nosim` as an argument:
-```
-<ximmer install dir>/bin/ximmer -v -nosim -c config.groovy -o results
-```
-
-After the analysis runs, a report will be produced in the following location:
-
-```
-results/run1/analysis/report/local_cnv_report.html
-```
-
-This report contains all the CNV calls by every caller used as well as informative 
-plots in an interface that supports filtering and annotation of the data.
-
-
 
 
 

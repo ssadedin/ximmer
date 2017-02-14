@@ -1,9 +1,9 @@
-# Ximmer Configuration
+# Running Ximmer 
 
 ## Introduction
 
 Ximmer is designed to run "out of the box" with some reasonably sensible defaults.
-Still, there is some unavoidable configuration if you want it to work well for you.
+Nonetheless, you may wish to customize the configuration to work well for you.
 
 ## Set paths for Python
 
