@@ -20,7 +20,7 @@ but if you are only doing analysis, the most minimal form can simply contain:
 
  * bam_files setting describing where the BAM files to analyse or simulate from are
  * target_regions setting describing the capture region
- * callers section describing which CNV callers to run (see [Analysis](analysis.md)).
+ * callers section describing which CNV callers to run (see [Analysis](analyses.md)).
 
 If you are doing simulation, then you need to also specify:
 
@@ -29,7 +29,7 @@ If you are doing simulation, then you need to also specify:
 
 For details on how to set these parameters, see the relevant sections:
 
- * for analysis, see [Analysis Configuration](analysis.md)
+ * for analysis, see [Analysis Configuration](analyses.md)
  * for simulation, [Simulation Configuration](simulation.md)
 
 The configuration file can be created in any directory. Typically, you should create 
