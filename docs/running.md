@@ -30,7 +30,7 @@ If you are doing simulation, then you need to also specify:
 For details on how to set these parameters, see the relevant sections:
 
  * for analysis, see [Analysis Configuration](analyses.md)
- * for simulation, [Simulation Configuration](simulation.md)
+ * for simulation, [Simulation Configuration](simulations.md)
 
 The configuration file can be created in any directory. Typically, you should create 
 a directory to run Ximmer in for a data set, and put the configuration file there. 
