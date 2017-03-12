@@ -34,6 +34,29 @@ For that case, you should be specifying the known CNVs via the `known_cnvs` attr
 (see below). When you specify `none`, Ximmer will not create new BAM files and instead
 will run the analysis directly on the source BAM files.
 
+## Specifying CNV Sizes
+
+One of the most important aspects of CNV detection is what size of event you
+are looking to find. If you are after single exon deletions, for example, you
+may end up needing quite different settings to those you would have for detecting 
+megabase size events. Accordingly, you can set how big you want the CNVs to be
+that Ximmer creates. In Ximmer this is controlled by setting the number of target
+regions to include in each event. (Note that Ximmer will never begin or end a
+simulated CNV inside a target region). The number of regions is specified using a 
+range with `..` syntax. For example, to specify that CNVs should be between 5 and 20 
+target regions in size, the following setting would be used:
+
+```
+regions=5..20
+```
+
+Ximmer will randomly select the number of target regions to include in each 
+CNV from this range. Note that these will not always be exactly honored because
+sometimes the ranges chosen are expanded if there is continuous read coverage
+between the target regions. Since they are sometimes made larger, but never 
+smaller, you will generally see that the result is slightly inflated compared to 
+the range you select here.
+
 ## Specifying Sample Sex
 
 For X-replacement to work, Ximmer needs to known which samples are female 
