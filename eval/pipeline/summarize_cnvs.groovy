@@ -75,6 +75,7 @@ plot_cnv_coverage = {
                 -cnvs $input.tsv
                 -gatkcov common/xhmm
                 -targets $input.bed
+                -json
                 -o ${output.dir+"/cnv.png"} $reportSamplesFlag
                 -t $threads ${caller_opts.join(" ")} ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} ${inputs.bam.withFlag("-bam")}
                 -refseq $refgene
