@@ -8,6 +8,7 @@ import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 
 import graxxia.Matrix
 import graxxia.Stats
+import groovy.json.JsonOutput
 import groovy.transform.CompileStatic;
 import groovy.util.logging.Log;
 import groovy.xml.Namespace;
@@ -87,6 +88,13 @@ class CNVDiagram {
     boolean noAmpliconLabels = false
     
     String gatkMeanEstimator = null
+    
+    boolean redraw = false
+    
+    /**
+     * What kind(s) of output to produce
+     */
+    List<String> writeTypes = ['png']
     
     /**
      * Trying to display too many target regions in plots makes them unreadable.
@@ -224,11 +232,23 @@ class CNVDiagram {
         println "Call $cnv.chr:$cnv.from-$cnv.to for sample $cnv.sample"
 
         String imageFileName = outputFileBase.replaceAll('.png$','') + "_${cnv.chr}_${cnv.from}_${cnv.to}_${cnv.sample}.png"
+        String jsonFileName = outputFileBase.replaceAll('.png$','') + "_${cnv.chr}_${cnv.from}_${cnv.to}_${cnv.sample}.js"
+        
+        Writer json = ('json' in writeTypes) ? new File(jsonFileName).newWriter() : new StringWriter()
+        
         File imageFile = new File(imageFileName)
-        if(imageFile.exists() && imageFile.length() > 0) {
+        if(imageFile.exists() && (imageFile.length() > 0) && !redraw) {
             println "Skip $imageFileName because file already exists"
             return
         }
+        
+        json.println("""
+var cnv = {
+
+     "start" : ${cnv.from},
+     "end" : ${cnv.to},
+     "targets" : [
+""")
         
         SAM bam = bams[cnv.sample]
 
@@ -299,13 +319,24 @@ class CNVDiagram {
         d.line(displayRegion.from, 1.0, displayRegion.to, 1.0)
 
         for(target in targets) {
+            
+            
             Region targetRegion = new Region(cnv.chr, target)
             Matrix coverage = getNormalisedCoverage(targetRegion, cnv.sample)
             //                double [] coverageValues = coverage[][0] as double[]
 
-
             double [] targetRange = target as double[]
             double [] otherCoverage = coverage.others as double[]
+            
+            Map targetJson = [
+                start: targetRegion.from,
+                end: targetRegion.to,
+                sampleCov: coverage.sample,
+                otherCov: coverage.others,
+                coverageSd: coverage.sd
+            ]
+            
+            json.println("      " + JsonOutput.toJson(targetJson)+ ",")
             
             // Can't plot a curve through too few points (exception from loess interpolator)
             if(targetRange.length < 8)
@@ -330,6 +361,9 @@ class CNVDiagram {
                     "blue"
             })
         }
+        
+        json.println("    ],")
+        json.println("""  "genes" : [""")
 
         // Find the genes overlapping the CNV
         d.color("black")
@@ -338,7 +372,14 @@ class CNVDiagram {
 
             int geneFrom = Math.max(geneExons*.from.min(), displayRegion.from)
             int geneTo = Math.min(geneExons*.to.max(), displayRegion.to)
-
+            
+            Map jsonGene = [
+                gene: gene,
+                start: geneFrom,
+                end: geneTo,
+                exons: []
+            ]
+            
             d.bar(geneFrom, geneTo, -0.1, gene)
             d.barHeightUp = 0
             d.barHeightDown = 3
@@ -357,21 +398,31 @@ class CNVDiagram {
                 for(exonIntersect in intersects) {
                     //                        println "Drawing exon ${exonCount+1}:  $exonIntersect.from-$exonIntersect.to"
                     d.bar(exonIntersect.from, exonIntersect.to, -0.1, null, "${exonCount+1}")
+                    jsonGene.exons << [ 
+                        from: exonIntersect.from, 
+                        to: exonIntersect.to,
+                        number: exonCount+1
+                    ]
                 }
             }
             d.barHeightUp = 5
             d.barHeightDown = 5
+            
+            json.println("      " + JsonOutput.toJson(jsonGene) + ",")
         }
         
+        json.println("    ],")
+        json.println("""  "callers" : [""")
 
         double offset = 0d
         for(caller in callers) {
-
+            
             def callerCnvs = cnvCalls[caller].getOverlaps(cnv).grep { it.extra.sample == cnv.sample }
             if(!callerCnvs) {
                 println "No overlapping calls for $caller"
                 continue
             }
+
 
             d.color(colors[caller])
 
@@ -379,8 +430,19 @@ class CNVDiagram {
             
             def labels = callerCnvs.collect { (it.extra.quality != null) ? "$caller [" + numberFormat.format(it.extra.quality.toFloat()) + "]" : caller  }
             
+            Map callerJson = [
+                caller: caller,
+                calls : callerCnvs.collect {[
+                    start: it.from,
+                    end: it.to,
+                    quality: it.extra.quality?.toFloat()
+                ]}
+            ]
+            
             d.bars(callerCnvs*.from, callerCnvs*.to, [1.8 - offset]*callerCnvs.size(), labels)
             offset += 0.08
+            
+            json.println("      " +  JsonOutput.toJson(callerJson) + ",")
         }
         
         if(vcfs[cnv.sample]) {
@@ -420,6 +482,11 @@ class CNVDiagram {
             drawAmplicons(d, cnv)
             d.save()
             println "Saved " + new File(d.fileName).absolutePath
+        }
+        
+        if(json) {
+            json.println("    ]\n}")
+            json.close()
         }
     }
     
@@ -603,7 +670,10 @@ class CNVDiagram {
             gatkcov 'Use precalculated coverage information from gatk, located in given directory', args:1
             ignoremissing 'Ignore samples that are missing coverage information'
             noamplabels 'Omit drawing read counts over each amplicon'
+            redraw 'Redraw image even if file already exists'
             chr 'Limit drawing to CNVs overlapping given chromosome (eg: chrX)', args:1
+            json 'Include JSON in output'
+            nopng 'Suppress writing of PNG files'
         }
         
         def opts = cli.parse(args)
@@ -722,8 +792,16 @@ class CNVDiagram {
             println "Loaded read counts for ${diagram.ampliconCounts.rowDimension} amplicons x $diagram.ampliconCounts.columnDimension samples"
         }
         
-        diagram.noAmpliconLabels = opts.noamplabels
+        if(opts.redraw)
+            diagram.redraw = true
         
+        if(opts.json)
+            diagram.writeTypes << 'json'
+            
+        if(opts.nopng)
+            diagram.writeTypes.remove('png')
+            
+        diagram.noAmpliconLabels = opts.noamplabels
             
         diagram.draw(opts.o, width, height)
     } 
