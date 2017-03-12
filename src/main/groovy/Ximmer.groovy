@@ -672,6 +672,9 @@ class Ximmer {
                 throw new IllegalStateException("The configured male sample $maleId does not have a corresponding BAM file configured under bam_files")
         }
         
+        if('groovy.lang.IntRange' != cfg.get('regions')?.class?.name)
+            throw new IllegalArgumentException("The configured value for 'regions' is either missing or of incorrect type. Please set it to a range, for example: 1..5")
+        
         for(int cnvIndex = 0; cnvIndex < this.deletionsPerSample; ++cnvIndex) {
             CNVSimulator simulator = new CNVSimulator(targetSample, sourceSample)
             if(this.seed != null) 
