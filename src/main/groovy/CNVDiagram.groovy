@@ -221,6 +221,11 @@ class CNVDiagram {
             cnvs.each(processCnv)
         }
     }
+    
+    @CompileStatic
+    double round2Digits(double x) {
+        Math.round(x*100.0f)/100.0
+    }
 
     void drawCNV(Region cnv, String outputFileBase, int width, int height, List callers, Map colors) {
         
@@ -254,35 +259,8 @@ var cnv = {
 
         List<String> genes = geneDb.getGenes(cnv).grep { gene -> geneDb.getExons(gene).overlaps(this.targetRegions) }
 
-        println "Genes are $genes"
-        List targets = null
-        
-        // If one or more genes is overlapped, display the whole gene(s)
-        if(!genes.empty) {
-    
-            Regions exons = genes.sum { geneDb.getExons(it) }.reduce().grep { it.chr == cnv.chr } as Regions
-    
-            println "Overlapping exons are " + exons + " from " + exons[0].from + " to " + exons[-1].to
-    
-            println "Exons are " + exons.collect { it.from + "-" + it.to }.join(",")
-            
-            // Find the overlapping target regions from the coverage file
-            targets = targetRegions.getOverlaps(cnv.chr, exons[0].from, exons[-1].to)
-            println "Overlapping targets are " + targets.collect { it.from+"-"+it.to }.join(",")
-            
-            // If there are too many targets, clip at a fixed number upstream and downstream
-            // from the actual CNV
-            if(targets.size()>maxTargetCount) {
-                int cnvIndex = targets.findIndexOf {GRange.overlaps(it, cnv.range)}
-                int lastCnvIndex = targets.findLastIndexOf {GRange.overlaps(it, cnv.range)}
-                int flankingTargets = (int)Math.max(2,maxTargetCount - (lastCnvIndex - cnvIndex))/2
-                targets = targets[(Math.max(0,cnvIndex-flankingTargets)..Math.min(lastCnvIndex+flankingTargets, targets.size()-1))]
-            }
-        }
-        else { // no gene overlapped, just show the region of the CNV itself
-            targets = targetRegions.getOverlaps(cnv.chr, cnv.from, cnv.to)
-        }
-        
+        List targets = determineCnvTargets(cnv, genes)
+       
         def froms = targets*.from
         def tos = targets*.to
         
@@ -331,7 +309,7 @@ var cnv = {
             Map targetJson = [
                 start: targetRegion.from,
                 end: targetRegion.to,
-                sampleCov: coverage.sample,
+                sampleCov: coverage.sample.collect { round2Digits(it) },
                 otherCov: coverage.others,
                 coverageSd: coverage.sd
             ]
@@ -445,31 +423,45 @@ var cnv = {
             json.println("      " +  JsonOutput.toJson(callerJson) + ",")
         }
         
+        json.println("    ],")
+        json.println("""  "variants" : [""")
         if(vcfs[cnv.sample]) {
             Regions vcf = vcfs[cnv.sample]
+            
             def variants = null
             synchronized(vcf) {
                 variants = targets.collect { vcf.getOverlaps(cnv)*.extra.grep { it.sampleDosage(cnv.sample) > 0 } }.sum()
             }
             log.info "Found ${variants.size()} variants for CNV $cnv"
-            for(variant in variants) {
-                
+            for(Variant variant in variants) {
                 float variantHeight = 0.1f
                 d.color("red")
                 d.line(variant.pos, yMax, variant.pos, yMax - variantHeight) 
                 
-                if(variant.sampleDosage(cnv.sample)==1) {
-                    int sampleIndex = variant.header.samples.indexOf(cnv.sample)
-                    int refReads = variant.getAlleleDepths(0)[sampleIndex]
-                    int altReads = variant.getAlleleDepths(1)[sampleIndex]
+                float altFrac = 1.0f
+                int dosage = variant.sampleDosage(cnv.sample)
+                int sampleIndex = variant.header.samples.indexOf(cnv.sample)
+                int altReads = variant.getAlleleDepths(1)[sampleIndex]
+                int refReads = variant.getAlleleDepths(0)[sampleIndex]
+                if(dosage==1) {
                     d.color("green")
                     try {
-                        d.line(variant.pos, yMax, variant.pos, yMax - variantHeight * ((float)refReads / (refReads+altReads)))
+                        altFrac = ((float)refReads / (refReads+altReads))
+                        d.line(variant.pos, yMax, variant.pos, yMax - variantHeight * altFrac)
                     }
                     catch(ArithmeticException e) {
                         log.warning "WARNING: Unable to draw variant $variant (refReads=$refReads, altReads=$altReads)"
                     }
                 }
+                
+                Map variantJson = [
+                    pos: variant.pos,
+                    dosage: dosage,
+                    frac: altFrac.isNaN() ? 0.0f : altFrac,
+                    ref: refReads,
+                    alt: altReads
+                ]
+                json.println("      " +  JsonOutput.toJson(variantJson) + ",")
             }
         }
         else {
@@ -488,6 +480,71 @@ var cnv = {
             json.println("    ]\n}")
             json.close()
         }
+    }
+    
+    /**
+     * Decide on a list of target regions to plot for this CNV
+     * <p>
+     * The list of regions starts as the CNV itself. Then, it is
+     * expanded so that any partially overlapped are fully included.
+     * Then finally, we want to ensure there is always some context to the
+     * left and right of the CNV - so if the CNV is abutting the very
+     * edge on either side then the plot regions are expanded one region
+     * on each side.
+     * 
+     * @param cnv   the CNV being plotted (as a Regions object)
+     * @param genes a list of genes that should be plotted
+     * @return   a list of intervals to be plotted
+     */
+    List<IntRange> determineCnvTargets(Region cnv, List<String> genes) {
+        
+        println "Genes are $genes"
+        List targets = null
+        
+        // If one or more genes is overlapped, display the whole gene(s)
+        if(!genes.empty) {
+    
+            Regions exons = genes.sum { geneDb.getExons(it) }.reduce().grep { it.chr == cnv.chr } as Regions
+    
+            log.info "Overlapping exons are " + exons + " from " + exons[0].from + " to " + exons[-1].to
+    
+            log.info "Exons are " + exons.collect { it.from + "-" + it.to }.join(",")
+            
+            // Find the overlapping target regions from the coverage file
+            targets = targetRegions.getOverlaps(cnv.chr, exons[0].from, exons[-1].to)
+            println "Overlapping targets are " + targets.collect { it.from+"-"+it.to }.join(",")
+            
+            // If there are too many targets, clip at a fixed number upstream and downstream
+            // from the actual CNV
+            if(targets.size()>maxTargetCount) {
+                int cnvIndex = targets.findIndexOf {GRange.overlaps(it, cnv.range)}
+                int lastCnvIndex = targets.findLastIndexOf {GRange.overlaps(it, cnv.range)}
+                int flankingTargets = (int)Math.max(2,maxTargetCount - (lastCnvIndex - cnvIndex))/2
+                targets = targets[(Math.max(0,cnvIndex-flankingTargets)..Math.min(lastCnvIndex+flankingTargets, targets.size()-1))]
+            }
+        }
+        else { // no gene overlapped, just show the region of the CNV itself
+            targets = targetRegions.getOverlaps(cnv.chr, cnv.from, cnv.to)
+        }
+        
+        // If the first region is the same as the start of the CNV, show one region to left as well
+        // for context
+        int minContext = 50
+        if(Math.abs(cnv.from - targets[0].from)<minContext) {
+            log.info "Pad targets for $cnv to ensure left context"
+            IntRange leftTarget = targetRegions.previousRange(cnv.chr, targets[0].from)
+            if(leftTarget)
+                targets = [leftTarget] + targets
+        }
+        
+        if(Math.abs(cnv.to - targets[-1].to)<minContext) {
+            log.info "Pad targets for $cnv to ensure right context"
+            IntRange rightTarget = targetRegions.nextRange(cnv.chr, targets[-1].to)
+            if(rightTarget)
+                targets = targets + [rightTarget]
+        } 
+        
+        return targets
     }
     
     /**
