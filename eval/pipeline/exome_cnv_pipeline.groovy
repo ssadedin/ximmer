@@ -176,12 +176,7 @@ init_common = {
 
 run {
     
-    
-    common_stages = [ init_common ]
-
-    if('xhmm' in cnv_callers)  {
-        common_stages << "%.bam" * [ gatk_depth_of_coverage ]
-    }
+    common_stages = [ init_common, "%.bam" * [ gatk_depth_of_coverage  ] ]
        
     caller_pipelines = [
        ex  :  (init_excavator + excavator_pipeline),
