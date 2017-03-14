@@ -47,25 +47,30 @@ can start Ximmer. Running Ximmer is similar for both Simulation and Analysis.
 To run in both modes, use a command such as the following:
 
 ```
-<ximmer install dir>/bin/ximmer -v -c config.groovy -o results
+<ximmer install dir>/bin/ximmer -v -c simulation.groovy -o results
 ```
 
 This will run the full Ximmer process, placing the results into the `results` directory. You 
 will find the output report in the `results` directory, as an HTML file. The name of 
-the file may vary dependending on your configuration, but by default you will find 
+the file may vary depending on your configuration, but by default you will find 
 it as "analysis.html". This report shows the full details of the CNVs simulated, as well 
 as plots indicating the sensitivity and specificity of the different callers tested.
 
 Note that in this mode, all calls that are not either simulated or provided as a 
 set of pre-defined true positives are considered as false positives.
 
+Note also, here the configuration for the analysis is called `analysis.groovy`. This configures
+the specific analysis, which is separate to the global Ximmer configuration found in 
+`eval/pipeline/config.groovy`.
+
 ### Analysis Mode
 
 To run in Analysis Mode, just add `-nosim` as an argument:
 
 ```
-<ximmer install dir>/bin/ximmer -v -nosim -c config.groovy -o results
+<ximmer install dir>/bin/ximmer -v -nosim -c analysis.groovy -o results
 ```
+
 
 After the analysis runs, a report will be produced in the following location:
 
