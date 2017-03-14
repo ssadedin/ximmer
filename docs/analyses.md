@@ -25,6 +25,67 @@ but in its most minimal form, all it needs is:
  * target_regions setting describing the capture region
  * callers section describing which CNV callers to run (see below)
 
+## Setting the BAM Files
+
+The most important input to any CNV detection method is the BAM files to analyse. With 
+Ximmer these are specified directly in the configuration file for each analysis. The 
+specification can be either string value or a list of strings. Each string itself
+can be a wildcard pattern to match multiple BAM files.
+
+Example of single wildcard expression:
+
+```
+bam_files="/home/simon/data/bam_files/*.bam"
+```
+
+Example of multiple wildcard expressions:
+
+```
+bam_files=[
+    "/home/simon/data/bam_files1/*.bam",
+    "/home/simon/data/bam_files2/*.bam"
+]
+```
+
+## Setting Sample Sex
+
+The sex of each sample is important for two reasons: firstly, one of Ximmer's 
+simulation methods utilises the sex of each sample directly in the simulation method.
+However sex is important even when just doing analysis because of the differing ploidy 
+of the X-chromosome between males and females. 
+
+Ximmer can automatically detect the sex of samples, so specifying it is optional. However
+the sex-detection algorithm takes some time to run, and can occasionally be inaccurate 
+if data has unexpected characteristics. Therefore it's better to specify the sample 
+sexes if you know them. There are two ways to do this. The first way, is to supply 
+a [PED file](https://www.broadinstitute.org/haploview/input-file-formats) that specifies 
+the sexes. This method is convenient when you already have such a file:
+
+```
+ped_file="/home/simon/data/samples.ped"
+```
+
+The second way is to explicitly list the males and females:
+
+```
+samples {
+    males = [
+        "SAMPLE_X123",
+        "SAMPLE_X542"
+        ...
+    ]
+
+    females = [
+        "SAMPLE_X921",
+        "SAMPLE_X291",
+        ...
+    ]
+}
+```
+
+Note that in all cases, the samples specified must match the sample ids specified in the BAM 
+files supplied.
+
 ## Default Analysis
 
 Some CNV callers have a lot of adjustable parameters. Therefore it is inconvenient to
@@ -93,6 +154,7 @@ TODO:
 | Caller | Parameter |  Description | Example |
 |--------|-----------|--------------|---------|
 | foo   | bar   | frog | house |
+
 
 
 ## Specifying Variants
