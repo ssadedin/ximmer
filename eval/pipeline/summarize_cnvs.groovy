@@ -123,6 +123,8 @@ create_cnv_report = {
             true_cnvs = "-truth $input.true_cnvs.bed"
         
         exec """
+            unset GROOVY_HOME
+
             JAVA_OPTS="-Xmx8g -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC:$XIMMER_SRC/../resources $XIMMER_SRC/SummarizeCNVs.groovy
                 -target $target_bed ${caller_opts.join(" ")} $refGeneOpts
                 ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} -bampath "$bam_file_path"
