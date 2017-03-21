@@ -30,7 +30,8 @@ class Ximmer {
         exomedepth : "ed", 
         cnmops : "cnmops",
         xhmm: "xhmm",
-        conifer: "cfr"
+        conifer: "cfr",
+        codex: "cdx"
     ]
     
     /**

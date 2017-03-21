@@ -95,6 +95,7 @@ load 'xhmm.groovy'
 load 'exome_depth.groovy'
 load 'cn_mops.groovy'
 load 'conifer.groovy'
+load 'codex.groovy'
 load 'summarize_cnvs.groovy'
 load 'init_stages.groovy'
 
@@ -187,7 +188,9 @@ run {
        
        cnmops: (init_cn_mops + cn_mops_call_cnvs),
        
-       cfr:  (init_conifer + run_conifer)
+       cfr:  (init_conifer + run_conifer),
+       
+       cdx : codex_pipeline
     ]    
 
     caller_stages = cnv_callers.collect { caller ->
