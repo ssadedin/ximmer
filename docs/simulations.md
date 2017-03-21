@@ -50,6 +50,18 @@ target regions in size, the following setting would be used:
 regions=5..20
 ```
 
+## Specifying how many CNVs to Simulate in each Sample
+
+By default Ximmer will only simulate 1 CNV per sample. This minimises the 
+potential interference in accurate detection through contamination of the 
+normalisation methods by additional CNVs in each sample. However it is less
+efficient and means that you need more simulated BAM files than you will if
+you simulate more CNVs in each BAM. You can change the number using:
+
+```
+deletionsPerSample=10
+```
+
 Ximmer will randomly select the number of target regions to include in each 
 CNV from this range. Note that these will not always be exactly honored because
 sometimes the ranges chosen are expanded if there is continuous read coverage
