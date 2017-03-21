@@ -793,12 +793,17 @@ class Ximmer {
         
         // We need to also copy the cnv.js file, because the individual CNV reports 
         // put it into the wrong location
-        
         File cnvJs = new File(outputDirectory,"cnv.js")
         if(!cnvJs.exists()) {
             Files.copy(new File("$ximmerBase/src/main/resources/cnv_report.js").toPath(), 
                        cnvJs.toPath())
         }
+        
+        File cnvDiagramJs = new File(outputDirectory,"cnv_diagram.js")
+        if(!cnvDiagramJs.exists()) {
+            Files.copy(new File("$ximmerBase/src/main/resources/cnv_diagram.js").toPath(), 
+                       cnvDiagramJs.toPath())
+        } 
     }
     
     

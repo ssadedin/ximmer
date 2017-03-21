@@ -193,8 +193,10 @@ class CNVDiagram {
     
     void draw(String outputFileBase, int width, int height) {
         
-        if(!cnvs.count { 1 }) // if no CNV calls, short circuit loading all the coverage info
+        if(!cnvs.count { 1 }) { // if no CNV calls, short circuit loading all the coverage info
+            log.info "No CNVs to draw!"
             return
+        }
         
         if(!bams)
             loadBAMs()
@@ -229,6 +231,8 @@ class CNVDiagram {
 
     void drawCNV(Region cnv, String outputFileBase, int width, int height, List callers, Map colors) {
         
+        log.info "Drawing cnv $cnv"
+        
         if(this.samples && !(cnv.sample in this.samples)) {
             println "Skip CNV $cnv.chr:$cnv.from-$cnv.to for sample $cnv.sample"
             return
@@ -239,13 +243,24 @@ class CNVDiagram {
         String imageFileName = outputFileBase.replaceAll('.png$','') + "_${cnv.chr}_${cnv.from}_${cnv.to}_${cnv.sample}.png"
         String jsonFileName = outputFileBase.replaceAll('.png$','') + "_${cnv.chr}_${cnv.from}_${cnv.to}_${cnv.sample}.js"
         
-        Writer json = ('json' in writeTypes) ? new File(jsonFileName).newWriter() : new StringWriter()
+        File jsonFile
+        Writer json = new StringWriter()
+        
+        log.info "Write types are: " + writeTypes
+        if('json' in writeTypes) {
+            log.info "Enabling JSON output"
+            jsonFile = new File(jsonFileName)
+        }
         
         File imageFile = new File(imageFileName)
-        if(imageFile.exists() && (imageFile.length() > 0) && !redraw) {
+        if(imageFile.exists() && (imageFile.length() > 0) && (jsonFile != null && jsonFile.exists()) && !redraw) {
+            log.info "$jsonFile.absolutePath exists" 
             println "Skip $imageFileName because file already exists"
             return
         }
+        
+        if(jsonFile)
+            json = jsonFile.newWriter() 
         
         json.println("""
 var cnv = {

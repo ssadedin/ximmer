@@ -182,7 +182,6 @@ $(document).ready(function() {
 
     if(initialized)
         return;
-
     
     if(typeof(window.cnvs) == 'undefined') {
         console.log('CNVs not defined for page: do not set up CNV report');
@@ -295,7 +294,6 @@ $(document).ready(function() {
             $('#help').jqm();
             $('#help').jqmShow();
         });
-        
     }
 
     $('#geneOk').click(function() {
@@ -730,10 +728,32 @@ function show_cnv_details(cnvIndex) {
     
     var southEast = $('#southeast');
     southEast.html('');
-    with(southEast.$div({id:'coveragePlot','class': 'coveragePlotDiv'})) {
-        $button({'id':'ampliconButton'}).$span('Amplicons')
-        $img({src:imgpath+'cnv_'+cnv.chr + '_'+cnv.start+'_'+cnv.end+'_' + cnv.sample + '.png', width:Math.max(100,Math.round(southLayout.state.east.size-50))})
+    
+    var plotWidth = Math.max(100,Math.round(southLayout.state.east.size-50));
+    var plotHeight = Math.max(100,Math.round(southLayout.state.east.innerHeight-50));
+    southEast.$div({id:'coveragePlot','class': 'coveragePlotDiv'});
+    
+    /*
+    {
+        $button({'id':'ampliconButton'}).$span('Amplicons');
+        // $img({src:imgpath+'cnv_'+cnv.chr + '_'+cnv.start+'_'+cnv.end+'_' + cnv.sample + '.png', width:Math.max(100,Math.round(southLayout.state.east.size-50))})
+       
+        $svg({id:'plotSvg',
+           width: plotWidth,
+           height: plotHeight 
+        });
+        
+        
     }
+    */
+    
+    $('#coveragePlot').html(`<svg id=plotSvg width=${plotWidth} height=${plotHeight}></svg>`);
+    
+    var jsonPath = imgpath+'cnv_'+cnv.chr + '_'+cnv.start+'_'+cnv.end+'_' + cnv.sample + '.js';
+    window.dx = new CNVDiagram($('#plotSvg')[0], jsonPath, plotWidth-50, plotHeight);
+    dx.loadCnvData( () => {
+        dx.renderPlot();
+    });
     
     $('#ampliconButton').click(toggleAmplicons);
 }

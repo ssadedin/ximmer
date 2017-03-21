@@ -270,17 +270,25 @@ class SummarizeCNVs {
         
         File cnvReportFile = new File(reportTemplate)
         
+        List<String> scripts = []
+        
         // Avoid using the output file as a template if it happens to exist!
         if(cnvReportFile.exists() && (cnvReportFile.canonicalPath != outputFile.canonicalPath)) {
             templateStream = new File(reportTemplate).newInputStream()
-            File jsFile = new File(new File(reportTemplate).absoluteFile.parentFile, jsFileName)
+            
+            File templateParentDir = new File(reportTemplate).absoluteFile.parentFile
+            
+            File jsFile = new File(templateParentDir, jsFileName)
             log.info "js file = " + jsFile
-            jsCode = jsFile.text
-            if(inlineJs) {
-                js = '<script type="text/javascript">' + 
-                    jsCode +
-                    '</script>'
-            }
+            scripts << [
+                source: jsFile.newInputStream(),
+                name: 'cnv.js'
+            ]
+            
+            scripts << [
+                source: new File(templateParentDir,'cnv_diagram.js').newInputStream(),
+                name: 'cnv_diagram.js'
+            ] 
         }
         else {
             templateStream = getClass().classLoader.getResourceAsStream(reportTemplate)
@@ -288,23 +296,34 @@ class SummarizeCNVs {
             if(templateStream == null) {
                 throw new RuntimeException("ERROR: Unable to load template " + reportTemplate)
             }
+           
+            scripts << [
+                source: getClass().classLoader.getResourceAsStream(jsFileName),
+                name: 'cnv.js'
+            ] 
             
-            jsCode = getClass().classLoader.getResourceAsStream(jsFileName).text
-            if(inlineJs)  {
-                js = """<script type="text/javascript">
-                 ${jsCode}
-                  </script>
-                """
-            }
+            scripts << [
+                source: getClass().classLoader.getResourceAsStream('cnv_diagram.js'),
+                name: 'cnv_diagram.js'
+            ]  
         }
         
         File outputDir = outputFile.parentFile
-        if(!inlineJs) {
-            File jsFile = new File(outputDir, 'cnv.js')
-            println "Writing cnv.js to " + jsFile.absolutePath
-            jsFile.text = jsCode
-        }
-            
+        js = scripts.collect { script ->
+            if(inlineJs) {
+                String code = script.source.text
+                """<script type="text/javascript">\n${code}\n</script>\n"""
+            }
+            else {
+                   String code = script.source.text
+                   File jsFile = new File(outputDir, script.name)
+                   jsFile.text = code
+                   """<script type="text/javascript" src='$script.name'></script>\n"""
+            }
+        }.join("\n")
+        
+        scripts.each { if(it.source instanceof InputStream) it.source.close() }
+           
         templateStream.withReader { r ->
             new File(fileName).withWriter { w ->
                 templateEngine.createTemplate(r).make(
@@ -411,6 +430,7 @@ class SummarizeCNVs {
         List foundInCallers = []
         for(String caller in callers) {
             // log.info "Find best CNV call for $caller"
+            println "results for $caller are " + results[caller]
             Region best = results[caller].grep { it.sample == sample && it.overlaps(cnv) }.max { it.quality?.toFloat() }
             if(best != null) {
                 log.info "Best CNV for $caller is " + best + " with quality " + best?.quality
