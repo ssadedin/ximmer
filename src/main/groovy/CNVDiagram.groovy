@@ -506,12 +506,27 @@ var cnv = {
     
             Regions exons = genes.sum { geneDb.getExons(it) }.reduce().grep { it.chr == cnv.chr } as Regions
     
-            log.info "Overlapping exons are " + exons + " from " + exons[0].from + " to " + exons[-1].to
-    
             log.info "Exons are " + exons.collect { it.from + "-" + it.to }.join(",")
             
+            int exonsStart = exons[0].from 
+            int exonsEnd = exons[-1].to 
+            
+            log.info "Overlapping exons are " + exons + " from " + exonsStart + " to " + exonsEnd
+    
+            
+            // Problem: if CNV starts / ends in target region that is prior to begin / end 
+            // of gene then this puts the targets chosen as *smaller* than the CNV
+            // itself. So expand to at least include the CNV itself (may be further expanded
+            // to include some more padding below)
+            if(exonsStart > cnv.from)
+                exonsStart = cnv.from
+                
+            if(exonsEnd < cnv.to)
+                exonsEnd = cnv.to
+            
             // Find the overlapping target regions from the coverage file
-            targets = targetRegions.getOverlaps(cnv.chr, exons[0].from, exons[-1].to)
+            targets = targetRegions.getOverlaps(cnv.chr, exonsStart, exonsEnd)
+            
             println "Overlapping targets are " + targets.collect { it.from+"-"+it.to }.join(",")
             
             // If there are too many targets, clip at a fixed number upstream and downstream
