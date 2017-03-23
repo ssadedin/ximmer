@@ -226,7 +226,23 @@ class SummarizeCNVs {
                 results.addRegion(cnv)
             }
         }
+        
+        // Second phase annotation (annotations that depend on the annotations 
+        // created in 1st phase
+        
+        metaAnnotate(results)
+        
         return results
+    }
+    
+    void metaAnnotate(Regions results) {
+        for(Region cnv in results) {
+            cnv.samples = results.grep { it.overlaps(cnv) }*.sample
+            cnv.sampleCount = cnv.samples.size()
+            cnv.sampleFreq = (cnv.sampleCount / (double)samples.size())
+            
+            log.info "Samples for $cnv = $cnv.samples (count = $cnv.sampleCount)"
+        }
     }
     
     void writeTSV(Regions cnvs, String fileName) {
@@ -237,7 +253,7 @@ class SummarizeCNVs {
         
         new File(fileName).withWriter { w ->
             
-            w.println((["chr","start","end","sample","genes", "type","count","stotal"] + 
+            w.println((["chr","start","end","sample","genes", "type","count","stotal","sampleCount","sampleFreq"] + 
                        cnvCallers + 
                        cnvCallers.collect { it+"_qual" }).join("\t"))
             
@@ -250,7 +266,9 @@ class SummarizeCNVs {
                     cnv.genes,
                     cnv.type, 
                     cnv.count, 
-                    cnv.stotal 
+                    cnv.stotal, 
+                    cnv.sampleCount,
+                    cnv.sampleFreq
                 ] + cnvCallers.collect { caller ->
                     cnv[caller] ? "TRUE" : "FALSE"
                 }  + cnvCallers.collect { caller ->

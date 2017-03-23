@@ -133,7 +133,7 @@
             table tr td:nth-child(1) { text-align: center; }
             hr { clear: both; margin: 2em 0; }
             img.cnvimg { display : block; }
-            table.cnvTable {
+            table#cnvTable {
                 font-size: 10px;
                 font-family: verdana;
             }
@@ -315,7 +315,7 @@
                   };
                 
                   return [ chr : cnv.chr, start: cnv.from, end: cnv.to ] + 
-                      ['sample','type','count','stotal'].collectEntries { [it, cnv.getProperty(it)] } +
+                      ['sample','type','count','stotal','sampleCount','sampleFreq'].collectEntries { [it, cnv.getProperty(it)] } +
                       [ genes : cnv.genes ? cnv.genes.split(",") : [] ] +
                       cnv_callers.collect { caller -> 
                           if(cnv[caller])
@@ -360,7 +360,7 @@
                     <table id='cnvTable' class='stripe'>
                         <thead>
                             <%
-                             List tableHeaders = ['','Index','Genes','Region','Size','Type','True?','Callers','Sample','Conc']
+                             List tableHeaders = ['','Index','Genes','Region','Size','Type','True?','Callers','Sample','No.Callers','Samples']
                              if(hasVariants)
                                 tableHeaders.addAll(['Het Count', 'Hom Count', 'Balance'])
                              if(hasDGV)
@@ -393,6 +393,7 @@
                               <td><%=cnv_callers.grep { it != "truth" && cnv[it] !=null }.collect { clr -> "<span class='qual' title='QUAL="+ cnv[clr].quality+"'>$clr</span>"}.join(",")%></td>
                                 <td>${cnv.sample}</td>
                                 <td>${cnv.count}</td>
+                                <td title='Freq=${cnv.sampleFreq}'>${cnv.sampleCount}</td>
                                 <%if(hasVariants) {%>
                                     <td>${cnv.het == null ? '' : cnv.het}</td>
                                     <td>${cnv.hom == null ? '' : cnv.hom}</td>
