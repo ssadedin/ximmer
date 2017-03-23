@@ -294,6 +294,9 @@ class Ximmer {
             }
         }
         
+        
+        String sampleIdMask = cfg.get('sample_id_mask','')
+        
         File bpipe = new File("$ximmerBase/eval/bpipe")
         String toolsPath = new File("$ximmerBase/eval/pipeline/tools").absolutePath
         String ximmerSrc = new File("$ximmerBase/src/main/groovy").absolutePath
@@ -311,6 +314,7 @@ class Ximmer {
                 "-p", "simulation=${enableTruePositives}",
                 "-p", "batches=${batches*.analysisName.join(',')}",
                 "-p", "target_bed=$targetRegionsPath", 
+                "-p", "sample_id_mask='$sampleIdMask'", 
                 "-p", "imgpath=${runDir.name}/#batch#/report/", 
             ] + drawCnvsParam + [
                 "$ximmerBase/eval/pipeline/exome_cnv_pipeline.groovy"

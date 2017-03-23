@@ -47,6 +47,8 @@ class SummarizeCNVs {
     
     RefGenes refGenes = null
     
+    String idMask = null
+    
     /**
      * Parse an option specifying a CNV caller
      * 
@@ -92,6 +94,7 @@ class SummarizeCNVs {
             tsv 'Write consolidated CNV report in tab separated format to <file>', args:1
             imgpath 'Additional path to add for images', args:1
             genome 'Genome build to use when annotating CNVs', args:1
+            idmask 'Mask to apply to sample ids for presentation in report', args:1
             o 'Output file name', args:1
         }
         
@@ -171,6 +174,10 @@ class SummarizeCNVs {
             else
             if(opts.refgene) {
                 summarizer.refGenes = new RefGenes(opts.refgene)
+            }
+            
+            if(opts.idmask) {
+                summarizer.idMask = opts.idmask
             }
             
             Regions cnvs = summarizer.run(exportSamples)
@@ -336,7 +343,8 @@ class SummarizeCNVs {
                     cnvAnnotator : cnvAnnotator,
                     js : js,
                     bam_files : bamFiles,
-                    bam_file_path : bamFilePath
+                    bam_file_path : bamFilePath,
+                    idMask: idMask
                 ).writeTo(w)
             }
         }

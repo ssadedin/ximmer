@@ -121,7 +121,7 @@ will be run to find CNVs in the data.
 ## Customized Analyses
 
 A very common task in using a CNV detection tool is to try different 
-setting sto find out what works best on your particular data. To do that you need
+settings to find out what works best on your particular data. To do that you need
 to compare between different settings for the same tool. Each group of settings
 that you wish to run with is called an "analysis". These are configured in the
 analysis section of the configuration file. An example is below:
@@ -185,6 +185,33 @@ The variants attribute can also be specified as a list of VCF files:
      
 ```
 
+## Identity Masking
+
+Sometimes you do not wish to display the full id that is attached to samples in the 
+BAM and VCF files in your CNV report. This might be because the sample ids are very 
+long and unwieldy, or it could also be because there is sensitive or private information 
+in the ids. Ximmer supports a function to mask out portions of the actual sample ids
+from being displayed in the report. The function allows the user to specify a regular 
+expression which must have a single group (ie. section enclosed in parentheses). Ximmer
+will display the section in parentheses only when showing sample ids in the report.
+
+**Important: the full sample id is still accessible internally within the report. This 
+feature does not provide security against a malicious user wishing to unmask identities. 
+The underlying sample ids are readily accessible by use of Javascript and potentially 
+may leak into some parts of the user interface as well.**
+
+Example: Trim a trailing portion from sample ids in the form _SNN:
+
+```
+sample_id_mask="(.*)_S[0-9]*"
+```
+
+Example: Retain only a trailing SNN portion of the sample id:
+
+```
+sample_id_mask=".*(_S[0-9]*)"
+```
+
 ## Full Configuration Example
 
 Below is a very simple, minimal but working configuration which analyses
@@ -200,6 +227,8 @@ callers {
     exomedepth {}
 }
 ```
+
+
 
 
 

@@ -143,12 +143,25 @@ if(!localStorage.cnvSettings) {
     localStorage.cnvSettings = JSON.stringify(defaultSettings);
 }
 
+var SAMPLE_ID_COLUMN=7;
+
+var idMaskRegExp = idMask ? new RegExp(idMask) : null;
+
 function createCnvRow(row, data, dataIndex) {
+    
+    var tds = row.getElementsByTagName('td');
 
     var index = parseInt(row.getElementsByTagName('a')[0].innerHTML,10)-1;
     
     var cnvTags = userAnnotations[index] && userAnnotations[index].tags;
     addRowTags(row, cnvTags);
+    
+    console.log('id mask = ' + idMask + `regexp=${idMaskRegExp}`);
+    if(idMaskRegExp) {
+        var match = data[SAMPLE_ID_COLUMN].match(idMaskRegExp);
+        if(match)
+            tds[SAMPLE_ID_COLUMN].innerHTML = match[1];
+    }
 
     var cnv = cnvs[index];
     
