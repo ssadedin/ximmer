@@ -289,13 +289,12 @@ class SummarizeCNVs {
         
         SimpleTemplateEngine templateEngine = new SimpleTemplateEngine()
         String jsFileName = new File(reportTemplate).name.replaceAll('\\.html$','\\.js')
-        String js = "<script src='cnv.js'></script>"
         InputStream templateStream 
         String jsCode = null
         
         File cnvReportFile = new File(reportTemplate)
         
-        List<String> scripts = []
+        List<String> assets = []
         
         // Avoid using the output file as a template if it happens to exist!
         if(cnvReportFile.exists() && (cnvReportFile.canonicalPath != outputFile.canonicalPath)) {
@@ -305,15 +304,20 @@ class SummarizeCNVs {
             
             File jsFile = new File(templateParentDir, jsFileName)
             log.info "js file = " + jsFile
-            scripts << [
+            assets << [
                 source: jsFile.newInputStream(),
                 name: 'cnv.js'
             ]
             
-            scripts << [
+            assets << [
                 source: new File(templateParentDir,'cnv_diagram.js').newInputStream(),
                 name: 'cnv_diagram.js'
             ] 
+            
+            assets << [
+                source: new File(templateParentDir,'cnv_report.css').newInputStream(),
+                name: 'cnv_report.css'
+            ]
         }
         else {
             templateStream = getClass().classLoader.getResourceAsStream(reportTemplate)
@@ -322,32 +326,47 @@ class SummarizeCNVs {
                 throw new RuntimeException("ERROR: Unable to load template " + reportTemplate)
             }
            
-            scripts << [
+            assets << [
                 source: getClass().classLoader.getResourceAsStream(jsFileName),
                 name: 'cnv.js'
             ] 
             
-            scripts << [
+            assets << [
                 source: getClass().classLoader.getResourceAsStream('cnv_diagram.js'),
                 name: 'cnv_diagram.js'
+            ]  
+            
+            assets << [
+                source: getClass().classLoader.getResourceAsStream('cnv_report.css'),
+                name: 'cnv_report.css'
             ]  
         }
         
         File outputDir = outputFile.parentFile
-        js = scripts.collect { script ->
+        String renderedAssets = assets.collect { script ->
             if(inlineJs) {
                 String code = script.source.text
-                """<script type="text/javascript">\n${code}\n</script>\n"""
+                if(script.name.endsWith('.js')) {
+                    """<script type="text/javascript">\n${code}\n</script>\n"""
+                }
+                else {
+                    """<style type="text/css">\n${code}\n</style>\n"""
+                }
             }
             else {
                    String code = script.source.text
-                   File jsFile = new File(outputDir, script.name)
-                   jsFile.text = code
-                   """<script type="text/javascript" src='$script.name'></script>\n"""
+                   File assetFile = new File(outputDir, script.name)
+                   assetFile.text = code
+                   if(script.name.endsWith('.js')) {
+                       """<script type="text/javascript" src='$script.name'></script>\n"""
+                   }
+                   else { // assume stylesheet
+                       """<link rel="stylesheet" href='$script.name'>"""
+                   }
             }
         }.join("\n")
         
-        scripts.each { if(it.source instanceof InputStream) it.source.close() }
+        assets.each { if(it.source instanceof InputStream) it.source.close() }
            
         templateStream.withReader { r ->
             new File(fileName).withWriter { w ->
@@ -359,7 +378,7 @@ class SummarizeCNVs {
                     types : ['DUP','DEL'],
                     reportSamples : false,
                     cnvAnnotator : cnvAnnotator,
-                    js : js,
+                    js : renderedAssets,
                     bam_files : bamFiles,
                     bam_file_path : bamFilePath,
                     idMask: idMask
