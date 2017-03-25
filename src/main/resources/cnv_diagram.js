@@ -135,9 +135,10 @@ class CNVDiagram {
                         .attr("stroke-width", 3);
       
               callSelect.append("text")
-                        .attr("x", function(call,i) { return xScale((call.end + call.start)/2) /*+ cnv.callers[caller].caller.length*8 */ })
+                        .attr("x", function(call,i) { return (xScale(call.end) + xScale(call.start))/2 /*+ cnv.callers[caller].caller.length*8 */ })
                         .attr("y", function(call,i) { return callersYOffset+callerTickHeight-10*(1+(i % textShiftMod)) })
-                        .text(function(call,i) { return cnv.callers[caller].caller + " ("+callQualFormat(call.quality)+")"});
+                        .text(function(call,i) { return cnv.callers[caller].caller + " ("+callQualFormat(call.quality)+")"})
+                        .attr('style', 'font-size: '+plotLayout.labelFontSize+'px')
        
               ++callerColorIndex;
               callersYOffset+=callerHeight+2;
@@ -147,6 +148,110 @@ class CNVDiagram {
       // Always allow 10px gap for callers
       plotLayout.callersHeight+=(callersYOffset-callersBaseline) + 10;
       plotLayout.stackHeight = callersYOffset;
+  }
+  
+  renderCoverageSd(svg, cnv, plotLayout) {
+      
+      var xScale = plotLayout.xScale;
+      var yScale = plotLayout.yScale;
+      var gridYValuesMax = plotLayout.gridYValuesMax;
+      
+       // Draw the standard deviation
+       for(var i=0; i<cnv.targets.length; ++i) {
+
+           var target = cnv.targets[i];
+       
+           // The plain sd values are not great because we actually 
+           // want to see them relative to the mean (1.0) and we also want
+           // to see them in the same direction as the test sample
+           // So we do this transform to map their values to that form
+           var sdValues = target.coverageSd.map(function(x,i) {
+               return Math.min(gridYValuesMax-0.01, Math.max(0, target.sampleCov[i]>1.0 ? 1+x : 1-x));
+           });
+      
+           var lineSd = d3.line()
+                         .x(function(c,i) { return xScale(target.start + i); })
+                         .y(function(c,i) { return yScale(c); })
+                         .curve(d3.curveLinear);
+      
+           var area = d3.area()
+                        .x(function(c,i) { return xScale(target.start + i); })
+                        .y0(yScale(1.0))
+                        .y1(function(c,i) { return yScale(c) })
+           
+           svg.append("path")
+              .attr("class", "area")
+              .attr("d", area(sdValues))
+              .attr("fill", "#f5eeee")
+              .attr("stroke", "#eee")
+              .attr("stroke-width", 2)
+      }     
+  }
+  
+  renderSampleCoverage(svg, cnv, plotLayout) {
+      
+      var xScale = plotLayout.xScale;
+      var yScale = plotLayout.yScale;
+      var goodCoverageThreshold = 15;
+      var gridYValuesMax = plotLayout.gridYValuesMax;
+      
+      console.log("Drawing sample coverage");
+      
+      // Draw the sample coverage
+      for(var i=0; i<cnv.targets.length; ++i) {
+          var target = cnv.targets[i];
+          
+          var categorize = function(i) {
+              var cov = target.otherCov[i];
+              if(cov > goodCoverageThreshold) {
+                  return "h";
+              }
+              else {
+                  return "l";
+              }
+          }
+          
+          var blocks = function*() {
+              var state = null;
+              var pos = 0;
+              for(var i=0; i<target.sampleCov.length;++i) {
+                  var newState = categorize(i);
+                  if(newState != state) {
+                      console.log("New block: " + newState + " (old="+state+")");
+                      yield { start: pos, end: i, state: newState }; 
+                      state = newState;
+                      pos = i;
+                  }
+              }
+              yield { start: pos, end: i, state: state }; 
+          }
+ 
+          var line = d3.line()
+                       .x(function(i) { return xScale(target.start + i); })
+                       .y(function(i) { return yScale(Math.min(target.sampleCov[i],gridYValuesMax)); })
+                       .curve(d3.curveLinear);
+      
+          // Combine the necessary values together as a stream
+          // The three values are position, coverage and othercoverage
+          var vals = function*(start,end) { 
+               for(var i=start; i<end;++i) {
+                   yield i; 
+               }
+          }
+          
+          for(let block of blocks()) {
+              var redVals = Array.from(vals(block.start,block.end));
+              var path = svg.append("path")
+                 .attr("d", line(redVals))
+                 .attr("stroke", block.state == "h" ? "red" : "pink")
+                 .attr("stroke-width", block.state == "h" ? 2 : 2)
+                 .attr("fill", "none");
+              
+              if(block.state != "h")
+                 path.style("stroke-dasharray",("3,3"));
+              
+          }
+      }
   }
   
   renderPlot() {
@@ -177,6 +282,7 @@ class CNVDiagram {
           xOffset : xPadding / 2,
           baselineY : 25,
           exonHeight : 14,
+          labelFontSize: 9, // Font size in px
           xScale : null // populated later
       }
       
@@ -214,7 +320,7 @@ class CNVDiagram {
         .data(cnv.genes) 
         .enter()
         
-    var geneMarkHeight = 6;
+    var geneMarkHeight = 5;
       
     // Draw the genes 
     // Three separate parts: the horizontal line, then vertical strokes at beginning and end
@@ -240,9 +346,10 @@ class CNVDiagram {
         .attr('style', "stroke:green;stroke-width:3");
             
     geneLines.append('text')
-             .attr('x', function(gene) { return xScale((gene.end+gene.start)/2)})
+             .attr('x', function(gene) { return (xScale(gene.end)+xScale(gene.start))/2})
              .attr('y', function(gene) { return plotLayout.baselineY-geneMarkHeight-5})
              .text(function(gene) { return gene.gene; })
+             .attr('style', 'font-size: '+plotLayout.labelFontSize+'px')
              
     plotLayout.stackHeight += plotLayout.exonHeight;
     
@@ -255,7 +362,8 @@ class CNVDiagram {
       var yScale = d3.scaleLinear()
                      .domain([-0.25,2.5])
                      .range([this.state.height,plotLayout.stackHeight]);
-      
+    
+      plotLayout.yScale = yScale;
      
       // Draw axes
       var gridYValues = [-0.25, 0,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0,2.25,2.5];
@@ -277,6 +385,8 @@ class CNVDiagram {
       var gridYValuesMax = Math.max.apply(null,gridYValues);
       var gridYMin = yScale(Math.min.apply(null,gridYValues));
       var gridYMax = yScale(gridYValuesMax);
+      
+      plotLayout.gridYValuesMax = gridYValuesMax;
       
       var yMargin = 4;
       
@@ -357,53 +467,10 @@ class CNVDiagram {
            
          
        console.log("gridYMax = " + gridYMax);
-       // Draw the standard deviation
-       for(var i=0; i<cnv.targets.length; ++i) {
-
-           var target = cnv.targets[i];
-       
-           // The plain sd values are not great because we actually 
-           // want to see them relative to the mean (1.0) and we also want
-           // to see them in the same direction as the test sample
-           // So we do this transform to map their values to that form
-           var sdValues = target.coverageSd.map(function(x,i) {
-               return Math.min(gridYValuesMax-0.01, Math.max(0, target.sampleCov[i]>1.0 ? 1+x : 1-x));
-           });
+    
+      this.renderCoverageSd(svg, cnv, plotLayout);
       
-           var lineSd = d3.line()
-                         .x(function(c,i) { return xScale(target.start + i); })
-                         .y(function(c,i) { return yScale(c); })
-                         .curve(d3.curveLinear);
-      
-           var area = d3.area()
-                        .x(function(c,i) { return xScale(target.start + i); })
-                        .y0(yScale(1.0))
-                        .y1(function(c,i) { return yScale(c) })
-           
-           svg.append("path")
-              .attr("class", "area")
-              .attr("d", area(sdValues))
-              .attr("fill", "#f5eeee")
-              .attr("stroke", "#eee")
-              .attr("stroke-width", 2)
-      }     
-           
-      // Draw the sample coverage
-      for(var i=0; i<cnv.targets.length; ++i) {
-          var target = cnv.targets[i];
-      
-          var line = d3.line()
-                       .x(function(c,i) { return xScale(target.start + i); })
-                       .y(function(c,i) { return yScale(Math.min(c,gridYValuesMax)); })
-                       .curve(d3.curveLinear);
-      
-          svg.append("path")
-             .attr("d", line(target.sampleCov))
-             .attr("stroke", "red")
-             .attr("stroke-width", 2)
-             .attr("fill", "none");
-      }
-      
+      this.renderSampleCoverage(svg, cnv, plotLayout);
 
   }
   
