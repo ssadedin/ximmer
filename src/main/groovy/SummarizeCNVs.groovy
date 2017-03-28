@@ -237,7 +237,7 @@ class SummarizeCNVs {
     
     void metaAnnotate(Regions results) {
         for(Region cnv in results) {
-            cnv.samples = results.grep { it.overlaps(cnv) }*.sample
+            cnv.samples = results.grep { it.overlaps(cnv) }*.sample.unique()
             cnv.sampleCount = cnv.samples.size()
             cnv.sampleFreq = (cnv.sampleCount / (double)samples.size())
             
