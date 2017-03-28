@@ -598,7 +598,7 @@ var TYPE_DESCRIPTIONS = {
     SNP : 'SNV'
 }
 
-function igv_load(cnv, pos) {
+function igv_load_cnv(cnv, pos) {
  var bam_url = 'http://localhost:60151/load?file='+encodeURIComponent(bam_file_path+bams[cnv.sample])+'&locus='+cnv.chr+'%3A'+cnv.start+'-'+cnv.end
 
  var pos_start
@@ -611,9 +611,17 @@ function igv_load(cnv, pos) {
      pos_start = cnv.start;
      pos_end = cnv.end;
  }
-
- var locus_url = 'http://localhost:60151/goto?locus='+cnv.chr+'%3A'+pos_start+'-'+pos_end
+ 
  $.ajax( bam_url, {
+    complete: function() {
+        igv_load(cnv.chr, pos_start, pos_end);
+    }
+ }); 
+}
+
+function igv_load(chr, start, end) {
+    var locus_url = 'http://localhost:60151/goto?locus='+chr+'%3A'+start+'-'+end;
+    $.ajax( bam_url, {
         complete: function() {
             $.ajax(locus_url);
         }
@@ -657,7 +665,7 @@ function show_cnv_details(cnvIndex) {
     var tagDiv = southWest.$div({id:"tags",'class':'cnvTags'});
     with(tagDiv) {
             
-        var cnvTags = userAnnotations[cnvIndex] && userAnnotations[cnvIndex].tags
+        var cnvTags = userAnnotations[cnvIndex] && userAnnotations[cnvIndex].tags;
         allTags.forEach(function(tag) {
             tagDiv.$div({'class':'cnvTag ' + ' tag'+(allTags.indexOf(tag)) + ' ' + (cnvTags && cnvTags[tag] ? 'assignedTag ' : 'unassignedTag')}).$span(tag).click(function() {
                 confirm('Remove tag ' + tag + '?');
@@ -681,13 +689,16 @@ function show_cnv_details(cnvIndex) {
 
     southWest.$p().$b("Region")
     with(southWest.$ul()) {
-        $li().$a({href:'http://dgv.tcag.ca/gb2/gbrowse/dgv2_hg19/?name='+cnv.chr+'%3A'+cnv.start+'-'+cnv.end+';search=Search'}).$span('DGV')
-        $li().$a({href:'http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position='+ucscChr(cnv.chr)+'%3A'+cnv.start+'-'+cnv.end+'&dgv=pack&knownGene=pack&omimGene=pack'}).$span('UCSC')
+        $li().$a({href:'http://dgv.tcag.ca/gb2/gbrowse/dgv2_hg19/?name='+cnv.chr+'%3A'+cnv.start+'-'+cnv.end+';search=Search', target:'ximmerdgv'}).$span('DGV')
+        $li().$a({
+                  href:'http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position='+ucscChr(cnv.chr)+'%3A'+cnv.start+'-'+cnv.end+'&dgv=pack&knownGene=pack&omimGene=pack',
+                  target: 'ximmerucsc'
+                 }).$span('UCSC')
         with($li()) {
           with($a({href:'#'})) {
             $span('IGV')
             click(function() {
-                igv_load(cnv);
+                igv_load_cnv(cnv);
                 return false;
             });
           }
@@ -702,8 +713,11 @@ function show_cnv_details(cnvIndex) {
             $td(gene.toString())
             with($td()) {
                 with($ul()) {
-                    $li().$a({href:'http://www.genecards.org/cgi-bin/carddisp.pl?gene='+encodeURIComponent(gene)+'&search='+gene+'#diseases'}).$span('GeneCards');
-                    $li().$a({href:'http://www.omim.org/search?index=entry&start=1&limit=10&search='+gene+'&sort=score+desc%2C+prefix_sort+desc'}).$span('OMIM');
+                    $li().$a({
+                      href:'http://www.genecards.org/cgi-bin/carddisp.pl?gene='+encodeURIComponent(gene)+'&search='+gene+'#diseases', 
+                      target:'ximmergenecards'
+                    }).$span('GeneCards');
+                    $li().$a({href:'http://www.omim.org/search?index=entry&start=1&limit=10&search='+gene+'&sort=score+desc%2C+prefix_sort+desc', target:'ximmeromim'}).$span('OMIM');
                     if(geneList && geneList[gene])
                         $li().$span('Category ' + geneList[gene]);
                 }
@@ -726,9 +740,9 @@ function show_cnv_details(cnvIndex) {
                 with($tr()) {
                     var encPos = ucscChr(v.chr) +'%3A'+v.alleles[0].start;
                     with($td()) { 
-                        $a({href:'http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position='+encPos+'&dgv=pack&knownGene=pack&omimGene=pack'}).$span(v.chr+':'+v.alleles[0].start)
+                        $a({href:'http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position='+encPos+'&dgv=pack&knownGene=pack&omimGene=pack', target:'ximmerucsc'}).$span(v.chr+':'+v.alleles[0].start)
                     }
-                    $td().$a({href:'http://localhost:60151/goto?locus='+encPos}).$span('igv');
+                    with($td().$a({href:'#'})) { $span('igv'); click(function() { igv_load(v.chr, v.pos, v.alleles[0].start)}) }
                     $td(v.effect ? v.effect.toLowerCase() : 'Unknown')
                     $td(v.impact ? v.impact.toLowerCase() : 'Unknown');
                     $td(v.dosage == 1 ?  'Het' : 'Hom')
