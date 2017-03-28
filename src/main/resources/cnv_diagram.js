@@ -84,10 +84,105 @@ class CNVDiagram {
       plotLayout.stackHeight += (variantHeight+10);
   }
   
+  renderGenes(svg,cnv,plotLayout) {
+      
+    // Draw genes and target regions
+    var geneLines = svg.selectAll('.baseline')
+        .data(cnv.genes) 
+        .enter()
+        
+    var geneMarkHeight = 5;
+    var characterWidth = 9;
+    var characterHeight = 10;
+    var baselineY = plotLayout.stackHeight;
+    
+    var geneTexts = [];
+    
+    var pointInRange = function(x, r) {
+        return x >= r.x1 && x < r.x2;
+    };
+    
+    var overlaps = function(a,b) {
+      return pointInRange(a.x1, b) || pointInRange(a.x2,b) || pointInRange(b.x1,a) || pointInRange(b.x2,a);
+    };
+    
+    var addGeneText = function(newLabel) {
+        // Check if any existing labels overlap this one
+        var overlappingLabels = geneTexts.filter(l => overlaps(l, newLabel));
+        if(overlappingLabels.length > 0)
+            newLabel.y = Math.max.apply(null, overlappingLabels.map(l => l.y)) + characterHeight;
+        geneTexts.push(newLabel);
+        return newLabel;
+    };
+       
+    var labelsByGene = {};
+    cnv.genes.forEach(function(gene) {
+        var label = { 
+                x1: (xScale(gene.end)+xScale(gene.start))/2,
+                y: baselineY-geneMarkHeight-5,
+                text: gene.gene,
+        };
+        
+        label.x2 = label.x1 + label.text.length*characterWidth;
+        var positionedLabel = addGeneText(label);
+        labelsByGene[gene.gene] = positionedLabel;
+    });
+    
+    geneLines.append('text')
+             .attr('x', function(gene) { return labelsByGene[gene.gene].x1; })
+             .attr('y', function(gene) { return labelsByGene[gene.gene].y})
+             .text(function(gene) { return gene.gene; })
+             .attr('style', 'font-size: '+plotLayout.labelFontSize+'px')
+      
+    var maxTextY = Math.max.apply(null, geneTexts.map(l => l.y)) + characterHeight;
+    var genePictogramY = maxTextY;
+    
+    // Draw the genes 
+    // Three separate parts: the horizontal line, then vertical strokes at beginning and end
+    geneLines.append('line')
+        .attr('x1', (gene) => xScale(gene.end)+2)
+        .attr('x2', (gene) => xScale(gene.start)-2)
+        .attr('y1', (gene) => genePictogramY+(plotLayout.exonHeight/2))
+        .attr('y2', (gene) => genePictogramY+(plotLayout.exonHeight/2))
+        .attr('style', "stroke:green;stroke-width:3")
+            
+    geneLines.append('line')
+        .attr('x1', function(gene) { console.log("Gene end = " + gene.end); return xScale(gene.end)+3 })
+        .attr('x2', (gene) => xScale(gene.end)+3)
+        .attr('y1', (gene) => genePictogramY+(plotLayout.exonHeight)+geneMarkHeight)
+        .attr('y2', (gene) => genePictogramY-geneMarkHeight)
+        .attr('style', "stroke:green;stroke-width:3")
+
+    geneLines.append('line')
+        .attr('x1', function(gene) { console.log("Gene start = " + gene.start); return xScale(gene.start)-5 })
+        .attr('x2', (gene) => xScale(gene.start)-5)
+        .attr('y1', (gene) => genePictogramY+(plotLayout.exonHeight)+geneMarkHeight)
+        .attr('y2', (gene) => genePictogramY-geneMarkHeight)
+        .attr('style', "stroke:green;stroke-width:3");
+            
+    svg.selectAll('.target')
+        .data(cnv.targets)
+        .enter()
+        .append('rect')
+            .attr('class', 'target')
+            .attr('fill', 'green')
+            .attr('stroke','green') 
+            .attr('x',function(target) { return xScale(target.start); })
+            .attr('y',genePictogramY)
+            .attr('rx',3)
+            .attr('ry',3)
+            .attr('height',function() {
+                return plotLayout.exonHeight;
+            })
+            .attr('width',function(target) { return Math.max(1,xScale(target.end) - xScale(target.start)); });
+             
+    plotLayout.stackHeight = maxTextY + plotLayout.exonHeight;
+  }
+  
   renderCnvCalls(svg,cnv, plotLayout) {
       
       // Finally, draw the CNV calls themselves
-      var callersBaseline = plotLayout.baselineY+plotLayout.exonHeight+25;
+      var callersBaseline = plotLayout.stackHeight+25;
       var callerColors = ["blue","orange","purple","cyan","red","pink","yellow"];
       var callerColorIndex = 0;
       var callerTickHeight=4;
@@ -315,43 +410,7 @@ class CNVDiagram {
      
     plotLayout.stackHeight = plotLayout.baselineY;
       
-    // Draw genes and target regions
-    var geneLines = svg.selectAll('.baseline')
-        .data(cnv.genes) 
-        .enter()
-        
-    var geneMarkHeight = 5;
-      
-    // Draw the genes 
-    // Three separate parts: the horizontal line, then vertical strokes at beginning and end
-    geneLines.append('line')
-        .attr('x1', (gene) => xScale(gene.end)+2)
-        .attr('x2', (gene) => xScale(gene.start)-2)
-        .attr('y1', (gene) => plotLayout.baselineY+(plotLayout.exonHeight/2))
-        .attr('y2', (gene) => plotLayout.baselineY+(plotLayout.exonHeight/2))
-        .attr('style', "stroke:green;stroke-width:3")
-            
-    geneLines.append('line')
-        .attr('x1', function(gene) { console.log("Gene end = " + gene.end); return xScale(gene.end)+3 })
-        .attr('x2', (gene) => xScale(gene.end)+3)
-        .attr('y1', (gene) => plotLayout.baselineY+(plotLayout.exonHeight)+geneMarkHeight)
-        .attr('y2', (gene) => plotLayout.baselineY-geneMarkHeight)
-        .attr('style', "stroke:green;stroke-width:3")
-
-    geneLines.append('line')
-        .attr('x1', function(gene) { console.log("Gene start = " + gene.start); return xScale(gene.start)-5 })
-        .attr('x2', (gene) => xScale(gene.start)-5)
-        .attr('y1', (gene) => plotLayout.baselineY+(plotLayout.exonHeight)+geneMarkHeight)
-        .attr('y2', (gene) => plotLayout.baselineY-geneMarkHeight)
-        .attr('style', "stroke:green;stroke-width:3");
-            
-    geneLines.append('text')
-             .attr('x', function(gene) { return (xScale(gene.end)+xScale(gene.start))/2})
-             .attr('y', function(gene) { return plotLayout.baselineY-geneMarkHeight-5})
-             .text(function(gene) { return gene.gene; })
-             .attr('style', 'font-size: '+plotLayout.labelFontSize+'px')
-             
-    plotLayout.stackHeight += plotLayout.exonHeight;
+    this.renderGenes(svg, cnv, plotLayout)
     
     this.renderCnvCalls(svg,cnv,plotLayout)
     
@@ -425,23 +484,7 @@ class CNVDiagram {
     svg.append("g")
        .attr("transform", "translate(30,0)")
        .call(yAxis);
-    
-    svg.selectAll('.target')
-        .data(cnv.targets)
-        .enter()
-        .append('rect')
-            .attr('class', 'target')
-            .attr('fill', 'green')
-            .attr('stroke','green') 
-            .attr('x',function(target) { return xScale(target.start); })
-            .attr('y',plotLayout.baselineY)
-            .attr('rx',3)
-            .attr('ry',3)
-            .attr('height',function() {
-                return plotLayout.exonHeight;
-            })
-            .attr('width',function(target) { return Math.max(1,xScale(target.end) - xScale(target.start)); });
-      
+     
     // Draw vertical gridlines
     svg.selectAll('.targetgrid')
        .data(cnv.targets.slice(1))
