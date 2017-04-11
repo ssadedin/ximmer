@@ -58,6 +58,10 @@ class Ximmer {
     
     Pedigrees pedigrees = null
     
+    List<String> males = null
+    
+    List<String> females = null
+    
     Random random = null
     
     /**
@@ -445,19 +449,38 @@ class Ximmer {
     }
     
     
+    /**
+     * Resolve pedigree / sample sex information.
+     * <p>
+     * Sample sex information can be specified in multiple different ways, so here
+     * we check for all the possible configuration options and resolve everything
+     * into a {@link pedigrees} attribute and {#males} and {#females} attributes that
+     * are the authoritative source of that information.
+     */
     void resolvePedigrees() {
 
         if(cfg.containsKey('ped_file')) {
+            log.info "Reading pedigree information from file: " + cfg.ped_file
             this.pedigrees = Pedigrees.parse(cfg.ped_file)
-            return
         }
-
-        if(!cfg.samples.containsKey('males') && !cfg.samples.containsKey('females')) {
-            log.info "Sex of samples is not specified in configuration. Sex will be infered from data which can take additional processing time. Please consider adding sample sex to your configuration file"
-            this.inferSexes()
+        else {
+            if(!cfg.samples.containsKey('males') && !cfg.samples.containsKey('females')) {
+                log.info "Sex of samples is not specified in configuration. Sex will be infered from data which can take additional processing time. Please consider adding sample sex to your configuration file"
+                this.inferSexes()
+            }
+            createPedigreesFromSampleConfig()
         }
-        //    throw new IllegalArgumentException("Please specify either a PED file in the configuration, or the samples.males and samples.females keys")
         
+        // Initialize the final resolve set of males and females
+        this.females = this.pedigrees.females
+        this.males = this.pedigrees.males
+    }
+    
+    /**
+     * Convert pedigree information specified in the 'samples' configuration
+     * block into an actual Pedigrees object.
+     */
+    void createPedigreesFromSampleConfig() {
         this.pedigrees = new Pedigrees()
         if(cfg.samples.containsKey('males')) {
             Pedigrees males = Pedigrees.fromSingletons(cfg.samples.males)
@@ -472,6 +495,12 @@ class Ximmer {
         }
     }
 
+    /**
+     * Infer sexes bioinformatically from the data, and add them to the configuration.
+     * <p>
+     * If successful, the cfg.samples section will look as if the user specified the 
+     * sexes themselves. Does not set the {@link #pedigrees} attribute.
+     */
     void inferSexes() {
         cfg.samples.females = []
         cfg.samples.males = []
@@ -671,7 +700,7 @@ class Ximmer {
         // If simulation mode is replacement, we need to select a male to simulate from
         SAM sourceSample = null
         if(cfg.simulation_type == "replace") {
-            String maleId = cfg.samples.males[random.nextInt(cfg.samples.males.size())]
+            String maleId = this.males[random.nextInt(this.males.size())]
             sourceSample = this.bamFiles[maleId]
             if(sourceSample == null) 
                 throw new IllegalStateException("The configured male sample $maleId does not have a corresponding BAM file configured under bam_files")
@@ -751,16 +780,17 @@ class Ximmer {
             return this.bamFiles*.value
         }
         else {
-            if(!("samples" in cfg)) 
-                throw new IllegalStateException("To use X replacement, please specify which samples are male and female in the 'samples' section of the configuration file")
             
-            Set<String> females = cfg.samples.females
+            if(!("samples" in cfg) && !("ped_file" in cfg)) 
+                throw new IllegalStateException("To use X replacement, please specify which samples are male and female in the 'samples' or 'ped_file' section of the configuration file")
+            
+            Set<String> females = this.pedigrees.females as Set
             
             List<SAM> results = this.bamFiles.grep { Map.Entry e ->
-                e.key in cfg.samples.females
+                e.key in females
             }*.value
         
-            log.info "Females are " + cfg.samples.females.join(',') + " with bam files " + this.bamFiles.keySet().join(',')
+            log.info "Females are " + females.join(',') + " with bam files " + this.bamFiles.keySet().join(',')
         
             if(results.isEmpty()) 
                 throw new IllegalStateException("To use X replacement, there must be at least one female sample configured")
