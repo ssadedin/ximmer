@@ -122,6 +122,7 @@ var columns = [];
 var filters = [];
 var layout = null;
 var cnvLayout = null;
+var cnvIndex = -1;
 
 
 var geneList = {};
@@ -365,6 +366,45 @@ $(document).ready(function() {
     $('#cnvTable').on('page.dt',  function() { setTimeout(add_display_events,0);});
     $('#cnvTable').on('search.dt',  function() { setTimeout(add_display_events,0);});
     
+    $(document.body).keydown(function(e) {
+       if(e.keyCode == 74) { // j
+           console.log("Key pressed: " + e.keyCode);
+           if(highlightTr) {
+               // Find index of the highlighted row in the table
+               var trs = $('#cnvTable tr');
+               for(var i=0; i<trs.length; ++i) {
+                   if(trs[i] == highlightTr) {
+                       // Find the next row
+                       if(i<trs.length-1) {
+                           console.log("go to next CNV: " + trs[i+1]);
+                           showCNVDetailsForRow(trs[i+1]);
+                       }
+                       break;
+                   }
+               }
+           }
+       }
+       else
+       if(e.keyCode == 75) { // k
+           
+           if(highlightTr) {
+               // Find index of the highlighted row in the table
+               var trs = $('#cnvTable tr');
+               for(var i=trs.length-1; i>=0; --i) {
+                   if(trs[i] == highlightTr) {
+                       // Find the next row
+                       if(i>0) {
+                           console.log("go to prev CNV: " + trs[i-1]);
+                           showCNVDetailsForRow(trs[i-1]);
+                       }
+                       break;
+                   }
+               }
+           } 
+
+          console.log("Key pressed: " + e.keyCode); 
+       }
+    });
 
     initialized = true;
 //    $('#tableHolder')[0].style.display='block';
@@ -574,22 +614,30 @@ function showHVR(visible) {
 
 var highlightTr = null
 
+function getCNVIndexForTableRow(tr) {
+    return parseInt($(tr).find('a')[0].href.match(/cnv_([0-9]*)_detail/)[1],10)-1;
+}
+
+function showCNVDetailsForRow(tr) {
+    var cnvIndex = getCNVIndexForTableRow(tr);
+    console.log("Displaying CNV " + cnvIndex);
+    show_cnv_details(cnvIndex);
+
+    if(highlightTr)
+       $(highlightTr).removeClass('highlighted');
+
+    highlightTr = tr;
+    $(highlightTr).addClass('highlighted');
+}
+
+
 function add_display_events() {
-    // $(".cnvRow").unbind('click').click(function() {
 
     console.log("Add display events");
-
-    $("#cnvTable tbody tr").unbind('click').click(function() {
-        var cnvIndex = parseInt($(this).find('a')[0].href.match(/cnv_([0-9]*)_detail/)[1],10)-1;
-        console.log("Displaying CNV " + cnvIndex);
-        show_cnv_details(cnvIndex);
-
-        if(highlightTr)
-           $(highlightTr).removeClass('highlighted');
-
-        highlightTr = this;
-        $(highlightTr).addClass('highlighted');
-    })
+    $("#cnvTable tbody tr").unbind('click').click(function(){
+        console.log("Show cnv details");
+        showCNVDetailsForRow(this);
+     });
 }
 
 var TYPE_DESCRIPTIONS = {
@@ -783,6 +831,7 @@ function show_cnv_details(cnvIndex) {
     });
     
     $('#ampliconButton').click(toggleAmplicons);
+    window.cnvIndex = cnvIndex;
 }
 
 function addTagToRow(dataIndex, showFn) {
