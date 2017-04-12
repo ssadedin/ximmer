@@ -358,6 +358,7 @@ class CNVSimulator {
                         if(e.message.startsWith("Alignments added out of order")) {
                             println "WARNING: failed to add alignment $r1.readName at $r1.referenceName:$r1.alignmentStart, $r2.referenceName:$r2.alignmentStart - is input file sorted?"
                             println "WARNING: Full message is $e.message"
+                            throw e
                         }
                         else {
                             throw e
@@ -381,6 +382,8 @@ class CNVSimulator {
         // Create a search window to expand the regions into
         Regions seedWindow = fromRegions.window(seedRegion, 10).grep { it.chr == seedRegion.chr } as Regions
         
+        println "Seed region = $seedRegion, search window = " +  seedWindow[0].chr + ":" + seedWindow[0].from + " - " + seedWindow[-1].to 
+        
         if(!seedWindow.overlaps(seedRegion)) {
             println "ERROR: window " +  seedWindow[0].chr + ":" + seedWindow[0].from + " - " + seedWindow[-1].to + " does not overlap original seed: " + seedRegion
             Regions testWindow = fromRegions.window(seedRegion, 10)
@@ -390,18 +393,25 @@ class CNVSimulator {
         String chromosome = seedRegion.chr
         
         if(maleReadRegions == null && maleBam != null) {
-            maleReadRegions = new SAM(maleBam.samFile).toPairRegions(chromosome,seedWindow[0].from,seedWindow[-1].to)
+            SAM maleRegionBam = new SAM(maleBam.samFile)
+            try {
+                maleReadRegions = maleRegionBam.toPairRegions(chromosome,seedWindow[0].from,seedWindow[-1].to)
+            }
+            finally {
+                maleRegionBam.close()
+            }
         }
         
         if(maleBam != null)
-            if(log.isLoggable(Level.FINE))
-                log.fine "Overlaps of male region with target are " + maleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
+//            if(log.isLoggable(Level.FINE))
+                log.info "Overlaps of male region with target are " + maleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
         
         if(femaleReadRegions == null)
             femaleReadRegions = femaleBam.toPairRegions(chromosome,seedWindow[0].from,seedWindow[-1].to,500)
             
-        if(log.isLoggable(Level.FINE))
-            log.fine "Overlaps of female region with target are " + femaleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
+//        if(log.isLoggable(Level.FINE))
+            log.info "Overlaps of ${femaleReadRegions.numberOfRanges} female read regions with target are " + 
+                femaleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
         
         Regions combinedRegions = maleReadRegions ? maleReadRegions.reduce() : new Regions()
         femaleReadRegions.reduce().each { r ->
