@@ -440,12 +440,12 @@ class CNVSimulator {
         Region cleanRegion  = null
         int attemptCount = 0
         
-        List<String> chromosomes = fromRegions*.chr.unique().sort()
+        List<String> chromosomes = fromRegions.grep { !it.isMinorContig() }*.chr.unique().sort()
         
         log.info "Chromosomes in target region are " + chromosomes
         
         List<String> suitableChromosomes = chromosomes.grep {  chr ->
-            (fromRegions.allRanges[chr].size() > numRanges * 2) && (chr ==~ /^chr[0-9X]*/)
+            (fromRegions.allRanges[chr].size() > numRanges * 2) 
         }
         
         log.info "Suitable chromosomes for simulation are " + suitableChromosomes
