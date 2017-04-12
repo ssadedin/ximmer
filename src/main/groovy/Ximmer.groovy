@@ -462,6 +462,9 @@ class Ximmer {
         if(cfg.containsKey('ped_file')) {
             log.info "Reading pedigree information from file: " + cfg.ped_file
             this.pedigrees = Pedigrees.parse(cfg.ped_file)
+            
+            this.females = this.pedigrees.females
+            this.males = this.pedigrees.males
         }
         else {
             if(!cfg.samples.containsKey('males') && !cfg.samples.containsKey('females')) {
@@ -483,15 +486,18 @@ class Ximmer {
     void createPedigreesFromSampleConfig() {
         this.pedigrees = new Pedigrees()
         if(cfg.samples.containsKey('males')) {
+            
+            println "Males are " + cfg.samples.males
+            
             Pedigrees males = Pedigrees.fromSingletons(cfg.samples.males)
             males.subjects*.value.each { ped -> ped.individuals.each { it.sex = Sex.MALE }}
-            this.pedigrees.add(males)
+            this.pedigrees = this.pedigrees.add(males)
         }
         
         if(cfg.samples.containsKey('females')) {
             Pedigrees females = Pedigrees.fromSingletons(cfg.samples.females)
             females.subjects*.value.each { ped -> ped.individuals.each { it.sex = Sex.FEMALE }}
-            this.pedigrees.add(females)
+            this.pedigrees = this.pedigrees.add(females)
         }
     }
 
@@ -699,11 +705,13 @@ class Ximmer {
         
         // If simulation mode is replacement, we need to select a male to simulate from
         SAM sourceSample = null
+        Regions simulationRegions = this.targetRegions
         if(cfg.simulation_type == "replace") {
             String maleId = this.males[random.nextInt(this.males.size())]
             sourceSample = this.bamFiles[maleId]
             if(sourceSample == null) 
                 throw new IllegalStateException("The configured male sample $maleId does not have a corresponding BAM file configured under bam_files")
+            simulationRegions = new Regions(this.targetRegion.grep { it.chr == 'chrX' || it.chr == 'X' })
         }
         
         if('groovy.lang.IntRange' != cfg.get('regions')?.class?.name)
@@ -717,7 +725,7 @@ class Ximmer {
             // Choose number of regions randomly in the range
             // the user has given
             int numRegions = cfg.regions.from + random.nextInt(cfg.regions.to - cfg.regions.from) 
-            Region r = simulator.selectRegion(this.targetRegion, numRegions, exclusions)
+            Region r = simulator.selectRegion(simulationRegions, numRegions, exclusions)
             
             log.info "Seed region for ${sampleId} is $r" 
             
@@ -738,7 +746,6 @@ class Ximmer {
         }
         else {
            simulator.simulationMode = "replace"
-           
         }
         
         simulator.createBam(outputFile.absolutePath, deletions)
@@ -784,9 +791,11 @@ class Ximmer {
             if(!("samples" in cfg) && !("ped_file" in cfg)) 
                 throw new IllegalStateException("To use X replacement, please specify which samples are male and female in the 'samples' or 'ped_file' section of the configuration file")
             
+            println "Females are " + this.pedigrees.females + " Males are " + this.pedigrees.males
             Set<String> females = this.pedigrees.females as Set
             
             List<SAM> results = this.bamFiles.grep { Map.Entry e ->
+                println "Check: " + e.key + " is female in " + females
                 e.key in females
             }*.value
         
