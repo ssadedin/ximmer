@@ -705,7 +705,7 @@ class Ximmer {
         
         // If simulation mode is replacement, we need to select a male to simulate from
         SAM sourceSample = null
-        Regions simulationRegions = this.targetRegions
+        Regions simulationRegions = this.targetRegion
         if(cfg.simulation_type == "replace") {
             String maleId = this.males[random.nextInt(this.males.size())]
             sourceSample = this.bamFiles[maleId]
