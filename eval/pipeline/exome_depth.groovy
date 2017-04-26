@@ -31,8 +31,8 @@ run_exome_depth = {
             hg19.fasta = "$HGFA"
 
             # Read the target / covered region
-            print(sprintf("Reading target regions for $chr from $target_bed"))
-            dsd.covered = read.bed(pipe("grep '^$chr[^0-9]' $target_bed"))
+            print(sprintf("Reading target regions for $chr from $analysable_target"))
+            dsd.covered = read.bed(pipe("grep '^$chr[^0-9]' $analysable_target"))
 
             # ExomeDepth wants the columns named differently
             dsd.covered = data.frame(

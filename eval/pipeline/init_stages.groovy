@@ -39,6 +39,7 @@ create_analysable_target = {
            filteredTargets.save("$output.bed", sorted:true)
         """
    }
+   branch.analysable_target = output.bed
 }
 
 
