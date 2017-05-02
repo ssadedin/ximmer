@@ -810,13 +810,21 @@ class Ximmer {
     
     void generateReport(AnalysisConfig analysis) {
         
+        // Find the analysable target region - this is actually produced by the bpipe run,
+        // so it has to come from there
+        
+        File runDir = this.runs*.value[0].runDirectory
+        File analysedTargets = new File(runDir,"target_regions.analysable.bed")
+        
+        log.info "Generating report based on analysed target regions: $analysedTargets"
+        
         String analysisName = analysis.analysisName
         
         log.info "Generating consolidated report for " + this.runs.size() + " runs in analysis $analysisName"
         
         String summaryHTML = generateSummary(analysis)
         
-        generateROCPlots(analysis)
+        generateROCPlots(analysis, analysedTargets)
         
         log.info("Generating HTML Report ...")
         File mainTemplate = new File("$ximmerBase/src/main/resources/index.html")
@@ -961,7 +969,7 @@ class Ximmer {
                   [combinedCnvs.absolutePath, new File(outputDirectory,"cnv_size_histogram.png").absolutePath])
     }
     
-    void generateROCPlots(AnalysisConfig analysisCfg) {
+    void generateROCPlots(AnalysisConfig analysisCfg, File analysedTargetRegions) {
         
        if(!enableTruePositives) {
            log.info "True positives not enabled: skipping ROC plots"
@@ -977,7 +985,7 @@ class Ximmer {
                 ANALYSIS: analysisCfg.analysisName,
                 SRC: new File("$ximmerBase/src/main/R").absolutePath, 
                 XIMMER_RUNS: runs*.value*.runDirectory*.name.join(","),
-                TARGET_REGION: new File(cfg.target_regions).absolutePath,
+                TARGET_REGION: analysedTargetRegions.absolutePath,
                 XIMMER_CALLERS: callerCfgs,
                 XIMMER_CALLER_LABELS: analysisCfg.callerLabels.join(','),
                 SIMULATION_TYPE: cfg.simulation_type
@@ -1035,6 +1043,8 @@ class Ximmer {
             """unset TMP; unset TEMP; TEMPDIR="$rTempDir" $rScriptExe - < ${scriptFile.absolutePath}\n"""
             
         tempScript.setExecutable(true)
+        
+        log.info "R environment: $env"
         
         ProcessBuilder pb = new ProcessBuilder([
            "bash", tempScript.absolutePath
