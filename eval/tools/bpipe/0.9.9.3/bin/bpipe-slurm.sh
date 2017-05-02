@@ -82,7 +82,7 @@ MKDIR_JOBDIR_FAILED=8
 JOBTYPE_FAILED=9              # jobtype variable led to non-zero exit status
 
 ESSENTIAL_ENV_VARS="COMMAND NAME"
-OPTIONAL_ENV_VARS="WALLTIME PROCS QUEUE JOBDIR JOBTYPE MEMORY"
+OPTIONAL_ENV_VARS="WALLTIME PROCS QUEUE JOBDIR JOBTYPE MEMORY CUSTOM_SUBMIT_OPTS"
 DEFAULT_BATCH_MEM=4096
 DEFAULT_BATCH_PROCS=1
 DEFAULT_WALLTIME="01:00:00" # one hour
@@ -145,12 +145,31 @@ make_slurm_script () {
         account="#SBATCH --account $ACCOUNT"
    fi
 
+   # allow specification of mb, gb or none
+   if [[ $MEMORY == *gb ]] || [[ $MEMORY == *GB ]] || [[ $MEMORY == *G ]] || [[ $MEMORY == *g ]];
+   then
+    	MEMORY=${MEMORY%gb}
+    	MEMORY=${MEMORY%g}
+    	MEMORY=${MEMORY%G}
+    	MEMORY=${MEMORY%GB}
+    	MEM_UNIT="GB"
+   elif [[ $MEMORY == *mb ]] || [[ $MEMORY == *MB ]] || [[ $MEMORY == *M ]] || [[ $MEMORY == *m ]];
+   then
+    	MEMORY=${MEMORY%mb}
+    	MEMORY=${MEMORY%m}
+    	MEMORY=${MEMORY%M}
+    	MEMORY=${MEMORY%MB}
+    	MEM_UNIT="MB"
+   else
+        MEM_UNIT="gb" # default is to assume GB
+   fi
+
    # handle the single, smp and mpi types specially
    case $JOBTYPE in
       single) if [[ -z $MEMORY ]]; then
                 memory_request="#SBATCH --mem=${DEFAULT_BATCH_MEM}"
              else
-                memory_request="#SBATCH --mem=${MEMORY}"
+                memory_request="#SBATCH --mem=${MEMORY}${MEM_UNIT}"
              fi
              if [[ -z $PROCS ]]; then
                 procs_request="#SBATCH --ntasks=$DEFAULT_BATCH_PROCS"
@@ -163,7 +182,7 @@ make_slurm_script () {
       smp)   if [[ -z $MEMORY ]]; then
                 memory_request=""
              else
-                memory_request="#SBATCH --mem=${MEMORY}" 
+                memory_request="#SBATCH --mem=${MEMORY}${MEM_UNIT}" 
              fi
              # the SMP queue never requests cores (it gets a single node), and has --exclusive flag
              # (this may be VLSCI specific)
@@ -173,7 +192,7 @@ make_slurm_script () {
       mpi) if [[ -z $MEMORY ]]; then
                 memory_request="#SBATCH --mem-per-cpu=${DEFAULT_BATCH_MEM}"
              else
-                memory_request="#SBATCH --mem-per-cpu=${MEMORY}"
+                memory_request="#SBATCH --mem-per-cpu=${MEMORY}${MEM_UNIT}"
              fi
              if [[ -z $PROCS ]]; then
                 procs_request="#SBATCH --ntasks=$DEFAULT_BATCH_PROCS"
@@ -223,7 +242,7 @@ start () {
    if [[ -f $job_script_name ]]
       then
          # launch the job and get its id
-         job_id_full=`sbatch $job_script_name`
+         job_id_full=`sbatch $CUSTOM_SUBMIT_OPTS $job_script_name`
          sbatch_exit_status=$?
          if [[ $? -eq 0 ]]
             then
@@ -277,7 +296,8 @@ status () {
                   CONFIGURING|PENDING|SUSPENDED) echo WAITING;; 
                   COMPLETING|RUNNING) echo RUNNING;;    
                   CANCELLED) echo COMPLETE 999;; # Artificial exit code because Slurm does not provide one    
-                  COMPLETED|FAILED|NODE_FAIL|PREEMPTED|TIMEOUT) 
+                  TIMEOUT) echo COMPLETE 998;; # Artificial exit code because Slurm does not provide one    
+                  COMPLETED|FAILED|NODE_FAIL|PREEMPTED) 
                   # scontrol will include ExitCode=N:M, where the N is exit code and M is signal (ignored)
                   #        command_exit_status=`echo $scontrol_output |grep Exit|sed 's/.*ExitCode=\([0-9]*\):[0-9]*/\1/'`
                   command_exit_status=`echo $scontrol_output|tr ' ' '\n' |awk -vk="ExitCode" -F"=" '$1~k{ print $2}'|awk -F":" '{print $1}'`

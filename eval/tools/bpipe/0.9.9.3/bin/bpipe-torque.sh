@@ -45,7 +45,7 @@ QSUB_FAILED=7              # qsub command returned non-zero exit status
 MKDIR_JOBDIR_FAILED=8      # mkdir $JOBDIR failed
 
 ESSENTIAL_ENV_VARS="COMMAND NAME"
-OPTIONAL_ENV_VARS="WALLTIME PROCS QUEUE JOBDIR MEMORY"
+OPTIONAL_ENV_VARS="WALLTIME PROCS QUEUE JOBDIR MEMORY CUSTOM_SUBMIT_OPTS"
 DEFAULT_BATCH_MEM=1
 DEFAULT_BATCH_PROCS=1
 DEFAULT_WALLTIME="01:00:00" # one hour
@@ -121,13 +121,32 @@ make_pbs_script () {
         account="#PBS -A $ACCOUNT"
    fi
 
+   # allow specification of mb, gb or none
+   if [[ $MEMORY == *gb ]] || [[ $MEMORY == *GB ]] || [[ $MEMORY == *G ]] || [[ $MEMORY == *g ]];
+   then
+    	MEMORY=${MEMORY%gb}
+    	MEMORY=${MEMORY%g}
+    	MEMORY=${MEMORY%G}
+    	MEMORY=${MEMORY%GB}
+    	MEM_UNIT="gb"
+   elif [[ $MEMORY == *mb ]] || [[ $MEMORY == *MB ]] || [[ $MEMORY == *M ]] || [[ $MEMORY == *m ]];
+   then
+    	MEMORY=${MEMORY%mb}
+    	MEMORY=${MEMORY%m}
+    	MEMORY=${MEMORY%M}
+    	MEMORY=${MEMORY%MB}
+    	MEM_UNIT="mb"
+   else
+        MEM_UNIT="gb" # default is to assume GB
+   fi
+
    # handle the batch and smp queues specially with regards to memory and procs
    case $QUEUE in
       batch) if [[ -z $MEMORY ]]; then
                 : ${MEM_PARAM:=pvmem}
                 memory_request="#PBS -l $MEM_PARAM=${DEFAULT_BATCH_MEM}gb"
              else
-                memory_request="#PBS -l $MEM_PARAM=${MEMORY}gb"
+                memory_request="#PBS -l $MEM_PARAM=${MEMORY}${MEM_UNIT}"
              fi
              if [[ -z $PROCS ]]; then
                 set_procs $DEFAULT_BATCH_PROCS
@@ -138,7 +157,7 @@ make_pbs_script () {
                 memory_request=""
              else
                 : ${MEM_PARAM:=mem}
-                memory_request="#PBS -l $MEM_PARAM=${MEMORY}gb" 
+                memory_request="#PBS -l $MEM_PARAM=${MEMORY}${MEM_UNIT}" 
              fi
              # the SMP queue never requests cores (it gets a single node)
              procs_request="";;
@@ -147,7 +166,7 @@ make_pbs_script () {
                 memory_request=""
              else
                 : ${MEM_PARAM:=mem}
-                memory_request="#PBS -l $MEM_PARAM=${MEMORY}gb" 
+                memory_request="#PBS -l $MEM_PARAM=${MEMORY}${MEM_UNIT}" 
              fi 
              if [[ -z $PROCS ]]; then
                 #procs_request="#PBS -l procs=$DEFAULT_BATCH_PROCS"
@@ -196,7 +215,7 @@ start () {
    if [[ -f $job_script_name ]]
       then
          # launch the job and get its id
-         job_id_full=`qsub $job_script_name`
+         job_id_full=`qsub $CUSTOM_SUBMIT_OPTS $job_script_name`
          qsub_exit_status=$?
          if [[ $? -eq 0 ]]
             then
