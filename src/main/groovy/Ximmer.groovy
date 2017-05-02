@@ -814,7 +814,7 @@ class Ximmer {
         // so it has to come from there
         
         File runDir = this.runs*.value[0].runDirectory
-        File analysedTargets = new File(runDir,"$analysis.analysisName/target_regions.analysable.bed")
+        File analysedTargets = new File(runDir,"target_regions.analysable.bed")
         
         log.info "Generating report based on analysed target regions: $analysedTargets"
         
@@ -1043,6 +1043,8 @@ class Ximmer {
             """unset TMP; unset TEMP; TEMPDIR="$rTempDir" $rScriptExe - < ${scriptFile.absolutePath}\n"""
             
         tempScript.setExecutable(true)
+        
+        log.info "R environment: $env"
         
         ProcessBuilder pb = new ProcessBuilder([
            "bash", tempScript.absolutePath
