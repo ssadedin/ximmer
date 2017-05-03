@@ -54,7 +54,7 @@ plot_cnv_coverage = {
         return
     }
     
-    from("cnv_report.tsv") { produce("cnv_${chr}_*.png") {
+    from("cnv_report.tsv") { produce("cnv_${chr}_*.js") {
 
         def caller_opts = []
 
@@ -75,7 +75,7 @@ plot_cnv_coverage = {
                 -cnvs $input.tsv
                 -gatkcov common/xhmm
                 -targets $input.bed
-                -json
+                -json -nopng
                 -o ${output.dir+"/cnv.png"} $reportSamplesFlag
                 -t $threads ${caller_opts.join(" ")} ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} ${inputs.bam.withFlag("-bam")}
                 -refseq $refgene
