@@ -60,8 +60,8 @@ conifer_fix_chr_prefix = {
      
      produce(batch_name+ ".conifer.cnvs.tsv") {
          exec """
-             cat $input.cnvs.tsv | sed 's/chr\\([0-9XYM]\\{1,2\\}\\)/$chr_prefix\1/g' > $output.tsv
-         """
+             cat $input.cnvs.tsv | sed 's/chr\\([0-9XYM]\\{1,2\\}\\)/$chr_prefix\\1/g' > $output.tsv
+         ""","local"
      }
      
      branch.caller_result = output.tsv
