@@ -46,16 +46,27 @@ conifer_analyze = {
 
 conifer_call = {
     requires batch_name : "The name of the batch that Conifer is analysing"
-    produce(batch_name+ ".conifer.cnvs.tsv") {
+    produce(batch_name+ ".conifer.raw.cnvs.tsv") {
         exec """
         LD_LIBRARY_PATH=$HDF5_DIR/lib $PYTHON $CONIFER call 
         --input $input.hdf5 
         --output $output.tsv
         """
    }
-   branch.caller_result = output.tsv
+}
+
+conifer_fix_chr_prefix = {
+     requires batch_name : "The name of the batch that Conifer is analysing"
+     
+     produce(batch_name+ ".conifer.cnvs.tsv") {
+         exec """
+             cat $input.cnvs.tsv | sed 's/chr\\([0-9XYM]\\{1,2\\}\\)/$chr_prefix\1/g'    
+         """
+     }
+     
+     branch.caller_result = output.tsv
 }
 
 run_conifer = segment {
-    '%.bam' * [ conifer_rpkm ] + conifer_analyze + conifer_call
+    '%.bam' * [ conifer_rpkm ] + conifer_analyze + conifer_call + conifer_fix_chr_prefix
 }
