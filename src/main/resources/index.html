@@ -17,11 +17,16 @@
  
         <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
         <script type='text/javascript' src='http://cdnjs.cloudflare.com/ajax/libs/jquery-layout/1.3.0-rc-30.79/jquery.layout.min.js'></script>
+        <script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.js'></script>
+        <script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.11/c3.js'></script>
 
         <link rel="stylesheet" href='http://cdn.datatables.net/1.10.0/css/jquery.dataTables.css'>
         <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css" />
         
         <link rel="stylesheet" href='http://cdnjs.cloudflare.com/ajax/libs/jquery-layout/1.3.0-rc-30.79/layout-default.css'>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.11/c3.css" rel="stylesheet" type="text/css">
+        
+        ${assets}
         
         <style type='text/css'>
 
@@ -221,7 +226,17 @@
             }
 
             #sizebreakdown img {
-                wdith: 20%;
+                width: 20%;
+            }
+            
+            h3.qualCalTitle {
+                text-align: center;
+                font-size: 14px;
+            }
+            
+            .c3-axis-x-label {
+                font-size: 12px;
+                font-weight: bold;
             }
              
         </style>
@@ -237,6 +252,8 @@
         </style>
 
         <script type='text/javascript'>
+        
+            var events = {};
         
             var layout = null;
             \$(document).ready(function() {
@@ -265,6 +282,7 @@
                             activate: function(event,ui) {
                                 
                                 console.log("Activate tab");
+                                \$(events).trigger("activate",ui);
                                 
                                 if(!ui.newPanel[0]) {
                                     console.log("No new panel");
@@ -325,12 +343,14 @@
                 </div> <!-- sizebreakdown -->
                 
                 <div id=qscorecalibration>
-                <h2>Quality Score Calibration Curves</h2>
-                <p>
-                    These curves estimate the precision as quality varies for each CNV caller. Use these curves
-                    to determine the appropriate level of filtering to control your false discovery rate.
-                </p>
-                <img src='<%=analysisName%>_qual_score_calibration.png'>
+                    <h2>Quality Score Calibration Curves</h2>
+                    <p>
+                        These curves estimate the precision as quality varies for each CNV caller. Use these curves
+                        to determine the appropriate level of filtering to control your false discovery rate.
+                    </p>
+                    <div id='qscore_calibration_figure'>
+                    </div>
+                    
                 </div> <!-- qscore calibration -->
             <% } /* end if enableTruePositives */ %>
                
