@@ -184,6 +184,20 @@ class SummarizeCNVs {
             if(opts.tsv) {
                 summarizer.writeTSV(cnvs, opts.tsv)
             }
+            
+            // If there is a truth set available, for each CNV set,
+            // set the true CNVs on the set
+            if(results.truth) {
+                results.each { caller, calls ->
+                    if(caller != "truth") {
+                        calls.truth = results.truth
+                    }
+                }
+            }
+            
+            File outputDirFile = new File(outputFileName).absoluteFile.parentFile
+            summarizer.writeCallerJSON(results, new File(outputDirFile, 'cnv_calls.js'))
+            
             summarizer.log.info "Writing output to " + outputFileName
             summarizer.writeReport(
                 cnvs, 
@@ -200,6 +214,18 @@ class SummarizeCNVs {
             e.printStackTrace()
             System.exit(1)
         }
+    }
+    
+    /**
+     * Write all the CNV calls as JSON
+     * 
+     * @param results
+     * @param outputFile
+     */
+    void writeCallerJSON(Map<String, CNVResults> results, File outputFile) {
+        outputFile.text = 'var cnv_calls = {\n' + results.collect { String caller, CNVResults calls -> 
+            /"$caller" : / + calls.toJson()
+        }.join(',\n') + '\n}\n'
     }
     
     Regions run(List exportSamples) {
@@ -280,7 +306,14 @@ class SummarizeCNVs {
         }
     }
     
-    void writeReport(Regions cnvs, String name, String fileName, String reportTemplate="cnv_report.html", boolean inlineJs=true, List bamFiles = [], def bamFilePath=false, String imgpath="") {
+    void writeReport(Regions cnvs, 
+                     String name, 
+                     String fileName, 
+                     String reportTemplate="cnv_report.html", 
+                     boolean inlineJs=true, 
+                     List bamFiles = [], 
+                     def bamFilePath=false, 
+                     String imgpath="") {
         
         log.info "Using report template: " + reportTemplate
         
@@ -294,80 +327,33 @@ class SummarizeCNVs {
         
         File cnvReportFile = new File(reportTemplate)
         
-        List<String> assets = []
+        HTMLAssetSource assetSource
+        File outputDir = outputFile.parentFile
         
         // Avoid using the output file as a template if it happens to exist!
         if(cnvReportFile.exists() && (cnvReportFile.canonicalPath != outputFile.canonicalPath)) {
-            templateStream = new File(reportTemplate).newInputStream()
-            
             File templateParentDir = new File(reportTemplate).absoluteFile.parentFile
-            
-            File jsFile = new File(templateParentDir, jsFileName)
-            log.info "js file = " + jsFile
-            assets << [
-                source: jsFile.newInputStream(),
-                name: 'cnv.js'
-            ]
-            
-            assets << [
-                source: new File(templateParentDir,'cnv_diagram.js').newInputStream(),
-                name: 'cnv_diagram.js'
-            ] 
-            
-            assets << [
-                source: new File(templateParentDir,'cnv_report.css').newInputStream(),
-                name: 'cnv_report.css'
-            ]
+            assetSource = new HTMLFileAssetSource(templateParentDir)
+            templateStream = new File(reportTemplate).newInputStream()
         }
         else {
+            assetSource = new HTMLClassloaderAssetSource()
             templateStream = getClass().classLoader.getResourceAsStream(reportTemplate)
-            
-            if(templateStream == null) {
-                throw new RuntimeException("ERROR: Unable to load template " + reportTemplate)
-            }
-           
-            assets << [
-                source: getClass().classLoader.getResourceAsStream(jsFileName),
-                name: 'cnv.js'
-            ] 
-            
-            assets << [
-                source: getClass().classLoader.getResourceAsStream('cnv_diagram.js'),
-                name: 'cnv_diagram.js'
-            ]  
-            
-            assets << [
-                source: getClass().classLoader.getResourceAsStream('cnv_report.css'),
-                name: 'cnv_report.css'
-            ]  
         }
         
-        File outputDir = outputFile.parentFile
-        String renderedAssets = assets.collect { script ->
-            if(inlineJs) {
-                String code = script.source.text
-                if(script.name.endsWith('.js')) {
-                    """<script type="text/javascript">\n${code}\n</script>\n"""
-                }
-                else {
-                    """<style type="text/css">\n${code}\n</style>\n"""
-                }
-            }
-            else {
-                   String code = script.source.text
-                   File assetFile = new File(outputDir, script.name)
-                   assetFile.text = code
-                   if(script.name.endsWith('.js')) {
-                       """<script type="text/javascript" src='$script.name'></script>\n"""
-                   }
-                   else { // assume stylesheet
-                       """<link rel="stylesheet" href='$script.name'>"""
-                   }
-            }
-        }.join("\n")
+        HTMLAssets assets = 
+            new HTMLAssets(assetSource, outputDir) \
+                  << new HTMLAsset(
+                    source: 'cnv_report.js',
+                    name: 'cnv.js'
+                ) << new HTMLAsset(
+                    source: 'cnv_diagram.js'
+                ) << new HTMLAsset(
+                    source: 'cnv_report.css'
+                );
+                                
+        String renderedAssets = assets.render()
         
-        assets.each { if(it.source instanceof InputStream) it.source.close() }
-           
         templateStream.withReader { r ->
             new File(fileName).withWriter { w ->
                 templateEngine.createTemplate(r).make(

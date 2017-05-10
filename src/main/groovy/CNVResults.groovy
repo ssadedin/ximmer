@@ -1,3 +1,4 @@
+import groovy.json.JsonOutput
 
 /**
  * Base class representing a file of CNV results
@@ -21,6 +22,26 @@ abstract class CNVResults extends RangedData {
 	CNVResults(String fileName) {
         super(fileName)
 	}
+    
+    String toJson() {
+        JsonOutput.toJson(
+                this.collect { cnv ->
+                    def row = [
+                        chr: cnv.chr,
+                        start: cnv.from, 
+                        end: cnv.to,
+                        sample: cnv.sample,
+                        quality: cnv.quality
+                    ]
+                    
+                    if(truth != null) {
+                        row.truth = truth.any { it.overlaps(cnv) && it.sample == cnv.sample }
+                    }
+                    
+                    row
+                }
+        )
+    }
     
     /**
      * An (optional) set of true positives relevant to these results

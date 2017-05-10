@@ -831,6 +831,14 @@ class Ximmer {
         
         String outputName = analysisName + ".html"
         
+        HTMLAssetSource source = new HTMLClassloaderAssetSource()
+        HTMLAssets assets = new HTMLAssets(source, outputDirectory)
+        
+        assets << new HTMLAsset(source:'summary_report.js')
+        assets << new HTMLAsset(source:'DOMBuilder.dom.min.js')
+        
+        String assetPayload = assets.render()
+        
         new File(outputDirectory, outputName).withWriter { w ->
             SimpleTemplateEngine templateEngine = new SimpleTemplateEngine()
             templateEngine.createTemplate(mainTemplate.newReader()).make(
@@ -839,7 +847,8 @@ class Ximmer {
                 outputDirectory : outputDirectory.name,
                 summaryHTML : summaryHTML,
                 callers: this.callerIds,
-                enableTruePositives: this.enableTruePositives
+                enableTruePositives: this.enableTruePositives,
+                assets: assetPayload
             ).writeTo(w)
         }
         
@@ -929,7 +938,7 @@ class Ximmer {
         // Load the results
         List<RangedData> results = runs*.value*.runDirectory.collect { runDir ->
             new RangedData(new File(runDir,"$analysisCfg.analysisName/report/cnv_report.tsv").path).load([:], { r ->
-                    callerIds.each { r[it] = r[it] == "TRUE" }
+                    (callerIds + ["truth"]).each { r[it] = (r[it] == "TRUE") }
           })
         }
         
