@@ -75,8 +75,14 @@ For X-replacement to work, Ximmer needs to known which samples are female
 and which are male. You don't *have* to specify sample sex: if you don't,
 Ximmer will guess it by counting the number of reads on the X, Y and non-sex
 chromosomes. However this takes some non-trivial computing resources and can 
-sometimes be inaccurate, so Ximmer allows you to specify this in a `samples` section
-of the configuration file. The samples section appears as follows:
+sometimes be inaccurate, so Ximmer allows you to specify this. There are two ways
+to specify it: you can supply a PED file:
+
+```
+ped_file="/path/to/your/ped_file.ped"
+```
+
+Or in a `samples` section in the configuration:
 
 ```groovy
 samples {
@@ -188,6 +194,20 @@ how the CNV callers are run are specificed by two blocks:
     
 See the [Analysis](analysis.md) section for details about how to configure these
 sections in detail.
+
+## Using CRAM Format
+
+CRAM format saves a lot of space but requires that a reference sequence be specified. 
+
+This needs to be configured in two places for CRAM format to work:
+
+ * Set the correct FASTA file for the reference in eval/pipeline/config.groovy
+ * Set the environment variable XIMMER_REF to the absolute path of the FASTA reference 
+   file, eg:
+
+```
+export XIMMER_REF=/path/to/your/reference.fasta
+```
 
 ## Full Configuration Example
 
