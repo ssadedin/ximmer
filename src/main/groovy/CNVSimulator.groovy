@@ -273,7 +273,13 @@ class CNVSimulator {
         final String chr = cleanRegions[0].chr
         final String rgId = femaleBam.samFileReader.fileHeader.getReadGroups()[0].getId()
         
+        final long outputReadCount = 0;
+        
         // Read each BAM 
+        ProgressCounter writeProgress = new ProgressCounter()
+        writeProgress.extra = {
+            " $outputReadCount reads written to $outputFileName"
+        }
         femaleBam.withWriter(outputFileName, false) { SAMFileWriter  writer ->
             femaleBam.eachPair { SAMRecord r1, SAMRecord r2 ->
                 
@@ -294,6 +300,8 @@ class CNVSimulator {
                 if(random.nextFloat() < femaleDownSampleRate) {
                     writer.addAlignment(r1)
                     writer.addAlignment(r2)
+                    outputReadCount+=2
+                    writeProgress.count()
                 }
             }
             
@@ -305,9 +313,12 @@ class CNVSimulator {
                     r[1].setAttribute("DL","1")
                     r[1].setAttribute(SAMTagUtil.getSingleton().RG, rgId);
                     writer.addAlignment(r[1])
+                    outputReadCount+=2
+                    writeProgress.count()
                 }
             }
         }
+        writeProgress.end()
     }
     
     /**
