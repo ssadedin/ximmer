@@ -53,10 +53,12 @@ print(sprintf("Labels = %s", paste(XIMMER_CALLER_LABELS,sep=',',collapse=',')))
 
 DGV_MAX_FREQ=as.numeric(Sys.getenv("DGV_MAX_FREQ"))
 DGV_MIN_STUDY_SIZE=as.numeric(Sys.getenv("DGV_MIN_STUDY_SIZE"))
+DGV_CNVS=Sys.getenv("DGV_CNVS")
 
-print(sprintf("Loading cnvs with max freq %f, min study size %s", DGV_MAX_FREQ, DGV_MIN_STUDY_SIZE))
+print(sprintf("Loading cnvs with min freq %f, min study size %s from %s", 
+            DGV_MAX_FREQ, DGV_MIN_STUDY_SIZE, DGV_CNVS))
        
-dgv = load_dgv(Sys.getenv("DGV_CNVS"))
+dgv = load_dgv(DGV_CNVS)
 
 print(sprintf("Filtering DGV CNVs"))
 

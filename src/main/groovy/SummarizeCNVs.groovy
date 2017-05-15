@@ -224,7 +224,7 @@ class SummarizeCNVs {
      */
     void writeCallerJSON(Map<String, CNVResults> results, File outputFile) {
         outputFile.text = 'var cnv_calls = {\n' + results.collect { String caller, CNVResults calls -> 
-            /"$caller" : / + calls.toJson()
+            /"$caller" : / + calls.toJson(this.cnvAnnotator)
         }.join(',\n') + '\n}\n'
     }
     

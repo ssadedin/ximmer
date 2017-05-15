@@ -1059,6 +1059,12 @@ class Ximmer {
             
         tempScript.setExecutable(true)
         
+        File tempEnv = new File(rTempDir, "XimmerRscript.sh")
+        tempEnv.text = env.collect { key, value -> 
+            /$key="$value"/
+        }.join("\n")  + "\n"
+        
+        log.info "Wrote R environment to $tempEnv"
         log.info "R environment: $env"
         
         ProcessBuilder pb = new ProcessBuilder([

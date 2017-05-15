@@ -23,7 +23,7 @@ abstract class CNVResults extends RangedData {
         super(fileName)
 	}
     
-    String toJson() {
+    String toJson(TargetedCNVAnnotator annotator = null) {
         JsonOutput.toJson(
                 this.collect { cnv ->
                     def row = [
@@ -33,6 +33,10 @@ abstract class CNVResults extends RangedData {
                         sample: cnv.sample,
                         quality: cnv.quality
                     ]
+                    
+                    if(annotator) {
+                        row.spanningFreq = annotator.annotate(cnv, cnv.type).spanningFreq
+                    }
                     
                     if(truth != null) {
                         row.truth = truth.any { it.overlaps(cnv) && it.sample == cnv.sample }
