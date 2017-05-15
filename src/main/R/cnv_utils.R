@@ -213,7 +213,7 @@ load_dgv = function(gzipped.file.name) {
   dgv.ranges$gains = dgv$observedGains
   dgv.ranges$losses = dgv$observedLosses
   dgv.ranges$perc = ifelse(dgv.ranges$count>0,dgv.ranges$losses / dgv.ranges$count,0)
-  return(dgv)
+  return(dgv.ranges)
 }
 
 

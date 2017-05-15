@@ -24,6 +24,7 @@ SIMULATION_TYPE=Sys.getenv("SIMULATION_TYPE")
 if(is.na(SIMULATION_TYPE))
     SIMULATION_TYPE = "replace"
 
+
 print(sprintf("SRC=%s", SRC))
 print(sprintf("Callers=%s", paste(XIMMER_CALLERS,collapse=',')))
 
@@ -47,6 +48,23 @@ ximmer.sims = lapply(sim.names, function(run) {
 XIMMER_CALLER_LABELS = unlist(strsplit(Sys.getenv('XIMMER_CALLER_LABELS'), split=','))
 
 print(sprintf("Labels = %s", paste(XIMMER_CALLER_LABELS,sep=',',collapse=',')))
+
+# Load DGV
+
+DGV_MAX_FREQ=as.numeric(Sys.getenv("DGV_MAX_FREQ"))
+DGV_MIN_STUDY_SIZE=as.numeric(Sys.getenv("DGV_MIN_STUDY_SIZE"))
+
+print(sprintf("Loading cnvs with max freq %f, min study size %s", DGV_MAX_FREQ, DGV_MIN_STUDY_SIZE))
+       
+dgv = load_dgv(Sys.getenv("DGV_CNVS"))
+
+print(sprintf("Filtering DGV CNVs"))
+
+dgv.exclude = dgv[(dgv$count > DGV_MIN_STUDY_SIZE) & (dgv$perc>DGV_MAX_FREQ)]
+
+# print(sprintf("Excluding %d regions from DGV", sum(width(reduce(dgv.exclude)))));
+
+print("Loaded DGV CNVs");
 
 names(ximmer.sims) = sim.names
 
@@ -107,7 +125,7 @@ if(SIMULATION_TYPE == "replace") {
     deletionsOnly=TRUE
 }
 
-ranked = load_ranked_run_results(truth, names(ximmer.sims), filterChrX=filterChrX, deletionsOnly=deletionsOnly)
+ranked = load_ranked_run_results(truth, names(ximmer.sims), exclude.bed=dgv.exclude, filterChrX=filterChrX, deletionsOnly=deletionsOnly)
 nice_colors = plot.colors = c('orange','blue','green','black','purple','red')
 
 sim.caller.labels = XIMMER_CALLER_LABELS
