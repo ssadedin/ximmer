@@ -814,7 +814,10 @@ class Ximmer {
         // so it has to come from there
         
         File runDir = this.runs*.value[0].runDirectory
-        File analysedTargets = new File(runDir,"target_regions.analysable.bed")
+        File analysedTargets = new File(runDir,new File(cfg.target_regions).name.replaceAll('.bed$',".analysable.bed"))
+        
+        if(!analysedTargets.exists())
+            throw new RuntimeException("ERROR: analysis pipeline did not produce expected analysed target region BED: $analysedTargets.absolutePath")
         
         log.info "Generating report based on analysed target regions: $analysedTargets"
         
