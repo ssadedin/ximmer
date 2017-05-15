@@ -998,6 +998,9 @@ class Ximmer {
                 SRC: new File("$ximmerBase/src/main/R").absolutePath, 
                 XIMMER_RUNS: runs*.value*.runDirectory*.name.join(","),
                 TARGET_REGION: analysedTargetRegions.absolutePath,
+                DGV_CNVS: dgvMergedFile.absolutePath,
+                DGV_MAX_FREQ: String.valueOf((cfg.get('dgv')?:[:]).get('max_freq')?:0.05),
+                DGV_MIN_STUDY_SIZE: String.valueOf(cfg.get('min_study_size')?:10),
                 XIMMER_CALLERS: callerCfgs,
                 XIMMER_CALLER_LABELS: analysisCfg.callerLabels.join(','),
                 SIMULATION_TYPE: cfg.simulation_type
