@@ -16,6 +16,45 @@ function min(x,fn) {
 }
 
 /**
+ * Half-open range class.
+ * <p>
+ * Range is inclusive of start, exclusive of end
+ */
+class Range {
+    
+    constructor(props, start, end) {
+        // If only 1 args, assume object syntax
+        if(!end) {
+            Object.assign(this, props)
+        }
+        else {
+            this.chr = props;
+            this.from = start;
+            this.to = end;
+        }
+    }
+    
+    containsWithinBounds(x) {
+        return x >= this.from && x < this.to
+    }
+    
+    overlaps(b) {
+        let a = this;
+        let result = (a.chr == b.chr) && 
+                                 (a.containsWithinBounds(b.to) || 
+                                  a.containsWithinBounds(b.from) ||
+                                  b.containsWithinBounds(a.to))
+        return result;
+    }    
+    
+    toString() {
+        return `${this.chr}:${this.from}-${this.to}`;
+    }
+}
+
+// ----------------------------- QScore Calibration ----------------------------------
+
+/**
  * Ximmer CNV Evaluation Javascript
  * 
  * Displayes plots and summary information about CNV detection performance.
@@ -201,32 +240,246 @@ function showQscores() {
     }
 }
 
-function loadCnvs(callback) {
-    
-    console.log("loadCnvs");
-    
-     var oldScriptElement = document.getElementById('cnvs_load_script');
-     if(oldScriptElement)
-         oldScriptElement.parentNode.removeChild(oldScriptElement);
+// ----------------------------- ROC Curve Functions  ----------------------------------
 
-     const script = document.createElement("script");
-     script.id = 'cnvs_load_script';
-     script.src = '1/analysis-base/report/cnv_calls.js'
-     script.async = true;
-     script.onload = callback;
-     
-     console.log("Loading cnv calls from " + script.src);
-     document.body.appendChild(script); 
+class CNVROCCurve {
+    
+    constructor(props) {
+        /**
+         * cnvs - a map keyed on caller id with values being the calls
+         */
+        this.rawCnvs = props.cnvs;
+        this.maxFreq = props.maxFreq ? props.maxFreq : 0.01;
+        this.sizeRange = props.sizeRange;
+        
+        if(!this.rawCnvs.truth) 
+            throw new Error("ROC Curve requires true positives specified in CNV calls as 'truth' property")
+    }
+    
+    computeROCStats(cnvs) {
+        
+        // the set of true positives that we have identified
+        let tps = this.rawCnvs.truth.map(function(cnv, i) {
+            var tp = Object.assign(new Range(cnv.chr, cnv.start, cnv.end),cnv);
+            tp.id = i;
+            tp.detected = false;
+            return tp;
+        });
+        
+        window.tps = tps;
+        
+        let tpCount = 0;
+        let fpCount = 0;
+        
+        cnvs.forEach(function(cnv) {
+            cnv.range = new Range(cnv.chr, cnv.start, cnv.end);
+            if(cnv.truth) {
+                // Which tp? we don't want to double count
+                let tp = tps.find(tp => tp.overlaps(cnv.range) && (tp.sample == cnv.sample))
+                
+                if(!tp) {
+                    console.log(`CNV marked as true but does not overlap truth set: ${cnv.chr}:${cnv.start}-${cnv.end}`);
+                }
+                else
+                if(!tp.detected) {
+                    tp.detected = true;
+                    ++tpCount;
+                }
+            }
+            else {
+                ++fpCount;
+            }
+            cnv.tp = tpCount;
+            cnv.fp = fpCount
+        });
+    }
+    
+    render(id) {
+        
+        let sizeMin = Math.pow(10, this.sizeRange[0]);
+        let sizeMax = Math.pow(10, this.sizeRange[1]);
+        
+        const unfilteredCount = Object.values(this.rawCnvs).reduce((n,caller) => n+caller.length, 0);
+        console.log(`There are ${unfilteredCount} raw cnv calls`);
+        
+        console.log("Filtering by spanningFreq < " + this.maxFreq + " size range = " + this.sizeRange);
+        
+        // First, filter by maxFreq since that makes everything else faster
+        // then sort each cnv caller's CNVs in descending order of quality
+        this.filteredCnvs = {};
+        Object.keys(this.rawCnvs).filter(caller => caller != 'truth').forEach((caller) =>
+            this.filteredCnvs[caller] = 
+                this.rawCnvs[caller].filter(cnv => cnv.spanningFreq < this.maxFreq && (cnv.end - cnv.start > sizeMin) && (cnv.end - cnv.start < sizeMax))
+                                    .sort((cnv1,cnv2) => cnv2.quality - cnv1.quality)
+        );
+        
+        let cnvCount = Object.values(this.filteredCnvs).reduce((n,caller) => n+caller.length, 0);
+        console.log(`There are ${cnvCount} cnv calls after filtering by spanningFreq<${this.maxFreq}`);
+        
+        window.cnvs = this.filteredCnvs;
+            
+        // Now iterate through each caller's CNVs and compute the number of true and false positives
+        Object.values(this.filteredCnvs).forEach((cnvs) => this.computeROCStats(cnvs));
+        
+        /*
+        
+        let xCols = Object.keys(this.filteredCnvs).map(caller => [caller+'_x'].concat(this.filteredCnvs[caller].map(cnv => cnv.fp)))
+        
+        let yCols = Object.keys(this.filteredCnvs).map(caller => [caller + '_y'].concat(this.filteredCnvs[caller].map(cnv => cnv.tp)))
+        
+        let xs = Object.keys(this.filteredCnvs).reduce(function(result, caller) { 
+            result[caller+'_y'] = caller + '_x';
+            return result
+        }, {});
+            
+        c3.generate({
+           bindto: '#' + id,
+           data: {
+               xs: xs,
+               columns: xCols.concat(yCols),
+               type: 'scatter'
+           }, 
+        });
+        */
+        
+        
+        let points = [];
+        Object.keys(this.filteredCnvs).forEach(caller => points.push({
+            values: this.filteredCnvs[caller].map(cnv => { return { x: cnv.fp, y: cnv.tp }}),
+            key: caller
+        }))
+        
+        window.points = points;
+        
+        var chart = nv.models.lineChart()
+                             .margin({left: 100})  //Adjust chart margins to give the x-axis some breathing room.
+                             .useInteractiveGuideline(true)  //We want nice looking tooltips and a guideline!
+                             .showLegend(true)       //Show the legend, allowing users to turn on/off line series.
+                             .showYAxis(true)
+                             .showXAxis(true)
+                        ;
+                    
+        chart.xAxis.axisLabel('False Positives')
+        chart.yAxis.axisLabel('True Positives')
+        
+//        chart.tooltip.contentGenerator(function (obj) { console.log('called'); return JSON.stringify(obj)})        ;
+//        var tooltip = chart.interactiveLayer;
+//        tooltip.contentGenerator = function (d) { return "FUG"; };
+//        chart.tooltip.contentGenerator= function(data, elem) {
+//            elem.innerHTML = 'FOO';
+//        };
+//        
+//        window.chart = chart;
+        
+        d3.select('#' + id)
+          .datum(points)  
+          .call(chart);  
+        
+//        nv.utils.windowResize(function() { chart.update() });        
+    }
 }
 
-function loadAndShowQscores() {
-    console.log("loadAndShowQscores");
+function showROCCurve() {
+    console.log("ROC Curve");
     
-    if(typeof(window.cnv_calls) == 'undefined') {
-        loadCnvs(showQscores)
+    $('#cnv_roc_curve_container').html('<svg style="display: inline;" id=cnv_roc_curve></svg><div id=slider_label></div><div style="display: block; margin-left: 100px" id=slider></div>');
+    
+    let makePlot = (range) =>  {
+        let plot = new CNVROCCurve({
+            cnvs: cnv_calls,
+            sizeRange: range
+        });
+        plot.render('cnv_roc_curve');
+    };
+        
+    let labelFn = (range) => {
+        $( "#slider_label" ).html("CNV Size Range: " + Math.pow(10,range[0]) + "bp - " + Math.pow(10,range[1])+"bp");
+    };
+    
+    let initialRange = [0, 7];
+    
+    var redrawTimeout = null;
+    
+    $(function() {
+        $("#slider").slider({
+          range: true,
+          values: initialRange,
+          min: 0,
+          max: 7,
+          step: 1,
+          slide: function( event, ui ) {
+            console.log(ui.values);
+            labelFn(ui.values);
+            if(redrawTimeout)
+                clearTimeout(redrawTimeout);
+            redrawTimeout = setTimeout(() => {
+                makePlot(ui.values);
+              }, 2000);
+          }
+        }).width(450);
+     });    
+    
+    labelFn(initialRange);
+    makePlot(initialRange);
+}
+
+
+// ----------------------------- CNV Loading Functions ----------------------------------
+
+
+function loadCnvs(callback, runsToLoad, results) {
+    
+    console.log("loadCnvs");
+   
+    var oldScriptElement = document.getElementById('cnvs_load_script');
+    if(oldScriptElement)
+        oldScriptElement.parentNode.removeChild(oldScriptElement);
+    
+    let run = runsToLoad.pop();
+    
+    console.log(`Loading cnvs from run ${run}`);
+
+    // todo: iterate over runs
+    //       append run number to each sample id
+    const script = document.createElement("script");
+    script.id = 'cnvs_load_script';
+    script.src = run + '/' + analysisName + '/report/cnv_calls.js'
+    script.async = true;
+    
+    let mergeResults =  () => {  
+        Object.values(cnv_calls).forEach(cnvs => cnvs.forEach(cnv => cnv.sample = cnv.sample + "-" + run));
+        if(!results)
+            results = cnv_calls;
+        else
+            Object.keys(results).forEach(caller => results[caller] = results[caller].concat(cnv_calls[caller]));
+    };
+    
+    if(runsToLoad.length > 0) {
+        script.onload = () => {
+            mergeResults()
+            loadCnvs(callback, runsToLoad, results);
+        }; 
     }
     else {
-        showQscores();
+        script.onload = () => {
+            mergeResults()
+            window.cnv_calls = results;
+            callback()
+        };
+    }
+    
+    console.log("Loading cnv calls from " + script.src);
+    document.body.appendChild(script); 
+}
+
+function loadAndCall(fn) {
+    console.log("loadAndCall");
+    
+    if(typeof(window.cnv_calls) == 'undefined') {
+        loadCnvs(fn, runs.map((r) => r)) // hack to clone runs
+    }
+    else {
+        fn();
     }
 }
 
@@ -236,7 +489,11 @@ $(document).ready(function() {
        console.log("Activated in summary");
        var panelId = ui.newPanel[0].id;
        if(panelId == "qscorecalibration") {
-           loadAndShowQscores()
+           loadAndCall(showQscores);
+       }
+       else 
+       if(panelId == "simrocs") {
+           loadAndCall(showROCCurve);
        }
    }); 
 })

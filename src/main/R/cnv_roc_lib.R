@@ -256,6 +256,8 @@ load_ranked_run_results = function(truth, analysis.names, exclude.bed=NULL, batc
       cnvs = cnvs[ !(cnvs %over% exclude.bed) | (cnvs %over% truth)  ]
     }
     
+    printf("%d filtered deletion CNVs for %s", length(cnvs), caller)
+
     cnvs$sample = as.character(cnvs$sample)
     cnvs$true = unlist(lapply(cnvs, function(cnv) {
       cnv %over% truth[truth$id == cnv$sample]
