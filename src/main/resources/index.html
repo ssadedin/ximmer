@@ -6,25 +6,21 @@
         -   runDirectories  :  the directory containing all the runs
         
 */%>
-
-
 <html>
     <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
         <title>Ximmer Report <%if(outputDirectory) { %>for <%=outputDirectory%> <% } %></title>
         
         <script type='text/javascript' src='http://ajax.aspnetcdn.com/ajax/jQuery/jquery-2.1.0.min.js'></script>
         <script type='text/javascript' src="http://cdn.datatables.net/1.10.0/js/jquery.dataTables.js"></script>
  
-        <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+        <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.12.4/jquery-ui.min.js"></script>
         <script type='text/javascript' src='http://cdnjs.cloudflare.com/ajax/libs/jquery-layout/1.3.0-rc-30.79/jquery.layout.min.js'></script>
-        <script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.js'></script>
-        <script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.11/c3.js'></script>
 
         <link rel="stylesheet" href='http://cdn.datatables.net/1.10.0/css/jquery.dataTables.css'>
-        <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css" />
+        <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.12.4/themes/smoothness/jquery-ui.css" />
         
         <link rel="stylesheet" href='http://cdnjs.cloudflare.com/ajax/libs/jquery-layout/1.3.0-rc-30.79/layout-default.css'>
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.11/c3.css" rel="stylesheet" type="text/css">
         
         ${assets}
         
@@ -238,7 +234,10 @@
                 font-size: 12px;
                 font-weight: bold;
             }
-             
+            #cnv_roc_curve {
+                width: 600px;
+                height: 400px;
+             } 
         </style>
         
         <style type='text/css'>
@@ -254,6 +253,10 @@
         <script type='text/javascript'>
         
             var events = {};
+            
+            var runs = <%=groovy.json.JsonOutput.toJson(runDirectories*.name)%>;
+            
+            var analysisName = "<%=$analysisName%>";
         
             var layout = null;
             \$(document).ready(function() {
@@ -331,7 +334,14 @@
                     <h2>ROC Style Curves for <%=callers.size()%> CNV Callers</h2>
                     <p>ROC curves show the number of true positives vs false positives found
                        as quality score (or confidence measure) decreases.</p>
+                       
+                    <div id=cnv_roc_curve_container>
+                        <svg id=cnv_roc_curve>
+                        </svg>
+                    </div>
+                                           
                     <img src="<%=analysisName%>_roc.png">
+                    
                 </div><!-- simrocs -->
                 
                 <div id=sizebreakdown>
