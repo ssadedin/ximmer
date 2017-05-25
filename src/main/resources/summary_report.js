@@ -309,7 +309,10 @@ class CNVROCCurve {
         this.filteredCnvs = {};
         Object.keys(this.rawCnvs).filter(caller => caller != 'truth').forEach((caller) =>
             this.filteredCnvs[caller] = 
-                this.rawCnvs[caller].filter(cnv => cnv.spanningFreq < this.maxFreq && (cnv.end - cnv.start > sizeMin) && (cnv.end - cnv.start < sizeMax))
+                this.rawCnvs[caller].filter(cnv => cnv.spanningFreq < this.maxFreq &&
+                                                  (cnv.end - cnv.start > sizeMin) && 
+                                                  (cnv.end - cnv.start < sizeMax) && 
+                                                  ((simulationType != 'replace') || (cnv.chr == 'chrX' || cnv.chr == 'X')))
                                     .sort((cnv1,cnv2) => cnv2.quality - cnv1.quality)
         );
         
@@ -423,7 +426,17 @@ function showROCCurve() {
     makePlot(initialRange);
 }
 
+// ----------------------------- CNV Size Binning  ----------------------------------
 
+class CNVSizePlot {
+    constructor(props) {
+        this.rawCnvs = props.cnvs;
+    }
+    
+    render() {
+    }
+}
+ 
 // ----------------------------- CNV Loading Functions ----------------------------------
 
 
