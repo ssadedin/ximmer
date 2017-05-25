@@ -856,7 +856,8 @@ class Ximmer {
                 summaryHTML : summaryHTML,
                 callers: this.callerIds,
                 enableTruePositives: this.enableTruePositives,
-                assets: assetPayload
+                assets: assetPayload,
+                simulation_type: cfg.simulation_type
             ).writeTo(w)
         }
         

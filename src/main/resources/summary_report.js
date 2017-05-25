@@ -312,7 +312,7 @@ class CNVROCCurve {
                 this.rawCnvs[caller].filter(cnv => cnv.spanningFreq < this.maxFreq &&
                                                   (cnv.end - cnv.start > sizeMin) && 
                                                   (cnv.end - cnv.start < sizeMax) && 
-                                                  (cnv.chr == 'chrX' || cnv.chr == 'X'))
+                                                  ((simulationType != 'replace') || (cnv.chr == 'chrX' || cnv.chr == 'X')))
                                     .sort((cnv1,cnv2) => cnv2.quality - cnv1.quality)
         );
         

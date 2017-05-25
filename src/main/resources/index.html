@@ -257,6 +257,8 @@
             var runs = <%=groovy.json.JsonOutput.toJson(runDirectories*.name)%>;
             
             var analysisName = "<%=analysisName%>";
+            
+            var simulationType = "<%=simulation_type%>";
         
             var layout = null;
             \$(document).ready(function() {
