@@ -120,6 +120,7 @@ load.combined.results = function(sims, batch.name, pattern="%s/%s/report/%s.cnv.
                     sample=result.table$sample,
                     sim=result.table$sim)  
   for(caller in sim.callers) {
+    print(sprintf("Appending caller %s to result table", caller))
     mcols(results)[,caller] = result.table[,caller]
   }
   return(results)
@@ -374,8 +375,11 @@ load.truth = function(sims) {
   # Load the "true_cnvs.bed" file from each simulation which is expected to 
   # be in the directories named by the "sims" list given as argument.
   truth = do.call(c,lapply(sims, function(s) {
-    sim.truth = read.bed.ranges(sprintf("%s/true_cnvs.bed",s))
+    truth_bed_file = sprintf("%s/true_cnvs.bed",s)
+    print(sprintf('Read true positives from: %s', truth_bed_file))
+    sim.truth = read.bed.ranges(truth_bed_file)
     sim.truth$source = s
+    print(sprintf('Read %d true positives from: %s', length(sim.truth), truth_bed_file))
     return(sim.truth)
   }))
   truth$id = as.character(truth$id)  
