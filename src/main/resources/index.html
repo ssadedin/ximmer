@@ -266,21 +266,8 @@
                 \$('body').layout({ applyDefaultStyles: true });
                 layout = \$('#innerLayout').layout({ applyDefaultStyles: true });
                 layout.sizePane("north",50);
-                
-                createRunTab(0);
             });
             
-            function createRunTab(runId) {
-                var ifel = document.getElementById('run'+runId + 'Iframe');
-                var doc = ifel.contentWindow.document;
-                ifel.width = (\$(window).width() - 50);
-                ifel.height = (\$(window).height() - 180);
-                console.log("Write run " + runId + " to iframe");
-                doc.open();
-                doc.write(atob(window["run"+runId+"HTML"]));
-                doc.close();                                
-            }
-           
             // Calling tabs() directly doesn't seem to work
             setTimeout(function() { 
                     \$('#innerLayout').tabs({
@@ -297,12 +284,6 @@
                                 \$('#maincenter').css('padding','0px');
 
                                 var panelId = ui.newPanel[0].id;
-
-                                if(!panelId.match(/^runcalls[0-9]*/))
-                                    return;
-                                
-                                var runId = parseInt(panelId.replace(/[^0-9]*/g,""),10);
-                                createRunTab(runId);
                             }
                     });
            }, 0);
@@ -369,9 +350,6 @@
             <%runDirectories.eachWithIndex { File runDir, runIndex  -> %>
             <div id=runcalls<%=runIndex%> >
                 <iframe id="run<%=runIndex%>Iframe" style="position: absolute; height: 100%; border: none" src="about:blank" width='100%' height='100%'></iframe>
-                <script id=run0IframeContents type="text/javascript">
-                var run<%=runIndex%>HTML = "<%=new File(outputDirectory + '/' + runDir.name+'/' + analysisName +'/report/cnv_report.html').text.bytes.encodeBase64()%>";
-                </script>
             </div>             
             <%}%>
       </div> <% /* innerLayout */ %>

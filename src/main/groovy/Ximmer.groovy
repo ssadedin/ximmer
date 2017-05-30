@@ -829,6 +829,11 @@ class Ximmer {
         
         generateROCPlots(analysis, analysedTargets)
         
+        
+        List runDirectories = this.runs*.value*.runDirectory;
+        
+        writeEncodedCallerReports(runDirectories, analysisName)
+        
         log.info("Generating HTML Report ...")
         File mainTemplate = new File("$ximmerBase/src/main/resources/index.html")
         
@@ -853,7 +858,7 @@ class Ximmer {
             SimpleTemplateEngine templateEngine = new SimpleTemplateEngine()
             templateEngine.createTemplate(mainTemplate.newReader()).make(
                 analysisName : analysisName,
-                runDirectories: runs*.value*.runDirectory,
+                runDirectories: runDirectories,
                 outputDirectory : outputDirectory.name,
                 summaryHTML : summaryHTML,
                 callers: this.callerIds,
@@ -878,6 +883,24 @@ class Ximmer {
         } 
     }
     
+    /**
+     * Write out each CNV report, encoded as a javascript string using base 64.
+     * <p>
+     * This allows the main ximmer report to load and inject these reports as HTML on the fly
+     * without having all the HTML for each report (which can be huge) loaded into memory.
+     * 
+     * @param runDirectories
+     * @param analysisName
+     */
+    void writeEncodedCallerReports(List<File> runDirectories, String analysisName) {
+        runDirectories.eachWithIndex { File runDir, runIndex  -> 
+            File b64File = new File(outputDirectory, runDir.name+'/' + analysisName +'/report/cnv_report.b64.js')
+            log.info "Writing base 64 encoded CNV report to " + b64File
+            b64File.withWriter { w ->
+                w.println 'var cnvReportHTML = "' + new File(outputDirectory, runDir.name+'/' + analysisName +'/report/cnv_report.html').text.bytes.encodeBase64() + '";'
+            }
+        }
+    }
     
     /**
      * Return a list of simulated CNVs - each cnv has a 'sample' and 'run' 
