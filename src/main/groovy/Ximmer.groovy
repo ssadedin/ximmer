@@ -1050,6 +1050,13 @@ class Ximmer {
     }
     
     
+    /**
+     * Launches and runs R with given environment variables.
+     * 
+     * @param env
+     * @param dir
+     * @param scriptFile
+     */
     void runR(Map env, File dir, File scriptFile) {
         
         log.info("Executing R script ...")
