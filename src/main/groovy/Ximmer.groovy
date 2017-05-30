@@ -839,9 +839,11 @@ class Ximmer {
         
         assets << new HTMLAsset(source:'summary_report.js') \
                << new HTMLAsset(source:'DOMBuilder.dom.min.js') \
+               << new HTMLAsset(source:'jquery-ui.min.js') \
                << new HTMLAsset(source:'d3.js') \
                << new HTMLAsset(source:'c3.js') \
                << new HTMLAsset(source:'nv.d3.js') \
+               << new HTMLAsset(source:'jquery-ui.css') \
                << new HTMLAsset(source:'nv.d3.css') \
                << new HTMLAsset(source:'c3.css') 
         
