@@ -142,8 +142,9 @@ make_pbs_script () {
 
    # handle the batch and smp queues specially with regards to memory and procs
    case $QUEUE in
-      batch) if [[ -z $MEMORY ]]; then
-                : ${MEM_PARAM:=pvmem}
+      batch) 
+             : ${MEM_PARAM:=pvmem}
+             if [[ -z $MEMORY ]]; then
                 memory_request="#PBS -l $MEM_PARAM=${DEFAULT_BATCH_MEM}gb"
              else
                 memory_request="#PBS -l $MEM_PARAM=${MEMORY}${MEM_UNIT}"
@@ -178,7 +179,7 @@ make_pbs_script () {
              ;;
    esac
    
-    mods_request = ""
+    mods_request=""
     #handle the module specifications. - Simon Gladman 2014
     if [[  ! -z $MODULES ]]; then
         for MOD in $MODULES
@@ -217,7 +218,7 @@ start () {
          # launch the job and get its id
          job_id_full=`qsub $CUSTOM_SUBMIT_OPTS $job_script_name`
          qsub_exit_status=$?
-         if [[ $? -eq 0 ]]
+         if [[ $qsub_exit_status -eq 0 ]]
             then
                # bite off the job number from the start of the job identifier
                job_id_number=`echo $job_id_full | sed -n 's/\([0-9][0-9]*\).*/\1/p'`
@@ -240,7 +241,7 @@ stop () {
          # try to stop it
          qdel "$1"
          qdel_success=$?
-         if [[ qdel_success == 0 ]]
+        if [[ $qdel_success == 0 ]]
             then
                exit $SUCCESS
             else

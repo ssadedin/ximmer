@@ -829,6 +829,11 @@ class Ximmer {
         
         generateROCPlots(analysis, analysedTargets)
         
+        
+        List runDirectories = this.runs*.value*.runDirectory;
+        
+        writeEncodedCallerReports(runDirectories, analysisName)
+        
         log.info("Generating HTML Report ...")
         File mainTemplate = new File("$ximmerBase/src/main/resources/index.html")
         
@@ -839,9 +844,11 @@ class Ximmer {
         
         assets << new HTMLAsset(source:'summary_report.js') \
                << new HTMLAsset(source:'DOMBuilder.dom.min.js') \
+               << new HTMLAsset(source:'jquery-ui.min.js') \
                << new HTMLAsset(source:'d3.js') \
                << new HTMLAsset(source:'c3.js') \
                << new HTMLAsset(source:'nv.d3.js') \
+               << new HTMLAsset(source:'jquery-ui.css') \
                << new HTMLAsset(source:'nv.d3.css') \
                << new HTMLAsset(source:'c3.css') 
         
@@ -851,7 +858,7 @@ class Ximmer {
             SimpleTemplateEngine templateEngine = new SimpleTemplateEngine()
             templateEngine.createTemplate(mainTemplate.newReader()).make(
                 analysisName : analysisName,
-                runDirectories: runs*.value*.runDirectory,
+                runDirectories: runDirectories,
                 outputDirectory : outputDirectory.name,
                 summaryHTML : summaryHTML,
                 callers: this.callerIds,
@@ -876,6 +883,24 @@ class Ximmer {
         } 
     }
     
+    /**
+     * Write out each CNV report, encoded as a javascript string using base 64.
+     * <p>
+     * This allows the main ximmer report to load and inject these reports as HTML on the fly
+     * without having all the HTML for each report (which can be huge) loaded into memory.
+     * 
+     * @param runDirectories
+     * @param analysisName
+     */
+    void writeEncodedCallerReports(List<File> runDirectories, String analysisName) {
+        runDirectories.eachWithIndex { File runDir, runIndex  -> 
+            File b64File = new File(outputDirectory, runDir.name+'/' + analysisName +'/report/cnv_report.b64.js')
+            log.info "Writing base 64 encoded CNV report to " + b64File
+            b64File.withWriter { w ->
+                w.println 'var cnvReportHTML = "' + new File(outputDirectory, runDir.name+'/' + analysisName +'/report/cnv_report.html').text.bytes.encodeBase64() + '";'
+            }
+        }
+    }
     
     /**
      * Return a list of simulated CNVs - each cnv has a 'sample' and 'run' 
@@ -1050,6 +1075,13 @@ class Ximmer {
     }
     
     
+    /**
+     * Launches and runs R with given environment variables.
+     * 
+     * @param env
+     * @param dir
+     * @param scriptFile
+     */
     void runR(Map env, File dir, File scriptFile) {
         
         log.info("Executing R script ...")

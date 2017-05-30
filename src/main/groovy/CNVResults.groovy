@@ -36,6 +36,7 @@ abstract class CNVResults extends RangedData {
                     
                     if(annotator) {
                         row.spanningFreq = annotator.annotate(cnv, cnv.type).spanningFreq
+                        row += annotator.annotateSize(cnv)
                     }
                     
                     if(truth != null) {

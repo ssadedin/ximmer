@@ -452,8 +452,6 @@ function loadCnvs(callback, runsToLoad, results) {
     
     console.log(`Loading cnvs from run ${run}`);
 
-    // todo: iterate over runs
-    //       append run number to each sample id
     const script = document.createElement("script");
     script.id = 'cnvs_load_script';
     script.src = run + '/' + analysisName + '/report/cnv_calls.js'
@@ -485,6 +483,40 @@ function loadCnvs(callback, runsToLoad, results) {
     document.body.appendChild(script); 
 }
 
+function loadCnvReport(runId, callback) {
+    
+    console.log("loadCnvReport");
+   
+    var oldScriptElement = document.getElementById('cnvs_load_script');
+    if(oldScriptElement)
+        oldScriptElement.parentNode.removeChild(oldScriptElement);
+    
+    const script = document.createElement("script");
+    script.id = 'cnvs_load_script';
+    script.src = runId + '/' + analysisName + '/report/cnv_report.b64.js'
+    script.async = true;
+    
+    script.onload = callback
+   
+    console.log("Loaded cnv report from " + script.src);
+    document.body.appendChild(script); 
+}
+
+function showCNVReport(runIndex, runId) {
+    
+    console.log('Showing CNV report for ' + runId + ' with ' + cnvReportHTML.length + ' bytes of HTML');
+    
+    var ifel = document.getElementById('run'+runIndex + 'Iframe');
+    var doc = ifel.contentWindow.document;
+    ifel.width = ($(window).width() - 50);
+    ifel.height = ($(window).height() - 180);
+    
+    console.log("Write run " + runId + " to iframe");
+    doc.open();
+    doc.write(atob(cnvReportHTML));
+    doc.close();                                
+}
+
 function loadAndCall(fn) {
     console.log("loadAndCall");
     
@@ -507,6 +539,16 @@ $(document).ready(function() {
        else 
        if(panelId == "simrocs") {
            loadAndCall(showROCCurve);
+       }
+       else 
+       if(panelId.match(/runcalls[0-9]*/)) {
+           let runIndex = panelId.match(/runcalls([0-9])*/)[1];
+           
+           let runId = runs[parseInt(runIndex,10)];
+           
+           console.log(`Show calls ${runId}`);
+           
+           loadCnvReport(runId, () => showCNVReport(runIndex, runId));
        }
    }); 
 })
