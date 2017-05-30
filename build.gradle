@@ -1,4 +1,5 @@
 apply plugin: 'groovy'
+apply plugin: 'eclipse'
 
 project.ext {
     VERSION="0.1.0"
@@ -29,6 +30,10 @@ dependencies {
      compile group: 'org.codehaus.groovy', name: 'groovy-ant', version: "$GROOVY_VERSION"
      compile group: 'org.codehaus.groovy', name: 'groovy-json', version: "$GROOVY_VERSION"
      compile group: 'org.codehaus.groovy', name: 'groovy-sql', version: "$GROOVY_VERSION"
+
+     // https://mvnrepository.com/artifact/com.googlecode.lanterna/lanterna
+     compile group: 'com.googlecode.lanterna', name: 'lanterna', version: '3.0.0-beta3'
+
      compile 'org.codehaus.gpars:gpars:0.12'
      compile files(fileTree(dir:'lib', includes:['*.jar']))
 }
