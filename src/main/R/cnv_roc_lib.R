@@ -417,7 +417,8 @@ plot.exome.result.set = function(optimal.results,
     plot(c(0), xlim=c(0,max.x), ylim=c(0,max.y),type="n", xlab="False Positives", ylab=sprintf("True Positives Detected (out of %d total)",max.y),...)
   }
   for(s in sim.callers) {
-    plot_caller_roc(truth, optimal.results[[s]], col=cols[[match(s,sim.callers)]], F, x.offset=plot.offset, lwd=plot.lwd, ...)
+    col_ind = match(s,sim.callers) %% length(cols)
+    plot_caller_roc(truth, optimal.results[[s]], col=cols[[col_ind]], F, x.offset=plot.offset, lwd=plot.lwd, ...)
     plot.offset = plot.offset+ plot.offset.increment
     plot.lwd = plot.lwd + plot.lwd.increment
     printf("Plot offset = %f, Width=%f", plot.offset, plot.lwd)

@@ -128,7 +128,7 @@ if(SIMULATION_TYPE == "replace") {
 }
 
 ranked = load_ranked_run_results(truth, names(ximmer.sims), exclude.bed=dgv.exclude, filterChrX=filterChrX, deletionsOnly=deletionsOnly)
-nice_colors = plot.colors = c('orange','blue','green','black','purple','red')
+nice_colors = plot.colors = c('orange','blue','green','black','purple','red', 'pink', 'brown','gray','aquamarine','chartreuse','coral')
 
 sim.caller.labels = XIMMER_CALLER_LABELS
 names(sim.caller.labels) = XIMMER_CALLERS
