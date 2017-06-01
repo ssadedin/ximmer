@@ -34,6 +34,19 @@ For that case, you should be specifying the known CNVs via the `known_cnvs` attr
 (see below). When you specify `none`, Ximmer will not create new BAM files and instead
 will run the analysis directly on the source BAM files.
 
+## Disabling Simulation
+
+If you have data that already has simulated CNVs then you still want Ximmer to run
+in "simulation mode", but you may not want Ximmer to put more CNVs into the data.
+In this case, the correct configuration is to set `simulation_type` to the the
+correct kind of simulation (eg: `downsample`), but to then set an explicit flag
+that disables simulation, `simulation_enabled=false`. For example:
+
+```
+simulation_type="replace"
+simulation_enabled = false
+```
+
 ## Specifying CNV Sizes
 
 One of the most important aspects of CNV detection is what size of event you
@@ -181,6 +194,12 @@ runs {
     }
 }
 ```
+
+This option is very useful if you have already simulated some data with Ximmer
+and you want to reuse that data without changing the original analysis.
+You can point Ximmer to the specific BAM files and true positive bed files
+created from the previous simulation, and then Ximmer will use these 
+instead of simulating new ones.
 
 ## Specifying Analysis Settings
 
