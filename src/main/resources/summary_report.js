@@ -360,6 +360,10 @@ class CNVROCCurve {
                              .showLegend(true)       //Show the legend, allowing users to turn on/off line series.
                              .showYAxis(true)
                              .showXAxis(true)
+                             .padData(true)
+                             .yDomain([0,this.rawCnvs.truth.length])
+                             .forceX([0])
+                             
                         ;
                     
         chart.xAxis.axisLabel('False Positives')
@@ -374,10 +378,12 @@ class CNVROCCurve {
 //        
 //        window.chart = chart;
         
+        console.log("rendering to " + id);
         d3.select('#' + id)
           .datum(points)  
           .call(chart);  
         
+        window.chart = chart;
 //        nv.utils.windowResize(function() { chart.update() });        
     }
 }
