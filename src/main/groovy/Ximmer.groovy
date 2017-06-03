@@ -863,7 +863,9 @@ class Ximmer {
                << new HTMLAsset(source:'nv.d3.js') \
                << new HTMLAsset(source:'jquery-ui.css') \
                << new HTMLAsset(source:'nv.d3.css') \
-               << new HTMLAsset(source:'c3.css') 
+               << new HTMLAsset(source:'c3.css')  \
+               << new HTMLAsset(source:'ximmer.css')  \
+               << new HTMLAsset(source:'cnv_report.css') 
         
         String assetPayload = assets.render()
         
