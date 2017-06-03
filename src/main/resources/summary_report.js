@@ -15,6 +15,19 @@ function min(x,fn) {
   },null);
 }
 
+function humanSize(value) {
+    let units=['bp','kb','Mb','Gb']
+    var fmt = d3.format('.1f');
+    window.fmt = fmt;
+    for(unit of units) {
+        if(value < 1000) {
+            console.log('value = ' + value + ' formatted = ' + fmt(value))
+            return (fmt(value) ).replace(/.0$/,'') + unit
+        }
+        value = value / 1000
+    }
+}
+
 /**
  * Half-open range class.
  * <p>
@@ -665,7 +678,7 @@ class CNVGenomeDistribution {
                         ;
                     
         let xLabel = this.xLabel ? this.xLabel : 'Genome Position'
-        chart.xAxis.axisLabel(xLabel)
+        chart.xAxis.axisLabel(xLabel + ' (' + humanSize(this.bin_size) + ' bins)')
                    .tickValues(this.chrStarts)
                    .tickFormat((i) => this.bins[i].from == 0 ? this.bins[i].chr : this.bins[i].chr + ':'+this.bins[i].from)
         
