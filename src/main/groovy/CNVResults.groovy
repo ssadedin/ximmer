@@ -31,7 +31,8 @@ abstract class CNVResults extends RangedData {
                         start: cnv.from, 
                         end: cnv.to,
                         sample: cnv.sample,
-                        quality: cnv.quality
+                        quality: cnv.quality,
+                        type: cnv.type
                     ]
                     
                     if(annotator) {
