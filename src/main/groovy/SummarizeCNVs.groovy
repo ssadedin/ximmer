@@ -304,7 +304,7 @@ class SummarizeCNVs {
                     cnv.stotal, 
                     cnv.sampleCount,
                     cnv.sampleFreq
-                ] + (cnvAnnotator ? [annotations[i].spanning, annotations[i].spanningFreq] : []) +
+                ] + (cnvAnnotator ? [annotations[i].spanning.size(), annotations[i].spanningFreq] : []) +
                 cnvCallers.collect { caller ->
                     cnv[caller] ? "TRUE" : "FALSE"
                 }  + cnvCallers.collect { caller ->
