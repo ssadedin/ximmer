@@ -396,6 +396,15 @@ class CNVROCCurve {
         this.rawCnvs = props.cnvs;
         this.maxFreq = props.maxFreq ? props.maxFreq : MAX_RARE_CNV_FREQ;
         this.sizeRange = props.sizeRange;
+        this.targetsRange = props.targetsRange;
+        
+        if(!this.targetsRange)
+            this.targetsRange = [0, 1000000];
+        
+        if((this.targetsRange[1] == "Infinity") || (this.targetsRange[1]<0)) {
+            console.log("Infinite no. targets")
+            this.targetsRange[1] = 1000000;
+        }
         
         if(!this.rawCnvs.truth) 
             throw new Error("ROC Curve requires true positives specified in CNV calls as 'truth' property")
@@ -432,7 +441,8 @@ class CNVROCCurve {
                 }
             }
             else {
-                ++fpCount;
+                if(cnv.spanningFreq < MAX_RARE_CNV_FREQ)
+                    ++fpCount;
             }
             cnv.tp = tpCount;
             cnv.fp = fpCount
@@ -443,6 +453,8 @@ class CNVROCCurve {
         
         let sizeMin = Math.pow(10, this.sizeRange[0]);
         let sizeMax = Math.pow(10, this.sizeRange[1]);
+        let targetsMin = this.targetsRange[0];
+        let targetsMax = this.targetsRange[1];
         
         const unfilteredCount = Object.values(this.rawCnvs).reduce((n,caller) => n+caller.length, 0);
         console.log(`There are ${unfilteredCount} raw cnv calls`);
@@ -454,7 +466,7 @@ class CNVROCCurve {
         this.filteredCnvs = {};
         Object.keys(this.rawCnvs).filter(caller => caller != 'truth').forEach((caller) =>
             this.filteredCnvs[caller] = 
-                this.rawCnvs[caller].filter(cnv => cnv.spanningFreq < this.maxFreq &&
+                this.rawCnvs[caller].filter(cnv => (cnv.targets >= targetsMin) && (cnv.targets<=targetsMax) &&
                                                   (cnv.end - cnv.start > sizeMin) && 
                                                   (cnv.end - cnv.start < sizeMax) && 
                                                   ((simulationType != 'replace') || (cnv.chr == 'chrX' || cnv.chr == 'X')))
@@ -462,7 +474,8 @@ class CNVROCCurve {
         );
         
         let filteredTruth = 
-            this.rawCnvs.truth.filter((cnv) => (cnv.end - cnv.start > sizeMin) && (cnv.end - cnv.start < sizeMax));
+            this.rawCnvs.truth.filter((cnv) => (cnv.targets >= targetsMin) && (cnv.targets<=targetsMax) && 
+                                               (cnv.end - cnv.start > sizeMin) && (cnv.end - cnv.start < sizeMax));
         
         let cnvCount = Object.values(this.filteredCnvs).reduce((n,caller) => n+caller.length, 0);
         console.log(`There are ${cnvCount} cnv calls after filtering by spanningFreq<${this.maxFreq}`);
@@ -471,29 +484,7 @@ class CNVROCCurve {
             
         // Now iterate through each caller's CNVs and compute the number of true and false positives
         Object.values(this.filteredCnvs).forEach((cnvs) => this.computeROCStats(cnvs));
-        
-        /*
-        
-        let xCols = Object.keys(this.filteredCnvs).map(caller => [caller+'_x'].concat(this.filteredCnvs[caller].map(cnv => cnv.fp)))
-        
-        let yCols = Object.keys(this.filteredCnvs).map(caller => [caller + '_y'].concat(this.filteredCnvs[caller].map(cnv => cnv.tp)))
-        
-        let xs = Object.keys(this.filteredCnvs).reduce(function(result, caller) { 
-            result[caller+'_y'] = caller + '_x';
-            return result
-        }, {});
-            
-        c3.generate({
-           bindto: '#' + id,
-           data: {
-               xs: xs,
-               columns: xCols.concat(yCols),
-               type: 'scatter'
-           }, 
-        });
-        */
-        
-        
+       
         let points = [];
         Object.keys(this.filteredCnvs).forEach(caller => points.push({
             values: this.filteredCnvs[caller].map(cnv => { return { x: cnv.fp, y: cnv.tp }}),
@@ -539,45 +530,88 @@ class CNVROCCurve {
 function showROCCurve() {
     console.log("ROC Curve");
     
-    $('#cnv_roc_curve_container').html('<svg style="display: inline;" id=cnv_roc_curve></svg><div id=slider_label></div><div style="display: block; margin-left: 100px" id=slider></div>');
+    $('#cnv_roc_curve_container').html(
+      '<svg style="display: inline;" id=cnv_roc_curve></svg><div id=slider_label class=sizeSliderLabel></div>' +
+      '<div style="display: block; margin-left: 100px" id=slider></div>' +
+      '<div id=target_slider_label class=sizeSliderLabel></div>' +
+      '<div style="display: block; margin-left: 100px" id=targetSlider></div>'
+    );
     
-    let makePlot = (range) =>  {
+    
+    let initialRange = [0, 7];
+    let initialTargets = [0, 7];
+    
+    let targetStops = function(i) {
+        let stops = [1,2,3,5,10,20,50,-1];    
+        let stop = stops[i];
+        if(stop < 0)
+            return "Infinity";
+        else
+            return stop
+    }
+    
+    var currentRange = initialRange;
+    var currentTargets = initialTargets;
+    
+    let makePlot = () =>  {
         let plot = new CNVROCCurve({
             cnvs: cnv_calls,
-            sizeRange: range
+            sizeRange: currentRange,
+            targetsRange: [targetStops(currentTargets[0]), targetStops(currentTargets[1])]
         });
         plot.render('cnv_roc_curve');
     };
         
-    let labelFn = (range) => {
-        $( "#slider_label" ).html("CNV Size Range: " + Math.pow(10,range[0]) + "bp - " + Math.pow(10,range[1])+"bp");
+    let labelFn = () => {
+        $( "#slider_label" ).html("CNV Size Range: " + humanSize(Math.pow(10,currentRange[0])) + " - " + humanSize(Math.pow(10,currentRange[1])));
+        $( "#target_slider_label" ).html("No. of Target Regions: " + targetStops(currentTargets[0]) + " - " + targetStops(currentTargets[1]));
     };
     
-    let initialRange = [0, 7];
-    
     var redrawTimeout = null;
-    
     $(function() {
-        $("#slider").slider({
+        
+        // CNV size slider
+        var sizeSlider = $("#slider").slider({
           range: true,
           values: initialRange,
-          min: 0,
-          max: 7,
+          min: initialRange[0],
+          max: initialRange[1],
           step: 1,
           slide: function( event, ui ) {
             console.log(ui.values);
-            labelFn(ui.values);
+            currentRange = ui.values;
+            labelFn();
             if(redrawTimeout)
                 clearTimeout(redrawTimeout);
             redrawTimeout = setTimeout(() => {
-                makePlot(ui.values);
+                makePlot();
               }, 2000);
           }
         }).width(450);
+        
+        // CNV target regions slider
+        var targetsSlider = $("#targetSlider").slider({
+          range: true,
+          values: initialRange,
+          min: initialTargets[0],
+          max: initialTargets[1],
+          step: 1,
+          slide: function( event, ui ) {
+            currentTargets = ui.values;
+            console.log(ui.values);
+            labelFn();
+            if(redrawTimeout)
+                clearTimeout(redrawTimeout);
+            redrawTimeout = setTimeout(() => {
+                makePlot();
+              }, 2000);
+          }
+        }).width(450); 
+        
      });    
     
-    labelFn(initialRange);
-    makePlot(initialRange);
+    labelFn();
+    makePlot();
 }
 
 // ----------------------------- Genome Distribution  ----------------------------------
