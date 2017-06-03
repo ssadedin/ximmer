@@ -273,17 +273,26 @@ class SummarizeCNVs {
     
     void writeTSV(Regions cnvs, String fileName) {
         
-        println "Writing TSV report to $fileName"
+        log.info "Writing TSV report to $fileName"
         
         List<String> cnvCallers = results.keySet() as List
+        Map<String,String> anno_types = [ "DEL" : "LOSS", "DUP" : "GAIN" ]
+        
+        List annotations = null
+        if(cnvAnnotator) {
+             annotations = cnvs.collect { cnv -> 
+                cnvAnnotator.annotate(new Region(cnv.chr, cnv.from..cnv.to), anno_types[cnv.type]) 
+             }
+        }
         
         new File(fileName).withWriter { w ->
             
             w.println((["chr","start","end","sample","genes", "type","count","stotal","sampleCount","sampleFreq"] + 
+                       (cnvAnnotator ? ["spanning","spanningFreq"] : []) +
                        cnvCallers + 
                        cnvCallers.collect { it+"_qual" }).join("\t"))
             
-            for(Region cnv in cnvs) {
+            cnvs.eachWithIndex { cnv, i ->
                 List line = [
                     cnv.chr, 
                     cnv.from,
@@ -295,7 +304,8 @@ class SummarizeCNVs {
                     cnv.stotal, 
                     cnv.sampleCount,
                     cnv.sampleFreq
-                ] + cnvCallers.collect { caller ->
+                ] + (cnvAnnotator ? [annotations[i].spanning, annotations[i].spanningFreq] : []) +
+                cnvCallers.collect { caller ->
                     cnv[caller] ? "TRUE" : "FALSE"
                 }  + cnvCallers.collect { caller ->
                     cnv[caller] ? cnv[caller].quality : 0
