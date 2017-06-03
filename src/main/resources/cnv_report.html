@@ -158,7 +158,7 @@
             var callers = <%=groovy.json.JsonOutput.toJson(cnv_callers)%>;
             <% log.println "Writing annotations json" %>
             <% def annotations = cnvs.collect { cnv -> 
-                   cnvAnnotator ? cnvAnnotator.annotate(new Region(cnv.chr, cnv.from..cnv.to), anno_types[cnv.type]) : [spanning: 0f, spanningFreq: 0f] }; 
+                   cnvAnnotator ? cnvAnnotator.annotate(new Region(cnv.chr, cnv.from..cnv.to), "ANY") : [spanning: 0f, spanningFreq: 0f] }; 
              %>
             var annotations = <%=groovy.json.JsonOutput.toJson(annotations)%>;
             
