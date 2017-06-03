@@ -31,11 +31,16 @@ abstract class CNVResults extends RangedData {
                         start: cnv.from, 
                         end: cnv.to,
                         sample: cnv.sample,
-                        quality: cnv.quality
+                        quality: cnv.quality,
+                        type: cnv.type
                     ]
                     
                     if(annotator) {
-                        row.spanningFreq = annotator.annotate(cnv, cnv.type).spanningFreq
+                        // Used to match the CNV type here, but after seeing that some
+                        // CNV callers get confused and call a differentn type in a region where there is 
+                        // a CNV,  I now think it's more accurate to return the frequency of ALL cnvs
+                        // overlapping
+                        row.spanningFreq = annotator.annotate(cnv, "ANY" /* cnv.type */).spanningFreq
                         row += annotator.annotateSize(cnv)
                     }
                     

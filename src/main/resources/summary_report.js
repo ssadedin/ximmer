@@ -742,7 +742,7 @@ function showCNVGenomeDistribution() {
         let pointInfo = info[0]
         let index = pointInfo.pointIndex;
         let chr = plot.bins[index].chr
-        let subPlot = new CNVGenomeDistribution({bin_size: 500 * 1000, callsToShow, xLabel: 'Position in Chromosome ' + chr }); 
+        let subPlot = new CNVGenomeDistribution({bin_size: 500 * 1000, cnvCalls: callsToShow, xLabel: 'Position in Chromosome ' + chr }); 
         subPlot.render('cnv_chr_dist',[chr])
     });
     
