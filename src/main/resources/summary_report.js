@@ -15,6 +15,19 @@ function min(x,fn) {
   },null);
 }
 
+function humanSize(value) {
+    let units=['bp','kb','Mb','Gb']
+    var fmt = d3.format('.1f');
+    window.fmt = fmt;
+    for(unit of units) {
+        if(value < 1000) {
+            console.log('value = ' + value + ' formatted = ' + fmt(value))
+            return (fmt(value) ).replace(/.0$/,'') + unit
+        }
+        value = value / 1000
+    }
+}
+
 /**
  * Half-open range class.
  * <p>
@@ -51,6 +64,43 @@ class Range {
         return `${this.chr}:${this.from}-${this.to}`;
     }
 }
+
+/**
+ * Genome chromosome sizes
+ */
+
+hg19_chr_sizes = {
+    '1':249250621,
+    '2':243199373,
+    '3':198022430,
+    '4':191154276,
+    '5':180915260,
+    '6':171115067,
+    '7':159138663,
+    'X':155270560,
+    '8':146364022,
+    '9':141213431,
+    '10':135534747,
+    '11':135006516,
+    '12':133851895,
+    '13':115169878,
+    '14':107349540,
+    '15':102531392,
+    '16':90354753,
+    '17':81195210,
+    '18':78077248,
+    '20':63025520,
+    'Y':59373566,
+    '19':59128983,
+    '22':51304566,
+    '21':48129895
+}
+
+/**
+ * The frequency above which a CNV is not counted as a false positive due to
+ * likely being a real CNV that is present in the population
+ */
+MAX_RARE_CNV_FREQ = 0.01
 
 // ----------------------------- QScore Calibration ----------------------------------
 
@@ -240,6 +290,101 @@ function showQscores() {
     }
 }
 
+// ----------------------------- Breakdown by Sample  ----------------------------------
+
+
+class CNVsBySample {
+    constructor(props) {
+    }
+    
+    /**
+     * Create a map indexed by caller, with values being a child map indexed by sample having 
+     * values representing the total number of CNV calls for that sample.
+     */
+    calculateCounts(cnv_calls) {
+        
+        let countsBySample = Object.keys(cnv_calls).reduce((callerCounts,caller) => {
+            if(caller == 'truth')
+                return callerCounts;
+            
+            callerCounts[caller] = cnv_calls[caller].reduce((counts,cnv) => { 
+                let sample = cnv.sample.replace(/-[^-]*$/,'');
+                counts[sample] = counts[sample] ? counts[sample]+1 : 1; return counts; 
+            }, {})
+            return callerCounts;
+        }, {})
+        return countsBySample;
+    }
+    
+    render(id) {
+        
+        let callers = Object.keys(cnv_calls).filter(c => c != 'truth');
+        
+        let counts = this.calculateCounts(cnv_calls);
+        
+        let samples = Object.values(counts).reduce((samples,callerCounts) => {
+            return Object.keys(callerCounts).reduce((samples,sample) => { samples[sample] = true; return samples; }, samples)
+        },{})
+        
+        // We actually only ever wanted a unique list of samples, so extract the keys
+        // from the map
+        samples = Object.keys(samples)
+        
+        let count_data = samples.map(function(sample) {
+                return {
+                    key: sample,
+                    values: callers.map((caller, i) => { 
+//                        return {label: caller, value: counts[caller][sample]}
+                        return {series: caller, label: caller, x: i, y: counts[caller][sample]}
+                    })
+               }
+        })
+        
+        window.count_data = count_data;
+        
+        var chart;
+        nv.addGraph(function() {
+            chart = nv.models.multiBarChart()
+                .barColor(d3.scale.category20().range())
+                .duration(300)
+                .margin({bottom: 100, left: 70})
+                .rotateLabels(45)
+                .groupSpacing(0.1)
+            ;
+
+            chart.reduceXTicks(false).staggerLabels(true);
+
+            chart.xAxis
+                .axisLabel("Sample")
+                .axisLabelDistance(35)
+                .showMaxMin(false)
+                .tickFormat((x) => callers[x])
+            ;
+
+            chart.yAxis
+                .axisLabel("Count of CNV Calls")
+                .axisLabelDistance(-5)
+            ;
+
+            d3.select('#'+id)
+                .datum(count_data)
+                .call(chart);
+
+            nv.utils.windowResize(chart.update);
+
+            return chart;
+        });
+    }
+}
+
+
+function showSampleCounts() {
+    console.log("Showing sample count plot");
+    let plot = new CNVsBySample(); 
+    plot.render('cnvs_by_sample_chart')    
+}
+
+
 // ----------------------------- ROC Curve Functions  ----------------------------------
 
 class CNVROCCurve {
@@ -249,8 +394,17 @@ class CNVROCCurve {
          * cnvs - a map keyed on caller id with values being the calls
          */
         this.rawCnvs = props.cnvs;
-        this.maxFreq = props.maxFreq ? props.maxFreq : 0.01;
+        this.maxFreq = props.maxFreq ? props.maxFreq : MAX_RARE_CNV_FREQ;
         this.sizeRange = props.sizeRange;
+        this.targetsRange = props.targetsRange;
+        
+        if(!this.targetsRange)
+            this.targetsRange = [0, 1000000];
+        
+        if((this.targetsRange[1] == "Infinity") || (this.targetsRange[1]<0)) {
+            console.log("Infinite no. targets")
+            this.targetsRange[1] = 1000000;
+        }
         
         if(!this.rawCnvs.truth) 
             throw new Error("ROC Curve requires true positives specified in CNV calls as 'truth' property")
@@ -287,7 +441,8 @@ class CNVROCCurve {
                 }
             }
             else {
-                ++fpCount;
+                if(cnv.spanningFreq < MAX_RARE_CNV_FREQ)
+                    ++fpCount;
             }
             cnv.tp = tpCount;
             cnv.fp = fpCount
@@ -298,6 +453,8 @@ class CNVROCCurve {
         
         let sizeMin = Math.pow(10, this.sizeRange[0]);
         let sizeMax = Math.pow(10, this.sizeRange[1]);
+        let targetsMin = this.targetsRange[0];
+        let targetsMax = this.targetsRange[1];
         
         const unfilteredCount = Object.values(this.rawCnvs).reduce((n,caller) => n+caller.length, 0);
         console.log(`There are ${unfilteredCount} raw cnv calls`);
@@ -309,12 +466,16 @@ class CNVROCCurve {
         this.filteredCnvs = {};
         Object.keys(this.rawCnvs).filter(caller => caller != 'truth').forEach((caller) =>
             this.filteredCnvs[caller] = 
-                this.rawCnvs[caller].filter(cnv => cnv.spanningFreq < this.maxFreq &&
+                this.rawCnvs[caller].filter(cnv => (cnv.targets >= targetsMin) && (cnv.targets<=targetsMax) &&
                                                   (cnv.end - cnv.start > sizeMin) && 
                                                   (cnv.end - cnv.start < sizeMax) && 
                                                   ((simulationType != 'replace') || (cnv.chr == 'chrX' || cnv.chr == 'X')))
                                     .sort((cnv1,cnv2) => cnv2.quality - cnv1.quality)
         );
+        
+        let filteredTruth = 
+            this.rawCnvs.truth.filter((cnv) => (cnv.targets >= targetsMin) && (cnv.targets<=targetsMax) && 
+                                               (cnv.end - cnv.start > sizeMin) && (cnv.end - cnv.start < sizeMax));
         
         let cnvCount = Object.values(this.filteredCnvs).reduce((n,caller) => n+caller.length, 0);
         console.log(`There are ${cnvCount} cnv calls after filtering by spanningFreq<${this.maxFreq}`);
@@ -323,29 +484,7 @@ class CNVROCCurve {
             
         // Now iterate through each caller's CNVs and compute the number of true and false positives
         Object.values(this.filteredCnvs).forEach((cnvs) => this.computeROCStats(cnvs));
-        
-        /*
-        
-        let xCols = Object.keys(this.filteredCnvs).map(caller => [caller+'_x'].concat(this.filteredCnvs[caller].map(cnv => cnv.fp)))
-        
-        let yCols = Object.keys(this.filteredCnvs).map(caller => [caller + '_y'].concat(this.filteredCnvs[caller].map(cnv => cnv.tp)))
-        
-        let xs = Object.keys(this.filteredCnvs).reduce(function(result, caller) { 
-            result[caller+'_y'] = caller + '_x';
-            return result
-        }, {});
-            
-        c3.generate({
-           bindto: '#' + id,
-           data: {
-               xs: xs,
-               columns: xCols.concat(yCols),
-               type: 'scatter'
-           }, 
-        });
-        */
-        
-        
+       
         let points = [];
         Object.keys(this.filteredCnvs).forEach(caller => points.push({
             values: this.filteredCnvs[caller].map(cnv => { return { x: cnv.fp, y: cnv.tp }}),
@@ -360,6 +499,10 @@ class CNVROCCurve {
                              .showLegend(true)       //Show the legend, allowing users to turn on/off line series.
                              .showYAxis(true)
                              .showXAxis(true)
+                             .padData(true)
+                             .yDomain([0,filteredTruth.length])
+                             .forceX([0])
+                             
                         ;
                     
         chart.xAxis.axisLabel('False Positives')
@@ -374,10 +517,12 @@ class CNVROCCurve {
 //        
 //        window.chart = chart;
         
+        console.log("rendering to " + id);
         d3.select('#' + id)
           .datum(points)  
           .call(chart);  
         
+        window.chart = chart;
 //        nv.utils.windowResize(function() { chart.update() });        
     }
 }
@@ -385,45 +530,222 @@ class CNVROCCurve {
 function showROCCurve() {
     console.log("ROC Curve");
     
-    $('#cnv_roc_curve_container').html('<svg style="display: inline;" id=cnv_roc_curve></svg><div id=slider_label></div><div style="display: block; margin-left: 100px" id=slider></div>');
+    $('#cnv_roc_curve_container').html(
+      '<svg style="display: inline;" id=cnv_roc_curve></svg><div id=slider_label class=sizeSliderLabel></div>' +
+      '<div style="display: block; margin-left: 100px" id=slider></div>' +
+      '<div id=target_slider_label class=sizeSliderLabel></div>' +
+      '<div style="display: block; margin-left: 100px" id=targetSlider></div>'
+    );
     
-    let makePlot = (range) =>  {
+    
+    let initialRange = [0, 7];
+    let initialTargets = [0, 7];
+    
+    let targetStops = function(i) {
+        let stops = [1,2,3,5,10,20,50,-1];    
+        let stop = stops[i];
+        if(stop < 0)
+            return "Infinity";
+        else
+            return stop
+    }
+    
+    var currentRange = initialRange;
+    var currentTargets = initialTargets;
+    
+    let makePlot = () =>  {
         let plot = new CNVROCCurve({
             cnvs: cnv_calls,
-            sizeRange: range
+            sizeRange: currentRange,
+            targetsRange: [targetStops(currentTargets[0]), targetStops(currentTargets[1])]
         });
         plot.render('cnv_roc_curve');
     };
         
-    let labelFn = (range) => {
-        $( "#slider_label" ).html("CNV Size Range: " + Math.pow(10,range[0]) + "bp - " + Math.pow(10,range[1])+"bp");
+    let labelFn = () => {
+        $( "#slider_label" ).html("CNV Size Range: " + humanSize(Math.pow(10,currentRange[0])) + " - " + humanSize(Math.pow(10,currentRange[1])));
+        $( "#target_slider_label" ).html("No. of Target Regions: " + targetStops(currentTargets[0]) + " - " + targetStops(currentTargets[1]));
     };
     
-    let initialRange = [0, 7];
-    
     var redrawTimeout = null;
-    
     $(function() {
-        $("#slider").slider({
+        
+        // CNV size slider
+        var sizeSlider = $("#slider").slider({
           range: true,
           values: initialRange,
-          min: 0,
-          max: 7,
+          min: initialRange[0],
+          max: initialRange[1],
           step: 1,
           slide: function( event, ui ) {
             console.log(ui.values);
-            labelFn(ui.values);
+            currentRange = ui.values;
+            labelFn();
             if(redrawTimeout)
                 clearTimeout(redrawTimeout);
             redrawTimeout = setTimeout(() => {
-                makePlot(ui.values);
+                makePlot();
               }, 2000);
           }
         }).width(450);
+        
+        // CNV target regions slider
+        var targetsSlider = $("#targetSlider").slider({
+          range: true,
+          values: initialRange,
+          min: initialTargets[0],
+          max: initialTargets[1],
+          step: 1,
+          slide: function( event, ui ) {
+            currentTargets = ui.values;
+            console.log(ui.values);
+            labelFn();
+            if(redrawTimeout)
+                clearTimeout(redrawTimeout);
+            redrawTimeout = setTimeout(() => {
+                makePlot();
+              }, 2000);
+          }
+        }).width(450); 
+        
      });    
     
-    labelFn(initialRange);
-    makePlot(initialRange);
+    labelFn();
+    makePlot();
+}
+
+// ----------------------------- Genome Distribution  ----------------------------------
+
+class CNVGenomeDistribution {
+    constructor(props) {
+        Object.assign(this, props)
+        
+        if(!this.bin_size) {
+            this.bin_size = 10 * 1000 * 1000
+            console.log("Using default bin size = " + this.bin_size)
+        }
+            
+        if(!this.cnvCalls)
+            this.cnvCalls = window.cnv_calls; // hack
+    }
+    
+    
+    computeBins() {
+        // Create the chunks we want to scan. For a reasonable sized plot
+        // 10mb produces about the right resolution
+        this.chrStarts = []
+        this.bins = Object.keys(hg19_chr_sizes).reduce((bins,chr) => {
+            let pos = 0
+            let max = hg19_chr_sizes[chr]
+            
+            this.chrStarts.push(bins.length)
+            
+            while(pos < max) {
+                bins.push(new Range(chr, pos, pos + (this.bin_size-1)))
+                pos += this.bin_size
+            }
+            return bins;
+        }, [])
+        
+        return this.bins;
+    }
+    
+    calculateCallerDistribution(bins,cnvs) {
+        return bins.map(bin => {
+            return cnvs.reduce((n, cnv) => bin.overlaps(cnv.range) ? n+1 : n, 0);
+        })
+    }
+    
+    /**
+     * Create a map indexed by caller, with values being a child map indexed by sample having 
+     * values representing the total number of CNV calls for that sample.
+     */
+    calculateDistribution(cnv_calls) {
+        
+        this.bins = this.computeBins()
+        
+        // Scan along the genome in 10mb chunks and find the number of CNV calls
+        // for each caller
+        let dist = {}
+        Object.keys(cnv_calls).forEach(caller => {
+            if(caller == 'truth')
+                return
+                
+            dist[caller] =  this.calculateCallerDistribution(this.bins,cnv_calls[caller])
+        })
+        
+        return dist
+    }
+    
+    render(id, showChrs) {
+        
+        // If no specific chr defined, show all
+        let chrs = hg19_chr_sizes
+        if(showChrs) {
+            chrs = {}
+            showChrs.forEach(chr => chrs[chr] = hg19_chr_sizes[chr])
+        }
+        
+        let caller_dists = this.calculateDistribution(this.cnvCalls)
+        
+        let points = []
+        Object.keys(this.cnvCalls).forEach(caller => {
+            if(caller == 'truth')
+                return
+                
+            points.push({
+                key: caller,
+                values: caller_dists[caller].map((bin,i) => { return {x: i, y: bin, chr: this.bins[i].chr}})
+                                            .filter(point => chrs[point.chr] )
+            })
+        })
+        
+        var chart = nv.models.lineChart()
+                             .margin({left: 100})  //Adjust chart margins to give the x-axis some breathing room.
+                             .useInteractiveGuideline(true)  //We want nice looking tooltips and a guideline!
+                             .showLegend(true)       //Show the legend, allowing users to turn on/off line series.
+                             .showYAxis(true)
+                             .showXAxis(true)
+                             .padData(true)
+                             .forceY([0])
+                             
+                        ;
+                    
+        let xLabel = this.xLabel ? this.xLabel : 'Genome Position'
+        chart.xAxis.axisLabel(xLabel + ' (' + humanSize(this.bin_size) + ' bins)')
+                   .tickValues(this.chrStarts)
+                   .tickFormat((i) => this.bins[i].from == 0 ? this.bins[i].chr : this.bins[i].chr + ':'+this.bins[i].from)
+        
+        chart.yAxis.axisLabel('Count of Overlapping CNVs')
+        
+        
+        console.log("rendering to " + id);
+        d3.select('#' + id)
+          .datum(points)  
+          .call(chart);  
+        
+        window.chart = chart;
+        return chart;
+    }
+}
+
+
+function showCNVGenomeDistribution() {
+    
+    let callsToShow = rare_calls;
+    
+    console.log("Showing genome distribution plot");
+    let plot = new CNVGenomeDistribution({bin_size: 5 * 1000 * 1000, cnvCalls: callsToShow}); 
+    let chart = plot.render('cnv_genome_dist')    
+    
+    chart.lines.dispatch.on('elementClick', function(info) {
+        let pointInfo = info[0]
+        let index = pointInfo.pointIndex;
+        let chr = plot.bins[index].chr
+        let subPlot = new CNVGenomeDistribution({bin_size: 500 * 1000, callsToShow, xLabel: 'Position in Chromosome ' + chr }); 
+        subPlot.render('cnv_chr_dist',[chr])
+    });
+    
 }
 
 // ----------------------------- CNV Size Binning  ----------------------------------
@@ -458,7 +780,10 @@ function loadCnvs(callback, runsToLoad, results) {
     script.async = true;
     
     let mergeResults =  () => {  
-        Object.values(cnv_calls).forEach(cnvs => cnvs.forEach(cnv => cnv.sample = cnv.sample + "-" + run));
+        Object.values(cnv_calls).forEach(cnvs => cnvs.forEach(cnv => { 
+            cnv.sample = cnv.sample + "-" + run;
+            cnv.range = new Range(cnv.chr.replace('chr',''), cnv.start, cnv.end);
+        }));
         if(!results)
             results = cnv_calls;
         else
@@ -475,6 +800,13 @@ function loadCnvs(callback, runsToLoad, results) {
         script.onload = () => {
             mergeResults()
             window.cnv_calls = results;
+            window.rare_calls = {};
+            
+            // A number of different outputs are based on CNVs absent from the population,
+            // so 
+            Object.keys(cnv_calls).filter(caller => caller != 'truth').forEach((caller) => {
+                window.rare_calls[caller] = cnv_calls[caller].filter(cnv => cnv.spanningFreq < MAX_RARE_CNV_FREQ)
+            });
             callback()
         };
     }
@@ -541,6 +873,14 @@ $(document).ready(function() {
            loadAndCall(showROCCurve);
        }
        else 
+       if(panelId == "sample_counts") {
+           loadAndCall(showSampleCounts);
+       }
+       else 
+       if(panelId == "genome_dist") {
+           loadAndCall(showCNVGenomeDistribution);
+       } 
+       else
        if(panelId.match(/runcalls[0-9]*/)) {
            let runIndex = panelId.match(/runcalls([0-9])*/)[1];
            

@@ -94,7 +94,9 @@ class Ximmer {
         this.outputDirectory = new File(outputDirectory)
         this.cfg = cfg
         this.random = this.seed != null ? new Random(this.seed)  : new Random()
-        this.enableSimulation = simulate && cfg.simulation_type != 'none'
+        
+        
+        this.enableSimulation = simulate && (cfg.simulation_type != 'none') && (cfg.get('simulation_enabled') in [null,true])
 
         if(!enableSimulation)
             log.info "Simulation disabled!"
@@ -119,9 +121,14 @@ class Ximmer {
         }
         
         ximmerBase=System.properties['ximmer.base']
+        
+        // This should be set by the script that launches ximmer. If not set,
+        // it probably means that it was launched directly as a java class instead of
+        // using the launcher script
+        assert ximmerBase != null : "Ximmer was launched without setting the ximmer.base system property. Please set this property or launch Ximmer using the provided script."
     }
     
-    boolean enableTruePositives = false
+    Boolean enableTruePositives = null
    
     void run(analyse=true) {
         
@@ -156,8 +163,6 @@ class Ximmer {
 //        if(!cfg.containsKey("runs") || !String.valueOf(cfg.runs).isInteger())
 //            throw new RuntimeException("The key 'runs' must be set to an integer in the configuration file (current value is ${cfg.runs})")
             
-        this.enableTruePositives = this.enableSimulation || ('known_cnvs' in cfg)
-        
         if(cfg.containsKey('variants')) {
             if(cfg.variants instanceof List) {
                 vcfFiles = cfg.variants
@@ -201,9 +206,17 @@ class Ximmer {
     
     Map<String,SimulationRun> runs
     
+    /**
+     * Configure simulations and if simulation actually required, do it.
+     * <p>
+     * Note that this method is always called, even if simulation is not required, because the 
+     * simulation parameters can still be applied to pre-simulated data.
+     */
     void simulate() {
         
         this.runs = SimulationRun.configureRuns(this.outputDirectory, this.runDirectoryPrefix, cfg)
+        
+        this.enableTruePositives = this.enableSimulation ||  this.runs.every { it.value.knownCnvs != null  }
         
         this.bamFiles = this.runs.collect { it.value.bamFiles }.sum()
         
@@ -850,7 +863,9 @@ class Ximmer {
                << new HTMLAsset(source:'nv.d3.js') \
                << new HTMLAsset(source:'jquery-ui.css') \
                << new HTMLAsset(source:'nv.d3.css') \
-               << new HTMLAsset(source:'c3.css') 
+               << new HTMLAsset(source:'c3.css')  \
+               << new HTMLAsset(source:'ximmer.css')  \
+               << new HTMLAsset(source:'cnv_report.css') 
         
         String assetPayload = assets.render()
         
