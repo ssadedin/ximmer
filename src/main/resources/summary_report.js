@@ -469,13 +469,16 @@ class CNVROCCurve {
                 this.rawCnvs[caller].filter(cnv => (cnv.targets >= targetsMin) && (cnv.targets<=targetsMax) &&
                                                   (cnv.end - cnv.start > sizeMin) && 
                                                   (cnv.end - cnv.start < sizeMax) && 
-                                                  ((simulationType != 'replace') || (cnv.chr == 'chrX' || cnv.chr == 'X')))
+                                                  ((simulationType != 'replace') || (cnv.chr == 'chrX' || cnv.chr == 'X')) &&
+                                                  ((simulationType == 'replace') || (cnv.chr != 'chrX' && cnv.chr != 'X')))
                                     .sort((cnv1,cnv2) => cnv2.quality - cnv1.quality)
         );
         
         let filteredTruth = 
             this.rawCnvs.truth.filter((cnv) => (cnv.targets >= targetsMin) && (cnv.targets<=targetsMax) && 
-                                               (cnv.end - cnv.start > sizeMin) && (cnv.end - cnv.start < sizeMax));
+                                               (cnv.end - cnv.start > sizeMin) && (cnv.end - cnv.start < sizeMax) &&
+                                               ((simulationType == 'replace') || (cnv.chr != 'chrX' && cnv.chr != 'X')))
+                                               ;
         
         let cnvCount = Object.values(this.filteredCnvs).reduce((n,caller) => n+caller.length, 0);
         console.log(`There are ${cnvCount} cnv calls after filtering by spanningFreq<${this.maxFreq}`);
