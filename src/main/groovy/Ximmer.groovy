@@ -274,6 +274,7 @@ class Ximmer {
         int concurrency
         List<AnalysisConfig> batches = []
         List drawCnvsParam = []
+        List excludeRegionsParam = []
         
         synchronized(analysisLock) { // Avoid any potential multi-threading issues since all the below
                                      // are reading from non-threadsafe maps, config objects, etc.
@@ -309,6 +310,10 @@ class Ximmer {
             if(cfg.containsKey('draw_cnvs') && !cfg.draw_cnvs) {
                 drawCnvsParam = ["-p","draw_cnvs=false"]
             }
+            
+            if(cfg.containsKey('exclude_analysis_regions')) {
+               excludeRegionsParam = ["-p", "exclude_regions=" + cfg.exclude_analysis_regions]
+            }
         }
         
         
@@ -317,6 +322,7 @@ class Ximmer {
         File bpipe = new File("$ximmerBase/eval/bpipe")
         String toolsPath = new File("$ximmerBase/eval/pipeline/tools").absolutePath
         String ximmerSrc = new File("$ximmerBase/src/main/groovy").absolutePath
+        
         
         List<String> bpipeCommand = [
                 "bash",
@@ -333,7 +339,7 @@ class Ximmer {
                 "-p", "target_bed=$targetRegionsPath", 
                 "-p", "sample_id_mask='$sampleIdMask'", 
                 "-p", "imgpath=${runDir.name}/#batch#/report/", 
-            ] + drawCnvsParam + [
+            ] + excludeRegionsParam + drawCnvsParam + [
                 "$ximmerBase/eval/pipeline/exome_cnv_pipeline.groovy"
             ]  + bamFiles + vcfFiles + (enableTruePositives ? ["true_cnvs.bed"] : [])
             

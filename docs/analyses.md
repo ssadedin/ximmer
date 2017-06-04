@@ -212,6 +212,22 @@ Example: Retain only a trailing SNN portion of the sample id:
 sample_id_mask=".*(_S[0-9]*)"
 ```
 
+## Excluding Specific Regions from Analysis
+
+For a variety of reasons it is sometimes desirable to exclude some regions of
+the genome from analysis, even when they are included in the exome target regions.
+Some common reasons can include:
+
+ * to exclude regions where CNV calling is difficult and thus causes
+   large numbers of false positives
+ * to mask regions where CNV calls might result in incidental findings (for
+   example, that violate ethics constraints for research).
+
+**Note**: regions excluded from analysis are _not_ automatically excluded
+from simulation or known CNVs provided as true positives. Thus excluding regions
+may result in loss of sensitivity in the output. To exclude regions completely
+from use by Ximmer, adjust the `target_regions` parameter.
+
 ## Full Configuration Example
 
 Below is a very simple, minimal but working configuration which analyses
