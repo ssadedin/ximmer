@@ -8,15 +8,18 @@ init_conifer = { }
 
 create_analysable_target = {
     doc """
-          Some callers cannot process chromosomes where the target region includes less targets than the number 
-          of regions in the analysis. This stage removes those regions from the target region.
+          Different CNV callers have various different constraints on what they
+          can handle. This stage filters the target regions by a variety of common
+          rules to ensure that all the CNV callers included can analyse the data. Also 
+          supported is an arbitrary BED file for excluding any regions specified by the user.
         """
 
     requires target_bed : "The target region BED file",
              sample_names : "The names of samples to analyse"
              
              
-    var min_target_size : 30
+    var min_target_size : 30,
+        exclude_regions : ''
 
     def numSamples = sample_names.size()
 
@@ -27,12 +30,17 @@ create_analysable_target = {
 
            targetRegion = new BED("$input.bed", withExtra:true).load()
 
+           excludeRegions = "$exclude_regions" ? new BED("$exclude_regions").load() : null
+
            chrs = targetRegion*.chr.unique()
 
            chrCounts = targetRegion.countBy { it.chr }
 
            filteredTargets = targetRegion.grep { 
-               (it.chr in INCLUDE_CHROMOSOMES) && (chrCounts[it.chr] > $numSamples) && (it.to - it.from > $min_target_size)
+               (it.chr in INCLUDE_CHROMOSOMES) && 
+               (chrCounts[it.chr] > $numSamples) && 
+               (it.to - it.from > $min_target_size) && 
+               ((excludeRegions == null) || !it.overlaps(excludeRegions))
            } as Regions
 
            
