@@ -46,9 +46,13 @@ conifer_analyze = {
 
 conifer_call = {
     requires batch_name : "The name of the batch that Conifer is analysing"
+    
+    var conifer_call_threshold  : 1.5
+    
     produce(batch_name+ ".conifer.raw.cnvs.tsv") {
         exec """
         LD_LIBRARY_PATH=$HDF5_DIR/lib $PYTHON $CONIFER call 
+        --threshold $conifer_call_threshold
         --input $input.hdf5 
         --output $output.tsv
         """
