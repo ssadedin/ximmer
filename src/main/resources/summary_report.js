@@ -153,9 +153,11 @@ class CallerCalibrationCurve {
       // Skip CNVs that are in DGV
       if(cnv.spanningFreq > MAX_RARE_CNV_FREQ) 
           return
+          
+      if((simulationType == 'replace') && (cnv.chr != 'X') && (cnv.chr != 'chrX'))
+          return
         
       var b = bins.find(b => cnv.quality > b.low && cnv.quality <= b.high); 
-      
       
       if(b) {
         b.count++; 
