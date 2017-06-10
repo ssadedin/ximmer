@@ -153,9 +153,11 @@ class CallerCalibrationCurve {
       // Skip CNVs that are in DGV
       if(cnv.spanningFreq > MAX_RARE_CNV_FREQ) 
           return
+          
+      if((simulationType == 'replace') && (cnv.chr != 'X') && (cnv.chr != 'chrX'))
+          return
         
       var b = bins.find(b => cnv.quality > b.low && cnv.quality <= b.high); 
-      
       
       if(b) {
         b.count++; 
@@ -304,7 +306,7 @@ function showQscores() {
     // Size the plots into an even grid
     let minWidth = 300;
     let minHeight = 200;
-    let maxHeight = 600;
+    let maxHeight = 500;
     
     // Try to layout in 1 row at first
     let columns = callList.length;
@@ -476,9 +478,12 @@ class CNVROCCurve {
         
         // the set of true positives that we have identified
         let tps = this.rawCnvs.truth.map(function(cnv, i) {
-            var tp = Object.assign(new Range(cnv.chr, cnv.start, cnv.end),cnv);
-            tp.id = i;
-            tp.detected = false;
+            var tp = {
+                range: cnv.range,
+                sample: cnv.sample,
+                id: i,
+                detected: false
+            }
             return tp;
         });
         
@@ -488,10 +493,9 @@ class CNVROCCurve {
         let fpCount = 0;
         
         cnvs.forEach(function(cnv) {
-            cnv.range = new Range(cnv.chr, cnv.start, cnv.end);
             if(cnv.truth) {
                 // Which tp? we don't want to double count
-                let tp = tps.find(tp => tp.overlaps(cnv.range) && (tp.sample == cnv.sample))
+                let tp = tps.find(tp => tp.range.overlaps(cnv.range) && (tp.sample == cnv.sample))
                 
                 if(!tp) {
                     console.log(`CNV marked as true but does not overlap truth set: ${cnv.chr}:${cnv.start}-${cnv.end}`);
@@ -531,8 +535,8 @@ class CNVROCCurve {
                 this.rawCnvs[caller].filter(cnv => (cnv.targets >= targetsMin) && (cnv.targets<=targetsMax) &&
                                                   (cnv.end - cnv.start > sizeMin) && 
                                                   (cnv.end - cnv.start < sizeMax) && 
-                                                  ((simulationType != 'replace') || (cnv.chr == 'chrX' || cnv.chr == 'X')) &&
-                                                  ((simulationType == 'replace') || (cnv.chr != 'chrX' && cnv.chr != 'X')))
+                                                  ((simulationType != 'replace') || (cnv.chr == 'chrX' || cnv.chr == 'X')) && // replace - only look at chrX
+                                                  ((simulationType == 'replace') || (cnv.chr != 'chrX' && cnv.chr != 'X'))) // downsample - don't look at chrX
                                     .sort((cnv1,cnv2) => cnv2.quality - cnv1.quality)
         );
         
