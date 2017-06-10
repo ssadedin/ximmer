@@ -535,8 +535,8 @@ class CNVROCCurve {
                 this.rawCnvs[caller].filter(cnv => (cnv.targets >= targetsMin) && (cnv.targets<=targetsMax) &&
                                                   (cnv.end - cnv.start > sizeMin) && 
                                                   (cnv.end - cnv.start < sizeMax) && 
-                                                  ((simulationType != 'replace') || (cnv.chr == 'chrX' || cnv.chr == 'X')) &&
-                                                  ((simulationType == 'replace') || (cnv.chr != 'chrX' && cnv.chr != 'X')))
+                                                  ((simulationType != 'replace') || (cnv.chr == 'chrX' || cnv.chr == 'X')) && // replace - only look at chrX
+                                                  ((simulationType == 'replace') || (cnv.chr != 'chrX' && cnv.chr != 'X'))) // downsample - don't look at chrX
                                     .sort((cnv1,cnv2) => cnv2.quality - cnv1.quality)
         );
         
