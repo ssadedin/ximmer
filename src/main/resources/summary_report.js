@@ -119,6 +119,7 @@ class CallerCalibrationCurve {
     this.width = 600,
     this.height = 260,
     this.margin = { bottom: 60, left: 60 };
+    this.minBinCount = 3
   }
   
   calculateBins() {
@@ -148,7 +149,14 @@ class CallerCalibrationCurve {
     window.bins = bins;
 
     cnvs.forEach(cnv => { 
+        
+      // Skip CNVs that are in DGV
+      if(cnv.spanningFreq > MAX_RARE_CNV_FREQ) 
+          return
+        
       var b = bins.find(b => cnv.quality > b.low && cnv.quality <= b.high); 
+      
+      
       if(b) {
         b.count++; 
        if(cnv.truth) b.truth++; 
@@ -158,7 +166,7 @@ class CallerCalibrationCurve {
     console.log(`Max quality = ${caller_max}, min quality = ${caller_min}, bin size = ${bin_size}, ${bins.length} bins`);
 
     // Remove bins that have fewer than 3 counts
-    return bins.filter(bin => { return bin.count > 0 });
+    return bins.filter(bin => { return bin.count >= this.minBinCount });
   }
   
   render() {
@@ -232,6 +240,53 @@ class C3CallerCalibrationCurve extends CallerCalibrationCurve {
     }
 }
 
+class NVD3CallerCalibrationCurve extends CallerCalibrationCurve {
+    constructor(calls) {
+      super(calls);
+    }
+    
+   render(id) {
+       this.calculateBins();
+       
+       let values = this.calls[0].bins.map(bin => {
+           return { 
+               x: (bin.low + bin.high)/2,
+               y: bin.truth/bin.count
+           }
+       })
+       
+       let points = [{
+           key: this.calls[0].caller + " Quality Scores",
+           values: values
+       }];
+       
+        var chart = nv.models.lineChart()
+                             .margin({left: 100})  //Adjust chart margins to give the x-axis some breathing room.
+                             .useInteractiveGuideline(true)  //We want nice looking tooltips and a guideline!
+                             .showLegend(true)       //Show the legend, allowing users to turn on/off line series.
+                             .showYAxis(true)
+                             .yDomain([0,1])
+                             .forceY([0,1])
+                             .showXAxis(true)
+                             .padData(true)
+                             .interpolate('basis')
+//                             .yDomain([0,filteredTruth.length])
+//                             .forceX([0])
+                             
+                        ;
+                    
+        chart.xAxis.axisLabel('Quality Scores')
+        chart.yAxis.axisLabel('Empirical Precision')
+                   .tickValues([0,0.2,0.4,0.6,0.8,1.0])
+        
+        d3.select('#'+id)
+            .datum(points)
+            .call(chart);
+        
+        return chart;
+   }
+}
+
 function showQscores() {
     console.log("Showing qscore results");
     
@@ -267,25 +322,32 @@ function showQscores() {
             break;
     }
     
+    let heightFactor = 2.0;
+    
     let plotWidth = calcPlotWidth();
     let plotHeight = Math.floor(Math.min(maxHeight,(windowHeight - plotMargin.y * rows - borderMargin.y) / rows));
     
     console.log(`Calculated ${columns}x${rows} grid for layout, plotWidth=${plotWidth}`)
     
     window.callList = callList;
-    window.cc = new C3CallerCalibrationCurve([callList[0]])
+//    window.cc = new C3CallerCalibrationCurve([callList[0]])
     // cc.render('qscore_calibration_figure');
     
     with(DOMBuilder.dom) {
         callList.filter(calls => calls.id != 'truth').forEach(calls => {
             let plotId = 'ximmer_qscore_calibration_'+calls.id;
+            let plotIdWrapper = plotId + '_wrapper'
+            console.log("Append " + plotIdWrapper)
             
             let plot = DIV({ style:`display: inline-block; width: ${plotWidth}px; height: ${plotHeight}px;`},
-                        H3({'class':'qualCalTitle'},'Quality Score Calibration Curve for ' + calls.id),
-                        DIV({id: plotId}, calls.id)
+                        DIV({id: plotIdWrapper})
                         );
+            
             $('#qscore_calibration_figure')[0].appendChild(plot);
-            new C3CallerCalibrationCurve([calls]).render(plotId);
+            
+            $('#' + plotIdWrapper).html('<svg id="' + plotId + '" + style="' + `display: inline-block; width: ${plotWidth}px; height: ${plotHeight}px;`+'"></svg>')
+            
+            new NVD3CallerCalibrationCurve([calls]).render(plotId);
         });
     }
 }
@@ -764,6 +826,8 @@ class CNVSizePlot {
         // So for this case we just let the user specify them
         this.paramBins = props.paramBins;
         this.paramDesc = props.paramDesc;
+        this.xScale = props.xScale  || function(x) { return x; };
+        this.tickFormat = props.tickFormat
     }
     
     initBins() {
@@ -859,6 +923,27 @@ class CNVSizePlot {
         
         this.calculateSensititivyByBin(callerBins, realCallers)
         
+        let filteredBins = callerBins.truth.filter(bin => bin.cnvs.length>2)
+        
+        let minTruthCNVs = 3 
+        
+        let points = realCallers.map( (caller,callerIndex) => { 
+            
+            let values = [{x:0, y:0}].concat(filteredBins.map((bin,i) => { 
+                             return { 
+                                 x: this.xScale((bin.min + bin.max)/2),
+                                 y: bin.callerSens[caller]
+                             }
+                        }))
+            
+            return { 
+                key: caller, 
+                values: values  
+            }
+        })
+        
+        let xMax = max(filteredBins.map(b => b.max))
+        
         // Each bin in the binned truth set now has a callerSens property which is a 
         // map of caller => sensitiivty
         
@@ -870,35 +955,25 @@ class CNVSizePlot {
                              .showYAxis(true)
                              .showXAxis(true)
                              .forceY([0])
+                             .forceX([this.xScale(xMax)])
                              .pointShape('circle')
                              .interpolate('basis')
                 ;
+        
+        
+//        if(this.scale)
+//            chart.xScale(this.scale);
   
         let xAxisLabel = this.paramDesc || this.sizeParam;
         
         chart.xAxis.axisLabel(xAxisLabel)
                    .tickValues(this.chrStarts)
-//                   .tickFormat((i) => this.bins[i].from == 0 ? this.bins[i].chr : this.bins[i].chr + ':'+this.bins[i].from)
+                   
+        if(this.tickFormat)
+               chart.xAxis.tickFormat(this.tickFormat)
           
         chart.yAxis.axisLabel('Fraction of True Positives Detected')
                    .tickValues([0,0.2,0.4,0.6,0.8,1.0])
-        
-        let minTruthCNVs = 3 
-        
-        let points = realCallers.map( (caller,callerIndex) => { 
-            
-            let values = [{x:0, y:0}].concat(callerBins.truth.filter(bin => bin.cnvs.length>2).map((bin,i) => { 
-                             return { 
-                                 x: (bin.min + bin.max)/2,
-                                 y: bin.callerSens[caller]
-                             }
-                        }))
-            
-            return { 
-                key: caller, 
-                values: values  
-            }
-        })
         
         d3.select('#' + id)
           .datum(points)  
@@ -920,12 +995,14 @@ function showSizeBreakdown() {
         {
             sizeParam: 'targetBp',
             paramDesc: 'Number of targeted Base Pairs',
-            paramBins: [0,100,500,1000,5000,10000,50000,100000,500000,1000000,10000000]
+            paramBins: [0,100,500,1000,5000,10000,50000,100000,500000,1000000,10000000],
         },
         {
             sizeParam: 'size',
-            paramDesc: 'Genomic Span of CNV',
-            paramBins: [0,100,500,1000,5000,10000,50000,100000,500000,1000000,10000000]
+            paramDesc: 'Genomic Span of CNV (bp)',
+            paramBins: [0,100,500,1000,5000,10000,50000,100000,500000,1000000,10000000],
+            xScale: Math.log10,
+            tickFormat: (x) => '10^' + x
         }, 
     ]
     
@@ -936,19 +1013,22 @@ function showSizeBreakdown() {
         sizeChart.render('cnv_size_breakdown');
     }
     
-    with(DOMBuilder.dom) {
-        let radios = DIV({id:'size_radios'},sizeTypes.map((st,index) => {
-            return DIV({},INPUT({type:'radio', value: index, name:'sizeradio'}),SPAN(st.paramDesc))
-        }));
-        
-        $('#sizebreakdown')[0].appendChild(radios);
-        $('#size_radios input')[0].checked = true;
-        $('#size_radios input').change(function() {
-           console.log("Showing param set " + this.value);
-           showPlot(sizeTypes[parseInt(this.value,10)])
-        });
+    if(!$('#size_radios').length) {
+        with(DOMBuilder.dom) {
+            let radios = DIV({id:'size_radios'},sizeTypes.map((st,index) => {
+                return DIV({},INPUT({type:'radio', value: index, name:'sizeradio'}),SPAN(st.paramDesc))
+            }));
+            
+            $('#sizebreakdown')[0].appendChild(radios);
+            $('#size_radios input')[0].checked = true;
+            $('#size_radios input').change(function() {
+               console.log("Showing param set " + this.value);
+               showPlot(sizeTypes[parseInt(this.value,10)])
+            });
+        }
     }
     
+    $('#size_radios input')[0].checked = true;   
     let sizeChart = new CNVSizePlot(sizeTypes[0])
     
     sizeChart.render('cnv_size_breakdown');
