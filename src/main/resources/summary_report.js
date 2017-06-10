@@ -478,9 +478,12 @@ class CNVROCCurve {
         
         // the set of true positives that we have identified
         let tps = this.rawCnvs.truth.map(function(cnv, i) {
-            var tp = Object.assign(new Range(cnv.chr, cnv.start, cnv.end),cnv);
-            tp.id = i;
-            tp.detected = false;
+            var tp = {
+                range: cnv.range,
+                sample: cnv.sample,
+                id: i,
+                detected: false
+            }
             return tp;
         });
         
@@ -490,10 +493,9 @@ class CNVROCCurve {
         let fpCount = 0;
         
         cnvs.forEach(function(cnv) {
-            cnv.range = new Range(cnv.chr, cnv.start, cnv.end);
             if(cnv.truth) {
                 // Which tp? we don't want to double count
-                let tp = tps.find(tp => tp.overlaps(cnv.range) && (tp.sample == cnv.sample))
+                let tp = tps.find(tp => tp.range.overlaps(cnv.range) && (tp.sample == cnv.sample))
                 
                 if(!tp) {
                     console.log(`CNV marked as true but does not overlap truth set: ${cnv.chr}:${cnv.start}-${cnv.end}`);
