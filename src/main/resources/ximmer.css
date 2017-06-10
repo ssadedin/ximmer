@@ -6,6 +6,11 @@ html {
 body {
     font-family: helvetica;
     xheight: 100%;
+    font-size: 9pt;
+}
+
+h2 {
+ font-size: 16px;
 }
 
 #filterHelp {
