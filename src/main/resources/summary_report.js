@@ -306,7 +306,7 @@ function showQscores() {
     // Size the plots into an even grid
     let minWidth = 300;
     let minHeight = 200;
-    let maxHeight = 600;
+    let maxHeight = 500;
     
     // Try to layout in 1 row at first
     let columns = callList.length;
