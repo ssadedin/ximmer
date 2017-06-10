@@ -846,7 +846,7 @@ class Ximmer {
         
         String summaryHTML = generateSummary(analysis)
         
-        generateROCPlots(analysis, analysedTargets)
+//        generateROCPlots(analysis, analysedTargets)
         
         
         List runDirectories = this.runs*.value*.runDirectory;
