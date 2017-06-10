@@ -755,11 +755,203 @@ function showCNVGenomeDistribution() {
 
 class CNVSizePlot {
     constructor(props) {
+        
         this.rawCnvs = props.cnvs;
+        this.sizeParam = props.sizeParam; // eg: targets
+        
+        // Since different types of params can be specified, 
+        // it is hard to create good bins automatically.
+        // So for this case we just let the user specify them
+        this.paramBins = props.paramBins;
+        this.paramDesc = props.paramDesc;
     }
     
-    render() {
+    initBins() {
+        
+        let binCounts = []
+        
+        this.paramBins.map((bin,i) => {
+            if(i > 0) {
+                binCounts.push({
+                    index: i-1,
+                    min: this.paramBins[i-1],
+                    max: bin,
+                    tp: 0,
+                    cnvs: []
+                })
+            }
+        })
+        
+        return binCounts;
     }
+    
+    calculateBinsForCaller(cnvs) {
+        let bins = this.initBins()
+        cnvs.forEach( cnv => {
+            // Add it to the first bin where it fits
+            for(let i=0; i<bins.length; ++i) {
+                
+                let size = cnv[this.sizeParam]
+                if((size>=bins[i].min) && (size<bins[i].max)) {
+                    bins[i].cnvs.push(cnv);
+                    if(cnv.truth)
+                            ++bins[i].tp;
+                    break
+                }
+            }
+        })
+        return bins;
+    }
+    
+    /**
+     * For a given bin containing true positive CNVs and a specified
+     * CNV caller, compute the sensitivity for true positive CNVs in that bin.
+     */
+    calculateBinSensitivityForCaller(bin, caller) {
+        // Copy the tps
+        let tps = bin.cnvs.map(x => { return { cnv: x, detected: false}})
+        if(tps.length == 0) {
+            return 0
+        }
+                
+        let countTp = 0
+                
+        let callerCnvs = cnv_calls[caller]
+                
+        callerCnvs.forEach(cnv => {
+                    
+            if(!cnv.truth)
+                return
+                    
+            // Which tp? Might already have been detected
+            let tp = tps.find(tp => tp.cnv.range.overlaps(cnv.range) && (tp.cnv.sample == cnv.sample))
+            if(!tp) {
+                return
+            }
+                    
+            if(!tp.detected) {
+                ++countTp
+                tp.detected = true
+            }
+        })
+        
+        return countTp / tps.length;
+    }
+    
+    calculateSensititivyByBin(callerBins, callers) {
+        callerBins.truth.forEach((bin, i) => {
+            bin.callerSens = {}
+            callers.forEach( caller => {
+                bin.callerSens[caller] = this.calculateBinSensitivityForCaller(bin,caller)
+            })
+        })
+    }
+    
+    render(id) {
+        
+        let callers = Object.keys(cnv_calls)
+        
+        // find the number of true positives by different size properties
+        let callerBins = {};
+        callers.forEach(caller => callerBins[caller] = this.calculateBinsForCaller(cnv_calls[caller]));
+        
+        let realCallers = callers.filter(c => c != 'truth')
+        
+        this.calculateSensititivyByBin(callerBins, realCallers)
+        
+        // Each bin in the binned truth set now has a callerSens property which is a 
+        // map of caller => sensitiivty
+        
+        let chart = nv.models.lineChart()
+                             .margin({left: 100})  //Adjust chart margins to give the x-axis some breathing room.
+                             .useInteractiveGuideline(true)  //We want nice looking tooltips and a guideline!
+                             .showLegend(true)       //Show the legend, allowing users to turn on/off line series.
+                             .yDomain([0,1.05])
+                             .showYAxis(true)
+                             .showXAxis(true)
+                             .forceY([0])
+                             .pointShape('circle')
+                             .interpolate('basis')
+                ;
+  
+        let xAxisLabel = this.paramDesc || this.sizeParam;
+        
+        chart.xAxis.axisLabel(xAxisLabel)
+                   .tickValues(this.chrStarts)
+//                   .tickFormat((i) => this.bins[i].from == 0 ? this.bins[i].chr : this.bins[i].chr + ':'+this.bins[i].from)
+          
+        chart.yAxis.axisLabel('Fraction of True Positives Detected')
+                   .tickValues([0,0.2,0.4,0.6,0.8,1.0])
+        
+        let minTruthCNVs = 3 
+        
+        let points = realCallers.map( (caller,callerIndex) => { 
+            
+            let values = [{x:0, y:0}].concat(callerBins.truth.filter(bin => bin.cnvs.length>2).map((bin,i) => { 
+                             return { 
+                                 x: (bin.min + bin.max)/2,
+                                 y: bin.callerSens[caller]
+                             }
+                        }))
+            
+            return { 
+                key: caller, 
+                values: values  
+            }
+        })
+        
+        d3.select('#' + id)
+          .datum(points)  
+          .call(chart);  
+      
+        window.chart = chart;        
+        return chart;
+    }
+}
+
+function showSizeBreakdown() {
+    
+    let sizeTypes = [
+        {
+            sizeParam: 'targets',
+            paramDesc: 'Number of Target Regions',
+            paramBins: [0,1,2,3,4,5,10,20,50,100,500,1000]
+        },
+        {
+            sizeParam: 'targetBp',
+            paramDesc: 'Number of targeted Base Pairs',
+            paramBins: [0,100,500,1000,5000,10000,50000,100000,500000,1000000,10000000]
+        },
+        {
+            sizeParam: 'size',
+            paramDesc: 'Genomic Span of CNV',
+            paramBins: [0,100,500,1000,5000,10000,50000,100000,500000,1000000,10000000]
+        }, 
+    ]
+    
+    let showPlot = function(params) {
+        let sizeChart = new CNVSizePlot(Object.assign({
+            cnvs: cnv_calls
+        }, params))
+        sizeChart.render('cnv_size_breakdown');
+    }
+    
+    with(DOMBuilder.dom) {
+        let radios = DIV({id:'size_radios'},sizeTypes.map((st,index) => {
+            return DIV({},INPUT({type:'radio', value: index, name:'sizeradio'}),SPAN(st.paramDesc))
+        }));
+        
+        $('#sizebreakdown')[0].appendChild(radios);
+        $('#size_radios input')[0].checked = true;
+        $('#size_radios input').change(function() {
+           console.log("Showing param set " + this.value);
+           showPlot(sizeTypes[parseInt(this.value,10)])
+        });
+    }
+    
+    let sizeChart = new CNVSizePlot(sizeTypes[0])
+    
+    sizeChart.render('cnv_size_breakdown');
 }
  
 // ----------------------------- CNV Loading Functions ----------------------------------
@@ -786,6 +978,7 @@ function loadCnvs(callback, runsToLoad, results) {
         Object.values(cnv_calls).forEach(cnvs => cnvs.forEach(cnv => { 
             cnv.sample = cnv.sample + "-" + run;
             cnv.range = new Range(cnv.chr.replace('chr',''), cnv.start, cnv.end);
+            cnv.size = cnv.end - cnv.start;
         }));
         if(!results)
             results = cnv_calls;
@@ -883,6 +1076,10 @@ $(document).ready(function() {
        if(panelId == "genome_dist") {
            loadAndCall(showCNVGenomeDistribution);
        } 
+       else
+       if(panelId == "sizebreakdown") {
+           loadAndCall(showSizeBreakdown);
+       }
        else
        if(panelId.match(/runcalls[0-9]*/)) {
            let runIndex = panelId.match(/runcalls([0-9])*/)[1];

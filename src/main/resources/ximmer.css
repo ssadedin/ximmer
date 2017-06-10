@@ -6,6 +6,11 @@ html {
 body {
     font-family: helvetica;
     xheight: 100%;
+    font-size: 9pt;
+}
+
+h2 {
+ font-size: 16px;
 }
 
 #filterHelp {
@@ -221,5 +226,20 @@ h3.qualCalTitle {
  
  #cnvs_by_sample_chart_container {
     width: 1024px;
-    height: 600px;
+    height: 500px;
  } 
+
+ #cnv_size_breakdown {
+    width: 6in;
+    height: 4in;
+ }
+ 
+ .nv-axisMaxMin {
+    display: none;
+ }
+ 
+ text.nv-axislabel {
+     font-weight: bold;
+     font-size: 16px;
+ }
+ 
