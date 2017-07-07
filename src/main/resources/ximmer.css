@@ -238,6 +238,10 @@ h3.qualCalTitle {
     height: 4in;
  }
  
+ #cnv_genome_dist, #cnv_chr_dist {
+    height: 2.5in;
+ }
+ 
  .nv-axisMaxMin {
     display: none;
  }
