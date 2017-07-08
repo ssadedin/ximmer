@@ -71,8 +71,10 @@ else
 
 sample_names = run_samples
 
+target_regions = new BED(target_bed).load()
+
 // Sniff the target BED file to see if there is a 'chr' prefix or not
-chr_prefix = new File(target_bed).withReader { r -> r.readLine().startsWith('chr') ? "chr" : "" }
+chr_prefix = target_regions[0].startsWith('chr') ? "chr" : "" 
 
 // The list of chromosomes to consider for analysis
 // Not all of them will be analysed - they will be filtered
@@ -83,12 +85,15 @@ INCLUDE_CHROMOSOMES = ([chr_prefix + "X"] + (1..22).collect { chr_prefix + it })
 
 // Only parallelise over the chromosomes actually in the target bed file
 println "Scanning target region ..."
-chromosomes = new BED(target_bed).load()*.chr.unique().grep { it in INCLUDE_CHROMOSOMES }
+chromosomes = target_regions*.chr.unique().grep { it in INCLUDE_CHROMOSOMES }
 
 // If provided on command line as option
 if(chromosomes instanceof String) {
     chromosomes = chromosomes.split(",") as List
 }
+
+if(chromosomes.isEmpty())
+    throw new RuntimeException("No entries were found in the configured BED file ($target_bed) corresponding to the configured chromosomes ($chromosomes, $INCLUDE_CHROMOSOMES)!")
 
 load 'excavator.groovy'
 load 'xhmm.groovy'
