@@ -119,7 +119,7 @@ xhmm_mean_center = {
                     --minMeanTargetRD 10 --maxMeanTargetRD $xhmm_max_mean_rd 
                     --minMeanSampleRD $min_sample_mean --maxMeanSampleRD $xhmm_max_mean_rd 
                     --maxSdSampleRD 180
-            """
+            ""","medium"
         }
     }
 }
@@ -129,7 +129,7 @@ xhmm_merge_coverage = {
         filter("merged") {
             exec """
                 $XHMM --mergeGATKdepths -o $output.sample_interval_summary ${inputs.sample_interval_summary.withFlag("--GATKdepths ")}
-            """
+            ""","smallish"
         }
     }
 }
