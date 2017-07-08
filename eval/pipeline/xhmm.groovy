@@ -48,7 +48,7 @@ xhmm_init = {
                 $mean_of_duplication_z_score_distribution
                 $standard_deviation_of_duplication_z_score_distribution
                 > $output.txt
-          """
+          ""","local"
     }
 }
 
@@ -96,7 +96,7 @@ find_extreme_gc_content = {
                 -o $output1.txt
 
             cat $output1.txt | awk '{if (\$2 < 0.1 || \$2 > 0.9) print \$1}' > $output2.txt
-        """
+        ""","medium"
     }
 }
 
