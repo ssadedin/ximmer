@@ -149,6 +149,9 @@ class Ximmer {
                 this.generateReport(analysis)
             }
         }
+        else {
+            log.info "Analysis disabled."
+        }
     }
     
     List vcfFiles = []
