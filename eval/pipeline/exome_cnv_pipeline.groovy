@@ -74,7 +74,7 @@ sample_names = run_samples
 target_regions = new BED(target_bed).load()
 
 // Sniff the target BED file to see if there is a 'chr' prefix or not
-chr_prefix = target_regions[0].startsWith('chr') ? "chr" : "" 
+chr_prefix = target_regions[0].chr.startsWith('chr') ? "chr" : "" 
 
 // The list of chromosomes to consider for analysis
 // Not all of them will be analysed - they will be filtered
