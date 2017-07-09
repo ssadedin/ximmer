@@ -349,7 +349,7 @@ $(document).ready(function() {
         with($('#filterHelp')) {
             $span("Filter attributes: " + attrs.join(","));
         }
-        layout.sizePane("north",150);
+        layout.sizePane("north",layout.panes.north.outerHeight() + 10);
         $('#filterHelp').slideDown();
     });
 
