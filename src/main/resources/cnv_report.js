@@ -727,10 +727,12 @@ function show_cnv_details(cnvIndex) {
         
         $button('Tag').click(partial(addTagToRow,cnvIndex, show_cnv_details));
     }
+    
+    let sample = idMaskRegExp ? cnv.sample.match(idMaskRegExp)[1] : cnv.sample
 
     with(southWest.$table({id:"cnvDetails",'class':'cnvDetailTable'})) {
         with($tr()) { $th("Type"); $td(TYPE_DESCRIPTIONS[cnv.type]); }
-        with($tr()) { $th("Sample"); $td(cnv.sample); }
+        with($tr()) { $th("Sample"); $td(sample); }
         with($tr()) { $th("Genes"); $td(cnv.genes.join(",")); }
         with($tr()) { $th("Concordance"); $td(cnv.count); }
     }
