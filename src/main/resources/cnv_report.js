@@ -725,7 +725,7 @@ function show_cnv_details(cnvIndex) {
             });
         });
         
-        $button('New').click(partial(addTagToRow,cnvIndex, show_cnv_details));
+        $button('Tag').click(partial(addTagToRow,cnvIndex, show_cnv_details));
     }
 
     with(southWest.$table({id:"cnvDetails",'class':'cnvDetailTable'})) {
