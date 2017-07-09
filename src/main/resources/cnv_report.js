@@ -443,7 +443,8 @@ function renderSavedSettings() {
 function loadSettings(oldSettings) {
     console.log("Restoring settings ...");
     filters = oldSettings.filters;
-    geneList = oldSettings.geneList;
+    geneList = oldSettings.geneList || {};
+    
     if(oldSettings.userAnnotations) {
         userAnnotations = oldSettings.userAnnotations;
         for(var cnvIndex in userAnnotations) {
