@@ -1203,6 +1203,8 @@ class Ximmer {
             ximmer.addBamFiles(additionalBams)
         
         ximmer.run(!opts.simonly)
+        
+        println "Done."
     }
 }
 
