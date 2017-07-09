@@ -335,24 +335,26 @@ var cnv = {
             if(targetRange.length < 8)
                 continue
 
-            LoessInterpolator interp = new LoessInterpolator()
-            PolynomialSplineFunction otherMeansFn = interp.interpolate(targetRange, otherCoverage)
-
-            d.color(220,220,220)
             def sds = coverage.collect { c -> c[0] > 1.0d ? 1.0d + c[2] : 1.0d - c[2]}
-            d.loess(target, sds)
-
-            d.color("red")
-            d.loess(target, coverage.sample, color : { x, y ->
-                def otherMean = otherMeansFn.value(x)
-                if(otherMean > 30d)
-                    "red"
-                else
-                if(otherMean > 15d)
-                    [100,0,100]
-                else
-                    "blue"
-            })
+            
+            if('png' in writeTypes) {
+                LoessInterpolator interp = new LoessInterpolator()
+                PolynomialSplineFunction otherMeansFn = interp.interpolate(targetRange, otherCoverage)
+                d.color(220,220,220)
+                d.loess(target, sds)
+    
+                d.color("red")
+                d.loess(target, coverage.sample, color : { x, y ->
+                    def otherMean = otherMeansFn.value(x)
+                    if(otherMean > 30d)
+                        "red"
+                    else
+                    if(otherMean > 15d)
+                        [100,0,100]
+                    else
+                        "blue"
+                })
+            }
         }
         
         json.println("    ],")
@@ -482,7 +484,8 @@ var cnv = {
         else {
             log.info "Sample $cnv.sample does not have an associated VCF"
         }
-        d.save()
+        if('png' in writeTypes)
+            d.save()
         
         if(this.amplicons) {
             d.fileName = d.fileName.replaceAll('.png$','.ac.png')

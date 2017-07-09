@@ -242,12 +242,42 @@ h3.qualCalTitle {
     height: 2.5in;
  }
  
- .nv-axisMaxMin {
-    display: none;
+#cnv_size_breakdown .nv-axisMax-y {
+   display: none; 
  }
  
  text.nv-axislabel {
      font-weight: bold;
      font-size: 16px;
  }
+ 
+ div.loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border: solid 1px #222;
+    background-color: #f0f0f0;
+    opacity: 0.8;
+    z-index: 1000;
+    vertical-align: middle;
+ }
+ 
+ div.loadingmsg {
+    vertical-align: middle;
+    text-align: center;
+    font-size: 120%;
+    font-weight: bold;
+    margin: 2in 30%;
+    padding: 1in;
+    background-color: white;
+    border: solid 2px black;
+ }
+ 
+ div.loadingmsg {
+    text-align: center;
+ }
+ 
  

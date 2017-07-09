@@ -15,10 +15,10 @@ mkdir -p .ximmertmp
 
 if [ "$1" == "install" ];
 then
-    $BASE/eval/tools/bpipe/0.9.9.3/bin/bpipe install $BASE/eval/pipeline/exome_cnv_pipeline.groovy 
+    $BASE/eval/tools/bpipe/0.9.9.4/bin/bpipe install $BASE/eval/pipeline/exome_cnv_pipeline.groovy 
 else
         $BASE/eval/pipeline/tools/groovy/2.4.6/bin/groovy \
-        -cp $BASE/src/main/groovy:$BASE/eval/pipeline/tools/groovy-ngs-utils/1.0.6/groovy-ngs-utils.jar \
+        -cp $BASE/src/main/groovy:$BASE/src/main/resources:$BASE/eval/pipeline/tools/groovy-ngs-utils/1.0.6/groovy-ngs-utils.jar \
             $BASE/src/main/groovy/Ximmer.groovy $*
 fi
 

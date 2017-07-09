@@ -222,7 +222,7 @@ $(document).ready(function() {
     
     $('body').layout({ applyDefaultStyles: true });
 
-    cnvLayout = layout = $('#innerLayout').layout({ applyDefaultStyles: true });
+    cnvLayout = layout = $('#innerLayout').layout({ applyDefaultStyles: true, onresize: layoutResized });
     layout.sizePane("north",50);
     
     $(".cnvimg").click(function() {
@@ -349,7 +349,7 @@ $(document).ready(function() {
         with($('#filterHelp')) {
             $span("Filter attributes: " + attrs.join(","));
         }
-        layout.sizePane("north",150);
+        layout.sizePane("north",layout.panes.north.outerHeight() + 10);
         $('#filterHelp').slideDown();
     });
 
@@ -443,7 +443,8 @@ function renderSavedSettings() {
 function loadSettings(oldSettings) {
     console.log("Restoring settings ...");
     filters = oldSettings.filters;
-    geneList = oldSettings.geneList;
+    geneList = oldSettings.geneList || {};
+    
     if(oldSettings.userAnnotations) {
         userAnnotations = oldSettings.userAnnotations;
         for(var cnvIndex in userAnnotations) {
@@ -703,7 +704,7 @@ function show_cnv_details(cnvIndex) {
 
     if(!southLayout) {
         south.html('<div class=ui-layout-center id=southwest></div><div class="ui-layout-east" id="southeast"></div>');
-        southLayout = south.layout({ applyDefaultStyles: true });
+        southLayout = south.layout({ applyDefaultStyles: true, onresize: () => show_cnv_details(cnvIndex) });
         southLayout.sizePane("east",1024);
     }
 
@@ -724,12 +725,14 @@ function show_cnv_details(cnvIndex) {
             });
         });
         
-        $button('New').click(partial(addTagToRow,cnvIndex, show_cnv_details));
+        $button('Tag').click(partial(addTagToRow,cnvIndex, show_cnv_details));
     }
+    
+    let sample = idMaskRegExp ? cnv.sample.match(idMaskRegExp)[1] : cnv.sample
 
     with(southWest.$table({id:"cnvDetails",'class':'cnvDetailTable'})) {
         with($tr()) { $th("Type"); $td(TYPE_DESCRIPTIONS[cnv.type]); }
-        with($tr()) { $th("Sample"); $td(cnv.sample); }
+        with($tr()) { $th("Sample"); $td(sample); }
         with($tr()) { $th("Genes"); $td(cnv.genes.join(",")); }
         with($tr()) { $th("Concordance"); $td(cnv.count); }
     }
