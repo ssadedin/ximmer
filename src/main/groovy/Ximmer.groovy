@@ -340,7 +340,7 @@ class Ximmer {
                 "-p", "simulation=${enableTruePositives}",
                 "-p", "batches=${batches*.analysisName.join(',')}",
                 "-p", "target_bed=$targetRegionsPath", 
-                "-p", "sample_id_mask='$sampleIdMask'", 
+                "-p", /sample_id_mask="$sampleIdMask"/, 
                 "-p", "imgpath=${runDir.name}/#batch#/report/", 
             ] + excludeRegionsParam + drawCnvsParam + [
                 "$ximmerBase/eval/pipeline/exome_cnv_pipeline.groovy"
