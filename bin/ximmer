@@ -13,7 +13,7 @@ else
 
     JAVA_OPTS="-noverify -Xmx12g -Dsnappy.disable=true -Djava.io.tmpdir=./.ximmertmp -Dximmer.base=$BASE" \
         $BASE/eval/pipeline/tools/groovy/2.4.6/bin/groovy \
-        -cp $BASE/src/main/groovy:$BASE/eval/pipeline/tools/groovy-ngs-utils/1.0.6/groovy-ngs-utils.jar \
+        -cp $BASE/src/main/groovy:$BASE/src/main/resources:$BASE/eval/pipeline/tools/groovy-ngs-utils/1.0.6/groovy-ngs-utils.jar \
             $BASE/src/main/groovy/Ximmer.groovy $*
 fi
 
