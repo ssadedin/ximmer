@@ -222,7 +222,7 @@ $(document).ready(function() {
     
     $('body').layout({ applyDefaultStyles: true });
 
-    cnvLayout = layout = $('#innerLayout').layout({ applyDefaultStyles: true, onresize: layoutResized });
+    cnvLayout = layout = $('#innerLayout').layout({ applyDefaultStyles: true });
     layout.sizePane("north",50);
     
     $(".cnvimg").click(function() {
