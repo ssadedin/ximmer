@@ -133,9 +133,11 @@ class CallerCalibrationCurve {
     
     const caller_max = max(cnvs, cnv => cnv.quality)
     const caller_min = min(cnvs, cnv => cnv.quality)
-
-    let bin_size = (caller_max - caller_min) / 10
-    bin_size = Math.round(bin_size / 5) * 5
+    
+    console.log("caller max = " + caller_max + " caller min " + caller_min)
+    
+    let bin_size = (caller_max - caller_min) / 5
+    bin_size = (Math.round(10 * bin_size / 5) * 5) / 10;
 
     let bins = [];
     let binUpper = caller_min;
@@ -157,7 +159,7 @@ class CallerCalibrationCurve {
       if((simulationType == 'replace') && (cnv.chr != 'X') && (cnv.chr != 'chrX'))
           return
         
-      var b = bins.find(b => cnv.quality > b.low && cnv.quality <= b.high); 
+      var b = bins.find(b => cnv.quality >= b.low && cnv.quality < b.high); 
       
       if(b) {
         b.count++; 
@@ -168,7 +170,17 @@ class CallerCalibrationCurve {
     console.log(`Max quality = ${caller_max}, min quality = ${caller_min}, bin size = ${bin_size}, ${bins.length} bins`);
 
     // Remove bins that have fewer than 3 counts
-    return bins.filter(bin => { return bin.count >= this.minBinCount });
+    let candidateBins =  bins.filter(bin => { return bin.count >= this.minBinCount });
+    
+    // if we ended up with only 1 bin, take the CNVs from that bin and re-bin
+    if(candidateBins.length == 1) {
+        let bin = candidateBins[0];
+        console.log("Naive binning produced too few bins: exploding center bin from ${bin.low}-${bin.high}")
+        let newBins = this.calculateCallerBins(cnvs.filter(cnv => cnv.quality >= bin.low && cnv.quality <= bin.high ))
+        return newBins;
+    }
+    
+    return candidateBins;
   }
   
   render() {
@@ -262,6 +274,8 @@ class NVD3CallerCalibrationCurve extends CallerCalibrationCurve {
            values: values
        }];
        
+        let binEdges = this.calls[0].bins.map(bin => Math.round(bin.low)).concat([Math.ceil(this.calls[0].bins[this.calls[0].bins.length-1].high)])
+        
         var chart = nv.models.lineChart()
                              .margin({left: 100})  //Adjust chart margins to give the x-axis some breathing room.
                              .useInteractiveGuideline(true)  //We want nice looking tooltips and a guideline!
@@ -270,16 +284,21 @@ class NVD3CallerCalibrationCurve extends CallerCalibrationCurve {
                              .yDomain([0,1])
                              .forceY([0,1])
                              .showXAxis(true)
-                             .padData(true)
                              .interpolate('basis')
-//                             .yDomain([0,filteredTruth.length])
-//                             .forceX([0])
+                             .padData(true)
+                             .forceX(binEdges)
                              
                         ;
                     
+        
+        
+        console.log("Bin edges are: " + binEdges.join(','))
+        
         chart.xAxis.axisLabel('Quality Scores')
+                   .tickValues(binEdges)
+                   
         chart.yAxis.axisLabel('Empirical Precision')
-                   .tickValues([0,0.2,0.4,0.6,0.8,1.0])
+                   .tickValues([0,0.2,0.4,0.6,0.8,1.0, 1.2])
         
         d3.select('#'+id)
             .datum(points)
@@ -1087,6 +1106,8 @@ function loadCnvs(callback, runsToLoad, results) {
             Object.keys(cnv_calls).filter(caller => caller != 'truth').forEach((caller) => {
                 window.rare_calls[caller] = cnv_calls[caller].filter(cnv => cnv.spanningFreq < MAX_RARE_CNV_FREQ)
             });
+            
+            $('.loading').remove()  
             callback()
         };
     }
@@ -1133,18 +1154,27 @@ function loadAndCall(fn) {
     console.log("loadAndCall");
     
     if(typeof(window.cnv_calls) == 'undefined') {
-        loadCnvs(fn, runs.map((r) => r)) // hack to clone runs
+       if(!window.cnv_calls) {
+           $('#' + activePanelId).prepend(`<div class='loading'><div class=loadingmsg>Loading, please wait!</div></div>`)
+       }
+       loadCnvs(fn, runs.map((r) => r)) // hack to clone runs
     }
     else {
         fn();
     }
 }
 
+var activePanelId = null;
+
 $(document).ready(function() {
    console.log('Summary report init');
    $(events).on("activate", (event,ui) => {
+       
        console.log("Activated in summary");
        var panelId = ui.newPanel[0].id;
+       
+       window.activePanelId = panelId;
+       
        if(panelId == "qscorecalibration") {
            loadAndCall(showQscores);
        }
