@@ -704,7 +704,7 @@ function show_cnv_details(cnvIndex) {
 
     if(!southLayout) {
         south.html('<div class=ui-layout-center id=southwest></div><div class="ui-layout-east" id="southeast"></div>');
-        southLayout = south.layout({ applyDefaultStyles: true });
+        southLayout = south.layout({ applyDefaultStyles: true, onresize: () => show_cnv_details(cnvIndex) });
         southLayout.sizePane("east",1024);
     }
 
