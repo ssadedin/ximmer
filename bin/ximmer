@@ -8,7 +8,7 @@ mkdir -p .ximmertmp
 
 if [ "$1" == "install" ];
 then
-    $BASE/eval/tools/bpipe/0.9.9.3/bin/bpipe install $BASE/eval/pipeline/exome_cnv_pipeline.groovy 
+    $BASE/eval/tools/bpipe/0.9.9.4/bin/bpipe install $BASE/eval/pipeline/exome_cnv_pipeline.groovy 
 else
 
     JAVA_OPTS="-noverify -Xmx12g -Dsnappy.disable=true -Djava.io.tmpdir=./.ximmertmp -Dximmer.base=$BASE" \
