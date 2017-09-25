@@ -40,7 +40,7 @@ cn_mops_call_cnvs = {
 
 
             print(sprintf("Counting reads from %d bam files for %d regions",length(bam.files), length(target.region)))
-            mops.counts = getSegmentReadCountsFromBAM(bam.files, GR=target.region,mode="paired")
+            mops.counts = getSegmentReadCountsFromBAM(bam.files, GR=target.region)
 
             # the function above names each column by the file name, but we
             # want sample id there instead (assumption: single sample per bam).
