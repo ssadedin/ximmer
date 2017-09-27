@@ -582,7 +582,7 @@ class CNVROCCurve {
         window.points = points;
         
         var chart = nv.models.lineChart()
-                             .margin({left: 100})  //Adjust chart margins to give the x-axis some breathing room.
+                             .margin({left: 100, right: 130})  // note: right margin is mainly just to allow for the word 'Sensitivity'
                              .showLegend(true)       //Show the legend, allowing users to turn on/off line series.
                              .showYAxis(true)
                              .showXAxis(true)
@@ -610,6 +610,29 @@ class CNVROCCurve {
         d3.select('#' + id)
           .datum(points)  
           .call(chart);  
+        
+        let yScale = d3.scale.linear()
+                             .domain(chart.lines.yScale().domain())
+                             .range(chart.lines.yScale().range())
+                            
+        // Add right hand axis with percentage sensitivity
+        var axis = nv.models.axis()
+                            .scale(yScale)
+                            .orient('right')
+                            .tickPadding(6)
+                            .tickValues([0,10,20,30,40,50,60,70,80,90,100].map(x => Math.round(filteredTruth.length*(x/100))))
+                            .tickFormat(y => { console.log('tick y = ' + y); let val = percFormat(y / filteredTruth.length); if(y==filteredTruth.length) { return ' ' + val + ' Sensitivity';}; return val;})
+                
+
+        d3.select('#'+id+' .nv-wrap.nv-lineChart .nv-focus')
+          .selectAll('.nv-y2')
+          .data([points])      
+          .enter()
+          .append('g')
+          .attr('class', 'nv-y2 nv-axis')
+          .attr('transform', 'translate(' + (chart.xAxis.scale().range()[1]+10) + ',0)') 
+          .call(axis);   
+                
         
         window.chart = chart;
 //        nv.utils.windowResize(function() { chart.update() });        
@@ -656,6 +679,8 @@ function showROCCurve() {
         $( "#target_slider_label" ).html("No. of Target Regions: " + targetStops(currentTargets[0]) + " - " + targetStops(currentTargets[1]));
     };
     
+    let sliderWidth = 550;
+    
     var redrawTimeout = null;
     $(function() {
         
@@ -676,7 +701,7 @@ function showROCCurve() {
                 makePlot();
               }, 2000);
           }
-        }).width(450);
+        }).width(sliderWidth);
         
         // CNV target regions slider
         var targetsSlider = $("#targetSlider").slider({
@@ -695,7 +720,7 @@ function showROCCurve() {
                 makePlot();
               }, 2000);
           }
-        }).width(450); 
+        }).width(sliderWidth); 
         
      });    
     
