@@ -156,8 +156,6 @@ function createCnvRow(row, data, dataIndex) {
     
     var cnvTags = userAnnotations[index] && userAnnotations[index].tags;
     addRowTags(row, cnvTags);
-    
-    console.log('id mask = ' + idMask + `regexp=${idMaskRegExp}`);
     if(idMaskRegExp) {
         var match = data[SAMPLE_ID_COLUMN].match(idMaskRegExp);
         if(match)
@@ -191,6 +189,21 @@ function addRowTags(row, cnvTags) {
     }
     td0.innerHTML = tagDivs.join(' ') + td0.oldHTML;
 }
+
+//////////////////////////////////////// VueJS Components ///////////////////////////////////////
+
+/*
+Vue.component('CNVTags', {
+    
+    template: `
+        
+    `
+})
+*/
+
+
+
+//////////////////////////////////////// Main Entry Point ///////////////////////////////////////
 
 $(document).ready(function() {
 
@@ -409,6 +422,8 @@ $(document).ready(function() {
     initialized = true;
 //    $('#tableHolder')[0].style.display='block';
 });
+
+//////////////////////////////////////// Subroutines ///////////////////////////////////////
 
 function renderSavedSettings() {
     $('#savedSettingsOuter').html('');

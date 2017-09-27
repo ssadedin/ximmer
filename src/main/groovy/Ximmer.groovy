@@ -35,6 +35,34 @@ class Ximmer {
     ]
     
     /**
+     * These assets are copied to the same folder as the HTML report
+     */
+    static List<String> SUMMARY_HTML_ASSETS = [
+        'summary_report.js',
+        'DOMBuilder.dom.min.js',
+        'jquery-ui.min.js',
+        'd3.js',
+        'c3.js',
+        'nv.d3.js',
+        'jquery-ui.css',
+        'nv.d3.css',
+        'c3.css',
+        'ximmer.css',
+        'cnv_report.css'
+    ]
+    
+    /**
+     * These assets are copied to the same folder as the HTML report
+     */
+    static List<String> CNV_REPORT_HTML_ASSETS = [
+        'jquery-ui.min.js',
+        'vue.js',
+        'cnv_report.js',
+        'jquery-ui.css',
+        'cnv_report.css',
+    ]
+    
+    /**
      * Convert the expanded form of the configuration id into the simplified
      * form that is used in the analysis (eg: exomedepth => ed).
      * 
@@ -847,10 +875,32 @@ class Ximmer {
         
         log.info "Generating consolidated report for " + this.runs.size() + " runs in analysis $analysisName"
         
-        String summaryHTML = generateSummary(analysis)
-        
 //        generateROCPlots(analysis, analysedTargets)
         
+        writeMainSummaryHTML(analysis)
+        
+        // We need to also copy the cnv.js file, because the individual CNV reports 
+        // put it into a location where they can't be referenced easily
+        for(String asset in SUMMARY_HTML_ASSETS) {
+            File assetFile = new File(outputDirectory,asset)
+            if(!assetFile.exists()) {
+                Files.copy(new File("$ximmerBase/src/main/resources/$asset").toPath(), 
+                           assetFile.toPath())
+            }
+        }
+    }
+    
+    /**
+     * Writes the top level summary report containing simulation information,
+     * aggregate statistics, as well as tabs to view the lower level CNV reports.
+     * 
+     * @param analysis
+     */
+    void writeMainSummaryHTML(AnalysisConfig analysis) {
+        
+        String summaryHTML = generateSummary(analysis)
+        
+        String analysisName = analysis.analysisName
         
         List runDirectories = this.runs*.value*.runDirectory;
         
@@ -863,19 +913,9 @@ class Ximmer {
         
         HTMLAssetSource source = new HTMLClassloaderAssetSource()
         HTMLAssets assets = new HTMLAssets(source, outputDirectory)
-        
-        assets << new HTMLAsset(source:'summary_report.js') \
-               << new HTMLAsset(source:'DOMBuilder.dom.min.js') \
-               << new HTMLAsset(source:'jquery-ui.min.js') \
-               << new HTMLAsset(source:'d3.js') \
-               << new HTMLAsset(source:'c3.js') \
-               << new HTMLAsset(source:'nv.d3.js') \
-               << new HTMLAsset(source:'jquery-ui.css') \
-               << new HTMLAsset(source:'nv.d3.css') \
-               << new HTMLAsset(source:'c3.css')  \
-               << new HTMLAsset(source:'ximmer.css')  \
-               << new HTMLAsset(source:'cnv_report.css') 
-        
+        for(asset in SUMMARY_HTML_ASSETS)
+            assets << new HTMLAsset(source:asset)
+            
         String assetPayload = assets.render()
         
         new File(outputDirectory, outputName).withWriter { w ->
@@ -883,7 +923,7 @@ class Ximmer {
             templateEngine.createTemplate(mainTemplate.newReader()).make(
                 analysisName : analysisName,
                 runDirectories: runDirectories,
-                outputDirectory : outputDirectory.name,
+                outputDirectory : this.outputDirectory.name,
                 summaryHTML : summaryHTML,
                 callers: this.callerIds,
                 enableTruePositives: this.enableTruePositives,
@@ -891,20 +931,6 @@ class Ximmer {
                 simulation_type: cfg.simulation_type
             ).writeTo(w)
         }
-        
-        // We need to also copy the cnv.js file, because the individual CNV reports 
-        // put it into the wrong location
-        File cnvJs = new File(outputDirectory,"cnv.js")
-        if(!cnvJs.exists()) {
-            Files.copy(new File("$ximmerBase/src/main/resources/cnv_report.js").toPath(), 
-                       cnvJs.toPath())
-        }
-        
-        File cnvDiagramJs = new File(outputDirectory,"cnv_diagram.js")
-        if(!cnvDiagramJs.exists()) {
-            Files.copy(new File("$ximmerBase/src/main/resources/cnv_diagram.js").toPath(), 
-                       cnvDiagramJs.toPath())
-        } 
     }
     
     /**

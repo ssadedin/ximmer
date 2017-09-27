@@ -7,7 +7,12 @@ import org.omg.CORBA.SystemException
 
 import graxxia.Matrix;
 
-
+/**
+ * Reads results from any number of CNV callers and combines them together into
+ * a consolidated report in TSV and HTML format.
+ * <p> 
+ * @author Simon Sadedin
+ */
 @Log
 class SummarizeCNVs {
     
@@ -355,12 +360,14 @@ class SummarizeCNVs {
             new HTMLAssets(assetSource, outputDir) \
                   << new HTMLAsset(
                     source: 'cnv_report.js',
-                    name: 'cnv.js'
+                    name: 'cnv_report.js'
                 ) << new HTMLAsset(
                     source: 'cnv_diagram.js'
                 ) << new HTMLAsset(
                     source: 'cnv_report.css'
-                );
+                ) << new HTMLAsset(
+                    source: 'vue.js'
+                ) ;
                                 
         String renderedAssets = assets.render()
         
