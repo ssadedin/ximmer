@@ -575,7 +575,7 @@ class CNVROCCurve {
        
         let points = [];
         Object.keys(this.filteredCnvs).forEach(caller => points.push({
-            values: this.filteredCnvs[caller].map(cnv => { return { x: cnv.fp, y: cnv.tp }}),
+            values: this.filteredCnvs[caller].map(cnv => { return { x: cnv.fp, y: cnv.tp, quality: cnv.quality }}),
             key: caller
         }))
         
@@ -583,27 +583,28 @@ class CNVROCCurve {
         
         var chart = nv.models.lineChart()
                              .margin({left: 100})  //Adjust chart margins to give the x-axis some breathing room.
-                             .useInteractiveGuideline(true)  //We want nice looking tooltips and a guideline!
                              .showLegend(true)       //Show the legend, allowing users to turn on/off line series.
                              .showYAxis(true)
                              .showXAxis(true)
                              .padData(true)
                              .yDomain([0,filteredTruth.length])
                              .forceX([0])
-                             
                         ;
                     
         chart.xAxis.axisLabel('False Positives')
         chart.yAxis.axisLabel('True Positives')
         
-//        chart.tooltip.contentGenerator(function (obj) { console.log('called'); return JSON.stringify(obj)})        ;
-//        var tooltip = chart.interactiveLayer;
-//        tooltip.contentGenerator = function (d) { return "FUG"; };
-//        chart.tooltip.contentGenerator= function(data, elem) {
-//            elem.innerHTML = 'FOO';
-//        };
-//        
-//        window.chart = chart;
+        let percFormat = d3.format('%0.1f')
+        let fracFormat = d3.format('0.1f')
+        
+        chart.tooltip.valueFormatter((y,index, p, d) => { 
+            return 'TP='+y + ' Qual=' + fracFormat(d.point.quality) + ', Sens=' + percFormat(y / filteredTruth.length) + ' Prec='+percFormat(y / (d.point.x + y))  
+        })
+        
+        chart.tooltip.headerFormatter(function(d) { 
+            return 'False Positives = ' + d
+        })
+  
         
         console.log("rendering to " + id);
         d3.select('#' + id)
