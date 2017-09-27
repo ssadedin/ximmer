@@ -1190,45 +1190,65 @@ function loadAndCall(fn) {
     }
 }
 
+function loadAndShowTab(id, callback) {
+    loadAndCall(callback)
+    window.location.hash = id
+}
+
 var activePanelId = null;
+
+function activatePanel(panelId) {
+    
+   window.activePanelId = panelId;
+       
+   if(panelId == "qscorecalibration") {
+       loadAndShowTab(panelId,showQscores);
+   }
+   else 
+   if(panelId == "simrocs") {
+       loadAndShowTab(panelId, showROCCurve);
+   }
+   else 
+   if(panelId == "sample_counts") {
+       loadAndShowTab(panelId,showSampleCounts);
+   }
+   else 
+   if(panelId == "genome_dist") {
+       loadAndShowTab(panelId,showCNVGenomeDistribution);
+   } 
+   else
+   if(panelId == "sizebreakdown") {
+       loadAndShowTab(panelId,showSizeBreakdown);
+   }
+   else
+   if(panelId.match(/runcalls[0-9]*/)) {
+       let runIndex = panelId.match(/runcalls([0-9])*/)[1];
+           
+       let runId = runs[parseInt(runIndex,10)];
+           
+       console.log(`Show calls ${runId}`);
+           
+       loadCnvReport(runId, () => showCNVReport(runIndex, runId));
+   }
+   else {
+       console.log('Warning: unknown panel ' + panelId + ' activated')
+   }
+}
+
 
 $(document).ready(function() {
    console.log('Summary report init');
+   
+   if((window.location.hash != '') && (window.location.hash != '#')) {
+       let panelId = window.location.hash.replace(/^#/,'')
+       console.log('Loading panel ' + panelId + ' from hash')
+       activatePanel(panelId)
+   }
+   
    $(events).on("activate", (event,ui) => {
        
        console.log("Activated in summary");
        var panelId = ui.newPanel[0].id;
-       
-       window.activePanelId = panelId;
-       
-       if(panelId == "qscorecalibration") {
-           loadAndCall(showQscores);
-       }
-       else 
-       if(panelId == "simrocs") {
-           loadAndCall(showROCCurve);
-       }
-       else 
-       if(panelId == "sample_counts") {
-           loadAndCall(showSampleCounts);
-       }
-       else 
-       if(panelId == "genome_dist") {
-           loadAndCall(showCNVGenomeDistribution);
-       } 
-       else
-       if(panelId == "sizebreakdown") {
-           loadAndCall(showSizeBreakdown);
-       }
-       else
-       if(panelId.match(/runcalls[0-9]*/)) {
-           let runIndex = panelId.match(/runcalls([0-9])*/)[1];
-           
-           let runId = runs[parseInt(runIndex,10)];
-           
-           console.log(`Show calls ${runId}`);
-           
-           loadCnvReport(runId, () => showCNVReport(runIndex, runId));
-       }
+       activatePanel(panelId)
    }); 
 })
