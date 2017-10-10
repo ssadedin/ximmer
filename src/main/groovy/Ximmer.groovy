@@ -196,11 +196,11 @@ class Ximmer {
             
         if(cfg.containsKey('variants')) {
             if(cfg.variants instanceof List) {
-                vcfFiles = cfg.variants
+                vcfFiles = cfg.variants.collect { MiscUtils.glob(it) }.flatten()
             }
             else
             if(cfg.variants instanceof String) {
-                vcfFiles = cfg.variants.tokenize(',')*.trim()
+                vcfFiles = cfg.variants.tokenize(',')*.trim().collect { MiscUtils.glob(it) }.flatten()
             }
             else {
                 throw new IllegalArgumentException("Configuration specificies variants using unsupported type " + cfg.variants.class.name)
