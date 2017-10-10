@@ -23,7 +23,7 @@ codex_call_cnvs = {
 
             library(CODEX)
 
-            bamFile = c('${inputs.bam.join("','")}')
+            bam.files = c('${inputs.bam.join("','")}')
 
             bam.samples = as.matrix(data.frame(sample=sapply(bam.files, function(file.name) {
                 # Scan the bam header and parse out the sample name from the first read group
