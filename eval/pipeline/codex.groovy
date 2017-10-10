@@ -44,7 +44,7 @@ codex_call_cnvs = {
                 
                 ref <- bambedObj$ref; 
                 projectname <- bambedObj$projectname; 
-                chr <- bambedObj$chr
+                chr <- bambedObj\$chr
                 
                 
                 coverageObj <- getcoverage(bambedObj, mapqthres = 20)
