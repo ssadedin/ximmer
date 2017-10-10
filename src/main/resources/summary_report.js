@@ -575,40 +575,64 @@ class CNVROCCurve {
        
         let points = [];
         Object.keys(this.filteredCnvs).forEach(caller => points.push({
-            values: this.filteredCnvs[caller].map(cnv => { return { x: cnv.fp, y: cnv.tp }}),
+            values: this.filteredCnvs[caller].map(cnv => { return { x: cnv.fp, y: cnv.tp, quality: cnv.quality }}),
             key: caller
         }))
         
         window.points = points;
         
         var chart = nv.models.lineChart()
-                             .margin({left: 100})  //Adjust chart margins to give the x-axis some breathing room.
-                             .useInteractiveGuideline(true)  //We want nice looking tooltips and a guideline!
+                             .margin({left: 100, right: 130})  // note: right margin is mainly just to allow for the word 'Sensitivity'
                              .showLegend(true)       //Show the legend, allowing users to turn on/off line series.
                              .showYAxis(true)
                              .showXAxis(true)
                              .padData(true)
                              .yDomain([0,filteredTruth.length])
                              .forceX([0])
-                             
                         ;
                     
         chart.xAxis.axisLabel('False Positives')
         chart.yAxis.axisLabel('True Positives')
         
-//        chart.tooltip.contentGenerator(function (obj) { console.log('called'); return JSON.stringify(obj)})        ;
-//        var tooltip = chart.interactiveLayer;
-//        tooltip.contentGenerator = function (d) { return "FUG"; };
-//        chart.tooltip.contentGenerator= function(data, elem) {
-//            elem.innerHTML = 'FOO';
-//        };
-//        
-//        window.chart = chart;
+        let percFormat = d3.format('%0.1f')
+        let fracFormat = d3.format('0.1f')
+        
+        chart.tooltip.valueFormatter((y,index, p, d) => { 
+            return 'TP='+y + ' Qual=' + fracFormat(d.point.quality) + ', Sens=' + percFormat(y / filteredTruth.length) + ' Prec='+percFormat(y / (d.point.x + y))  
+        })
+        
+        chart.tooltip.headerFormatter(function(d) { 
+            return 'False Positives = ' + d
+        })
+  
         
         console.log("rendering to " + id);
         d3.select('#' + id)
           .datum(points)  
           .call(chart);  
+        
+        let yScale = d3.scale.linear()
+                             .domain(chart.lines.yScale().domain())
+                             .range(chart.lines.yScale().range())
+                            
+        // Add right hand axis with percentage sensitivity
+        var axis = nv.models.axis()
+                            .scale(yScale)
+                            .orient('right')
+                            .tickPadding(6)
+                            .tickValues([0,10,20,30,40,50,60,70,80,90,100].map(x => Math.round(filteredTruth.length*(x/100))))
+                            .tickFormat(y => { console.log('tick y = ' + y); let val = percFormat(y / filteredTruth.length); if(y==filteredTruth.length) { return ' ' + val + ' Sensitivity';}; return val;})
+                
+
+        d3.select('#'+id+' .nv-wrap.nv-lineChart .nv-focus')
+          .selectAll('.nv-y2')
+          .data([points])      
+          .enter()
+          .append('g')
+          .attr('class', 'nv-y2 nv-axis')
+          .attr('transform', 'translate(' + (chart.xAxis.scale().range()[1]+10) + ',0)') 
+          .call(axis);   
+                
         
         window.chart = chart;
 //        nv.utils.windowResize(function() { chart.update() });        
@@ -655,6 +679,8 @@ function showROCCurve() {
         $( "#target_slider_label" ).html("No. of Target Regions: " + targetStops(currentTargets[0]) + " - " + targetStops(currentTargets[1]));
     };
     
+    let sliderWidth = 550;
+    
     var redrawTimeout = null;
     $(function() {
         
@@ -675,7 +701,7 @@ function showROCCurve() {
                 makePlot();
               }, 2000);
           }
-        }).width(450);
+        }).width(sliderWidth);
         
         // CNV target regions slider
         var targetsSlider = $("#targetSlider").slider({
@@ -694,7 +720,7 @@ function showROCCurve() {
                 makePlot();
               }, 2000);
           }
-        }).width(450); 
+        }).width(sliderWidth); 
         
      });    
     
@@ -1164,45 +1190,65 @@ function loadAndCall(fn) {
     }
 }
 
+function loadAndShowTab(id, callback) {
+    loadAndCall(callback)
+    window.location.hash = id
+}
+
 var activePanelId = null;
+
+function activatePanel(panelId) {
+    
+   window.activePanelId = panelId;
+       
+   if(panelId == "qscorecalibration") {
+       loadAndShowTab(panelId,showQscores);
+   }
+   else 
+   if(panelId == "simrocs") {
+       loadAndShowTab(panelId, showROCCurve);
+   }
+   else 
+   if(panelId == "sample_counts") {
+       loadAndShowTab(panelId,showSampleCounts);
+   }
+   else 
+   if(panelId == "genome_dist") {
+       loadAndShowTab(panelId,showCNVGenomeDistribution);
+   } 
+   else
+   if(panelId == "sizebreakdown") {
+       loadAndShowTab(panelId,showSizeBreakdown);
+   }
+   else
+   if(panelId.match(/runcalls[0-9]*/)) {
+       let runIndex = panelId.match(/runcalls([0-9])*/)[1];
+           
+       let runId = runs[parseInt(runIndex,10)];
+           
+       console.log(`Show calls ${runId}`);
+           
+       loadCnvReport(runId, () => showCNVReport(runIndex, runId));
+   }
+   else {
+       console.log('Warning: unknown panel ' + panelId + ' activated')
+   }
+}
+
 
 $(document).ready(function() {
    console.log('Summary report init');
+   
+   if((window.location.hash != '') && (window.location.hash != '#')) {
+       let panelId = window.location.hash.replace(/^#/,'')
+       console.log('Loading panel ' + panelId + ' from hash')
+       activatePanel(panelId)
+   }
+   
    $(events).on("activate", (event,ui) => {
        
        console.log("Activated in summary");
        var panelId = ui.newPanel[0].id;
-       
-       window.activePanelId = panelId;
-       
-       if(panelId == "qscorecalibration") {
-           loadAndCall(showQscores);
-       }
-       else 
-       if(panelId == "simrocs") {
-           loadAndCall(showROCCurve);
-       }
-       else 
-       if(panelId == "sample_counts") {
-           loadAndCall(showSampleCounts);
-       }
-       else 
-       if(panelId == "genome_dist") {
-           loadAndCall(showCNVGenomeDistribution);
-       } 
-       else
-       if(panelId == "sizebreakdown") {
-           loadAndCall(showSizeBreakdown);
-       }
-       else
-       if(panelId.match(/runcalls[0-9]*/)) {
-           let runIndex = panelId.match(/runcalls([0-9])*/)[1];
-           
-           let runId = runs[parseInt(runIndex,10)];
-           
-           console.log(`Show calls ${runId}`);
-           
-           loadCnvReport(runId, () => showCNVReport(runIndex, runId));
-       }
+       activatePanel(panelId)
    }); 
 })
