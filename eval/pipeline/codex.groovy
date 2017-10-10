@@ -10,9 +10,13 @@ codex_call_cnvs = {
 
     def outputFile = batch_name ? batch_name + '.codex.cnvs.tsv' : input.bam + '.codex.cnvs.tsv'
     
+    
     def chr = branch.name
 
     produce(outputFile) {
+        
+        def bamDir = file(input.bam).parentFile.absoluteFile.absolutePath
+        
         R({"""
 
             source("$TOOLS/r-utils/cnv_utils.R")
@@ -31,7 +35,7 @@ codex_call_cnvs = {
             bedFile <- "$input.bed"
             chr <- "$chr"
 
-            bambedObj <- getbambed(bamdir = "$input.bam.dir", bedFile = bedFile,
+            bambedObj <- getbambed(bamdir = "$bamDir", bedFile = bedFile,
                                      sampname = sampname, projectname = "sureselect_sim", chr)
             
             bamdir <- bambedObj$bamdir; sampname <- bambedObj$sampname
