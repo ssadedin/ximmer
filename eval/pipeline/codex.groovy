@@ -31,7 +31,7 @@ codex_call_cnvs = {
             bedFile <- "$input.bed"
             chr <- "$chr"
 
-            bambedObj <- getbambed(bamdir = bamdir, bedFile = bedFile,
+            bambedObj <- getbambed(bamdir = "$input.bam.dir", bedFile = bedFile,
                                      sampname = sampname, projectname = "sureselect_sim", chr)
             
             bamdir <- bambedObj$bamdir; sampname <- bambedObj$sampname
