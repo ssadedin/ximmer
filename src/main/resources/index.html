@@ -51,7 +51,7 @@
             
             // Calling tabs() directly doesn't seem to work
             setTimeout(function() { 
-                    \$('#innerLayout').tabs({
+                    window.tabs = \$('#innerLayout').tabs({
                             activate: function(event,ui) {
                                 
                                 console.log("Activate tab");
