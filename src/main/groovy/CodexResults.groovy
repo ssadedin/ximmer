@@ -20,7 +20,7 @@ class CodexResults extends CNVResults {
             if(r.cnv == "dup")
 				r.type = 'dup'
             else
-            if(r.state == "del")
+            if(r.cnv == "del")
 				r.type = 'DEL'
             else
                 r.type = 'UNKNOWN'
