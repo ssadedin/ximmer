@@ -84,6 +84,7 @@ class SummarizeCNVs {
             cfr 'Conifer results', args:Cli.UNLIMITED
             angel 'Angel results', args:Cli.UNLIMITED
             ex 'Excavator results', args:Cli.UNLIMITED
+            cdx 'CODEX results', args:Cli.UNLIMITED
             truth 'Postiive control CNVs', args:1
             vcf 'VCF file containing variants for a sample in results', args:Cli.UNLIMITED
             target 'Target regions with id for each region to annotate', args:1, required:true
@@ -127,6 +128,9 @@ class SummarizeCNVs {
             
         if(opts.cfrs)
             parseCallerOpt("cfr", opts.cfrs, { new ConiferResults(it) }, results)
+            
+       if(opts.cdxs)
+            parseCallerOpt("cdx", opts.cdxs, { new CodexResults(it) }, results) 
             
         if(opts.truth) 
             results.truth = new PositiveControlResults(opts.truth).load() 
