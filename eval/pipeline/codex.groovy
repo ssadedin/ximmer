@@ -87,9 +87,10 @@ codex_call_cnvs = {
     branch.caller_result = output.tsv
 }
 
+@filter("merge")
 merge_codex = {
     exec """
-        (head -1 $input.tsv; for i in $inputs.tsv; do grep -v 
+        (head -1 $input.tsv; for i in $inputs.tsv; do grep -v '^#' $i ; done) >> $output.tsv
     """
 }
 
