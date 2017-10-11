@@ -1,10 +1,12 @@
 import java.awt.BasicStroke;
 import java.text.NumberFormat
+import java.util.logging.Level
 
 import jsr166y.ForkJoinPool;
 
 import org.apache.commons.math3.analysis.interpolation.LoessInterpolator
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
+import org.codehaus.groovy.runtime.StackTraceUtils
 
 import graxxia.Matrix
 import graxxia.Stats
@@ -210,7 +212,13 @@ class CNVDiagram {
         
         Closure processCnv = { cnv ->
             Utils.time("Draw CNV $cnv.chr:$cnv.from-$cnv.to") {
-                drawCNV(cnv, outputFileBase, width, height, callers, colors)
+                try {
+                    drawCNV(cnv, outputFileBase, width, height, callers, colors)
+                }
+                catch(Exception e) {
+                    StackTraceUtils.sanitize(e)
+                    log.log(Level.SEVERE, "Failed to draw CNV $cnv", e)
+                }
             }
         }
 
@@ -558,6 +566,11 @@ var cnv = {
         }
         else { // no gene overlapped, just show the region of the CNV itself
             targets = targetRegions.getOverlaps(cnv.chr, cnv.from, cnv.to)
+        }
+        
+        if(targets.isEmpty()) {
+            log.warning("Failed to identify target region for CNV $cnv (genes=$genes)")
+            return []
         }
         
         // If the first region is the same as the start of the CNV, show one region to left as well
