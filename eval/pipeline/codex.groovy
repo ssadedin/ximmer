@@ -8,10 +8,9 @@ codex_call_cnvs = {
 
     var batch_name : false
 
-    def outputFile = batch_name ? batch_name + '.codex.cnvs.tsv' : input.bam + '.codex.cnvs.tsv'
-    
-    
     def chr = branch.name
+    
+    def outputFile = batch_name ? batch_name + '.codex.' + chr + '.cnvs.tsv' : input.bam + '.codex.' + chr + '.cnvs.tsv'
 
     produce(outputFile) {
         
