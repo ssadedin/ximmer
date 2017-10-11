@@ -87,11 +87,12 @@ codex_call_cnvs = {
     branch.caller_result = output.tsv
 }
 
-@filter("merge")
 merge_codex = {
-    exec """
-        (head -1 $input.tsv; for i in $inputs.tsv; do grep -v '^#' $i ; done) >> $output.tsv
-    """
+    transform('.chr*.cnvs.tsv','.merge.tsv') {
+        exec """
+            (head -1 $input.tsv; for i in $inputs.tsv; do grep -v '^sample_name' $i ; done) >> $output.tsv
+        """
+    }
 }
 
 codex_pipeline = segment {
