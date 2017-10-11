@@ -739,6 +739,7 @@ var cnv = {
             xhmm 'CNV calls from XHMM', args:Cli.UNLIMITED
             cnmops 'CNV calls from CN.mops', args:Cli.UNLIMITED
             cfr 'CNV calls from Conifer', args:Cli.UNLIMITED
+            cdx 'CNV calls from CODEX', args:Cli.UNLIMITED
             angel 'Deletion calls from Angel', args:Cli.UNLIMITED
             ed 'CNV calls from Exome Depth', args:Cli.UNLIMITED
             generic  'CNV calls in BED format, sample in id column', args:Cli.UNLIMITED
@@ -788,6 +789,9 @@ var cnv = {
         if(opts.cfrs)
             parseCallerOpt("cfr", opts.cfrs, { new ConiferResults(it) }, cnvCalls)
             
+        if(opts.cdxs)
+            parseCallerOpt("cdx", opts.cdxs, { new CodexResults(it) }, cnvCalls)
+             
         if(opts.generics) {
             opts.generics.each { cnvBedFileAndName ->
                 
