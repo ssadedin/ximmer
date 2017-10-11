@@ -92,7 +92,10 @@ merge_codex = {
         exec """
             (head -1 $input.tsv; for i in $inputs.tsv; do grep -v '^sample_name' $i ; done) >> $output.tsv
         """
+        
+        branch.caller_result = output.tsv
     }
+    
 }
 
 codex_pipeline = segment {
