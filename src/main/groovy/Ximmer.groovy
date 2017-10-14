@@ -52,7 +52,7 @@ class Ximmer {
     ]
     
     /**
-     * These assets are copied to the same folder as the HTML report
+     * These assets are copied to the same folder as the CNV report
      */
     static List<String> CNV_REPORT_HTML_ASSETS = [
         'jquery-ui.min.js',
@@ -251,21 +251,22 @@ class Ximmer {
         
         this.bamFiles = this.runs.collect { it.value.bamFiles }.sum()
         
-        for(Map.Entry<String,SimulationRun> runEntry in runs) {
-            
-            String runId = runEntry.key
-            String trueCnvs = runEntry.value
-            def runDir = runEntry.value.runDirectory
-            if(!this.enableSimulation) {
-                log.info "Simulation disabled: analysis will be performed directly from source files"
-                File trueCnvsFile = new File(runDir,"true_cnvs.bed")
-                trueCnvsFile.withWriter { w ->        
-                    writeKnownCNVs(w, runId)
-                }
+        for(SimulationRun run in  runs*.value) {
+            processRun(run)
+        }
+    }
+    
+    void processRun(SimulationRun run) {
+        File runDir = run.runDirectory
+        if(!this.enableSimulation) {
+            log.info "Simulation disabled: analysis will be performed directly from source files"
+            File trueCnvsFile = new File(runDir,"true_cnvs.bed")
+            trueCnvsFile.withWriter { w ->        
+                writeKnownCNVs(w, run.id)
             }
-            else {
-                simulateRun(runId)
-            }
+        }
+        else {
+            simulateRun(run.id)
         }
     }
     
@@ -306,6 +307,8 @@ class Ximmer {
         List<AnalysisConfig> batches = []
         List drawCnvsParam = []
         List excludeRegionsParam = []
+        List excludeGenesParam = []
+        List geneFilterParam = []
         
         synchronized(analysisLock) { // Avoid any potential multi-threading issues since all the below
                                      // are reading from non-threadsafe maps, config objects, etc.
@@ -345,6 +348,14 @@ class Ximmer {
             if(cfg.containsKey('exclude_analysis_regions')) {
                excludeRegionsParam = ["-p", "exclude_regions=" + cfg.exclude_analysis_regions]
             }
+            
+            if(cfg.containsKey('gene_filter')) {
+               geneFilterParam = ["-p", "gene_filter=" + cfg.gene_filter]
+            }
+            
+            if(cfg.containsKey('exclude_genes')) {
+               excludeGenesParam = ["-p", "exclude_genes=" + cfg.exclude_genes]
+            }
         }
         
         
@@ -370,7 +381,7 @@ class Ximmer {
                 "-p", "target_bed=$targetRegionsPath", 
                 "-p", /sample_id_mask="$sampleIdMask"/, 
                 "-p", "imgpath=${runDir.name}/#batch#/report/", 
-            ] + excludeRegionsParam + drawCnvsParam + [
+            ] + excludeRegionsParam + geneFilterParam + excludeGenesParam + drawCnvsParam + [
                 "$ximmerBase/eval/pipeline/exome_cnv_pipeline.groovy"
             ]  + bamFiles + vcfFiles + (enableTruePositives ? ["true_cnvs.bed"] : [])
             

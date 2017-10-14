@@ -94,6 +94,8 @@ create_cnv_report = {
         imgpath: false,
         genome_build : false,
         sample_id_mask : false,
+        gene_filter: '',
+        exclude_genes: '',
         file_name_prefix : "" ] + 
             batch_cnv_results*.key.collectEntries {  caller_label ->
                 [ caller_label + '_quality_filter', false ]
@@ -116,6 +118,9 @@ create_cnv_report = {
             String caller_label = resultsEntry.key
             caller_opts << "-$caller $caller_label:$resultsEntry.value"
     }
+    
+    def geneFilterOpts = gene_filter ? " -genefilter $gene_filter " : ''
+    def excludeGenesOpts = exclude_genes ? " -exgenes $exclude_genes " : ''
         
     produce("${file_name_prefix}cnv_report.html", "${file_name_prefix}cnv_report.tsv") {
 
@@ -130,7 +135,7 @@ create_cnv_report = {
                 -target $target_bed ${caller_opts.join(" ")} $refGeneOpts
                 ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} -bampath "$bam_file_path"
                 -tsv $output.tsv ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""}
-                -idmask '$sample_id_mask'
+                -idmask '$sample_id_mask' $geneFilterOpts $excludeGenesOpts
                 -dgv $DGV_CNVS $true_cnvs
                 ${batch_quality_params.join(" ")} -o $output.html 
                 ${batch_name ? "-name $batch_name" : ""} ${inputs.bam.withFlag('-bam')}

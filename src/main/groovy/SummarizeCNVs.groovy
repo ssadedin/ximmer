@@ -54,6 +54,10 @@ class SummarizeCNVs {
     
     String idMask = null
     
+    Set<String> filterToGenes = null
+    
+    Set<String> excludeGenes = null
+    
     /**
      * Parse an option specifying a CNV caller
      * 
@@ -101,6 +105,8 @@ class SummarizeCNVs {
             imgpath 'Additional path to add for images', args:1
             genome 'Genome build to use when annotating CNVs', args:1
             idmask 'Mask to apply to sample ids for presentation in report', args:1
+            genefilter 'Optional file of genes to filter CNVs to', args:1
+            exgenes 'Optional file of genes to exclude from output', args:1
             o 'Output file name', args:1
         }
         
@@ -159,26 +165,37 @@ class SummarizeCNVs {
             }
         }
         
-        Regions mergedCalls = results*.value.inject(new Regions()) { Regions regions, RangedData calls  ->
-            calls.each { regions.addRegion(it) }
-            regions
-        }.reduce()
-        
-        List<VCF> vcfList = opts.vcfs ? opts.vcfs.collect { 
-            VCF.parse(it) { Variant v ->
-                mergedCalls.overlaps(v)
-            }
-        } : []
+        List<VCF> vcfList = parseVCFs(opts, results)
         
         Regions target = new BED(opts.target, withExtra:true).load()
         try {
-            SummarizeCNVs summarizer = new SummarizeCNVs(results:results, targetRegions:target, vcfs:vcfList, qualityFilters: qualityFilters)
+            
+            RefGenes refGenes = RefGenes.download(opts.genome?:"hg19")
+            Set<String> filterToGenes = null
+            if(opts.genefilter) {
+               filterToGenes = new File(opts.genefilter).readLines()*.trim() as Set
+            }
+            
+            Set<String> excludeGenes = null
+            if(opts.exgenes) {
+               excludeGenes = new File(opts.exgenes).readLines()*.trim() as Set
+            }
+            
+            SummarizeCNVs summarizer = new SummarizeCNVs(
+                results:results, 
+                targetRegions:target, 
+                vcfs:vcfList, 
+                qualityFilters: qualityFilters,
+                excludeGenes:excludeGenes,
+                filterToGenes: filterToGenes
+            )
+            
             if(opts.dgv) {
                 summarizer.cnvAnnotator = new TargetedCNVAnnotator(target, opts.dgv)
             }
             
             if(opts.refgene == "download") {
-                summarizer.refGenes = RefGenes.download(opts.genome?:"hg19")
+                summarizer.refGenes = refGenes
             }
             else
             if(opts.refgene) {
@@ -223,6 +240,21 @@ class SummarizeCNVs {
             e.printStackTrace()
             System.exit(1)
         }
+    }
+    
+    static List<VCF> parseVCFs(OptionAccessor opts, Map<String,RangedData> results) {
+        Regions mergedCalls = results*.value.inject(new Regions()) { Regions regions, RangedData calls  ->
+            calls.each { regions.addRegion(it) }
+            regions
+        }.reduce()
+        
+        List<VCF> vcfList = opts.vcfs ? opts.vcfs.collect { 
+            VCF.parse(it) { Variant v ->
+                mergedCalls.overlaps(v)
+            }
+        } : []
+        
+        return vcfList
     }
     
     /**
@@ -426,17 +458,8 @@ class SummarizeCNVs {
             
             annotateCNV(sample, callers, cnv)
             
-            // At least one of the CNV callers must pass quality filtering
-            Map qualityFiltering = callers.collectEntries { caller ->
-                [caller, checkCallQuality(cnv,caller)]    
-            }
-            
-            if(!qualityFiltering.any { it.value == false }) {
-                log.info "CNV $cnv filtered out by low quality score in $qualityFiltering"
-                continue
-            }
-            
-            result.addRegion(cnv)
+            if(!isFiltered(callers, cnv))
+                result.addRegion(cnv)
             log.info "Annotated CNV $cnv (${cnv.hashCode()}) for $sample of type $cnv.type"
         }
         
@@ -445,6 +468,45 @@ class SummarizeCNVs {
         }
         
         return result
+    }
+    
+    /**
+     * @param callers
+     * @param cnv
+     * @return true if the given CNV should be filtered out of the results
+     */
+    boolean isFiltered(List<String> callers, Region cnv) {
+        
+        // At least one of the CNV callers must pass quality filtering
+        Map qualityFiltering = callers.collectEntries { caller ->
+            [caller, checkCallQuality(cnv,caller)]    
+        }
+        
+        if(!qualityFiltering.any { it.value == false }) {
+            log.info "CNV $cnv filtered out by low quality score in $qualityFiltering"
+            return true
+        }
+            
+        // If a list of genes to filter to is set, include the CNV only if it
+        // overlaps the gene list
+        if(this.filterToGenes || this.excludeGenes) {
+            List<String> cnvGenes = cnv.genes.tokenize(',')
+            if(this.filterToGenes) {
+                if(!cnvGenes.any { it in filterToGenes }) {
+                    log.info "CNV $cnv filtered out because no genes overlap set gene list"
+                    return true
+                }
+            }
+            
+            if(this.excludeGenes) {
+                if(cnvGenes.any { it in excludeGenes}) {
+                    log.info "CNV $cnv is filtered out because it overlaps an excluded gene"
+                    return true
+                }
+            }
+        }
+        
+        return false
     }
     
     /**
