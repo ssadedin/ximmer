@@ -886,18 +886,38 @@ class Ximmer {
         
         log.info "Generating consolidated report for " + this.runs.size() + " runs in analysis $analysisName"
         
-//        generateROCPlots(analysis, analysedTargets)
-        
         writeMainSummaryHTML(analysis)
         
-        // We need to also copy the cnv.js file, because the individual CNV reports 
-        // put it into a location where they can't be referenced easily
+        // Note: this is done for each report even though it is the same for every report
+        // wasteful, but simpler to keep here so it always gets called at least once
+        copyMainReportResources()
+        
+        copyResourcesForAnalysis(analysis)
+    }
+    
+    void copyMainReportResources() {
         for(String asset in SUMMARY_HTML_ASSETS) {
             File assetFile = new File(outputDirectory,asset)
             if(!assetFile.exists()) {
-                Files.copy(new File("$ximmerBase/src/main/resources/$asset").toPath(), 
+                File sourceFile = new File("$ximmerBase/src/main/resources/$asset")
+                log.info "Copy $sourceFile => $assetFile"
+                Files.copy(sourceFile.toPath(), 
                            assetFile.toPath())
             }
+        }
+    }
+    
+    void copyResourcesForAnalysis(AnalysisConfig analysis) {
+        // We need to also copy the cnv.js file, because the individual CNV reports 
+        // put it into a location where they can't be referenced easily
+        for(SimulationRun run in this.runs*.value) {
+            for(String asset in CNV_REPORT_HTML_ASSETS) {
+                File assetFile = new File(new File(run.runDirectory, analysis.analysisName),asset)
+                if(!assetFile.exists()) {
+                    Files.copy(new File("$ximmerBase/src/main/resources/$asset").toPath(), 
+                               assetFile.toPath())
+                }
+            }        
         }
     }
     
