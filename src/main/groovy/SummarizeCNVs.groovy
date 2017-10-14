@@ -544,7 +544,6 @@ class SummarizeCNVs {
         List foundInCallers = []
         for(String caller in callers) {
             // log.info "Find best CNV call for $caller"
-            println "results for $caller are " + results[caller]
             Region best = results[caller].grep { it.sample == sample && it.overlaps(cnv) }.max { it.quality?.toFloat() }
             if(best != null) {
                 log.info "Best CNV for $caller is " + best + " with quality " + best?.quality
