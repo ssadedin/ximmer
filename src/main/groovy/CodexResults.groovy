@@ -18,7 +18,7 @@ class CodexResults extends CNVResults {
             r.size = r.to - r.from
             r.quality = r.lratio
             if(r.cnv == "dup")
-				r.type = 'dup'
+				r.type = 'DUP'
             else
             if(r.cnv == "del")
 				r.type = 'DEL'
