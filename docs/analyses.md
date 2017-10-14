@@ -126,7 +126,7 @@ to compare between different settings for the same tool. Each group of settings
 that you wish to run with is called an "analysis". These are configured in the
 analysis section of the configuration file. An example is below:
 
-```
+```groovy
 analyses {
 
     'xhmmtune' {
@@ -156,6 +156,23 @@ TODO:
 | foo   | bar   | frog | house |
 
 
+## Filtering by quality
+
+If a CNV caller produces many false positives, you may wish to filter out results that 
+have a low quality score assigned by the caller. You can specify a quality score threshold
+using the `quality_filter` setting for each analysis. Note that how this is interpreted 
+is specific to each CNV caller. Ximmer uses a fixed quality metric for each CNV caller
+(see publication). 
+
+Example:
+
+```groovy
+    cnmops {
+        prior_impact=5
+        quality_filter=1.5
+    }
+```
+
 
 ## Specifying Variants
 
@@ -184,6 +201,9 @@ The variants attribute can also be specified as a list of VCF files:
  ]
      
 ```
+
+Note that each entry in either of these forms can be a Unix style "glob" to match
+multiple VCF files.
 
 ## Identity Masking
 
@@ -227,6 +247,40 @@ Some common reasons can include:
 from simulation or known CNVs provided as true positives. Thus excluding regions
 may result in loss of sensitivity in the output. To exclude regions completely
 from use by Ximmer, adjust the `target_regions` parameter.
+
+## Excluding Results Overlapping Specific Genes
+
+Although Ximmer can exclude some regions from analysis, often the reason to do this 
+is to avoid including specific genes from the results. Ximmer supports this option 
+via the `exclude_genes` setting. Set this option to a text file containing one HGNC 
+gene symbol per line to exclude CNVs overlapping the specified genes from your 
+results. Note that these CNVs will be excluded even if they overlap genes specified 
+by the `gene_filter` option (see below).
+
+Example:
+
+```
+exclude_genes="/home/ximmer/genes/excluded_genes.txt"
+```
+
+
+## Filtering Results to Specific Genes
+
+Although Ximmer supports interactively filtering to specific genes in the curation 
+interface, it may be desirable to hard filter the result set to a gene list. This 
+can ensure only specific genes are looked at, such as when ethics or a clinical indication
+for testing limits the scope of the investigation.
+
+To set a gene list, add the `gene_filter` configuration attribute, set to a file containing
+a list of HGNC gene symbols (one per line). CNVs will be removed from the results unless 
+they overlap at least one gene from the provided set.
+
+Example:
+
+```
+gene_filter="/home/ximmer/genes/gene_list.txt
+```
+
 
 ## Full Configuration Example
 
