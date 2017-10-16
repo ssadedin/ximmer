@@ -215,22 +215,39 @@ class Ximmer {
     
     void cacheReferenceData() {
         
+        File sharedCache = new File(ximmerBase,'cache')
+        if(sharedCache.exists()) {
+            cacheDirectory = sharedCache
+        }
+        
         if(!cacheDirectory.exists())
             cacheDirectory.mkdirs()
             
         dgvMergedFile = new File(cacheDirectory, "dgvMerged.txt.gz")    
         if(!dgvMergedFile.exists()) {
-            dgvMergedFile.withOutputStream { o -> 
-                log.info("Downloading DGV database from UCSC ...")
-                o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/dgvMerged.txt.gz").openStream() 
+            try {
+                dgvMergedFile.withOutputStream { o -> 
+                    log.info("Downloading DGV database from UCSC ...")
+                    o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/dgvMerged.txt.gz").openStream() 
+                }
+            }
+            catch(Exception e) {
+                dgvMergedFile.delete() // otherwise we can leave behind a corrupt partial download
+                throw e
             }
         }
         
         hg19RefGeneFile = new File(cacheDirectory, "refGene.txt.gz")    
         if(!hg19RefGeneFile.exists()) {
-            hg19RefGeneFile.withOutputStream { o -> 
-                log.info("Downloading DGV database from UCSC ...")
-                o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/refGene.txt.gz").openStream() 
+            try {
+                hg19RefGeneFile.withOutputStream { o -> 
+                    log.info("Downloading DGV database from UCSC ...")
+                    o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/refGene.txt.gz").openStream() 
+                }
+            }
+            catch(Exception e) {
+                hg19RefGeneFile.delete() // otherwise we can leave behind a corrupt partial download
+                throw e
             }
         }
     }
