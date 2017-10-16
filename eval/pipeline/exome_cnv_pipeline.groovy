@@ -154,7 +154,7 @@ init_caller_params = {
     
     branch.dir = branch.dir + "/$caller_label"
     
-    msg "Using parameters " + params + " with output to " + branch.dir
+    println "Using parameters " + params + " for $caller with output to " + branch.dir
     
     load("$batch_name/${caller}.${params}.params.txt")
     
@@ -166,8 +166,11 @@ init_caller_params = {
     
     if(delegate.getProperty(qualPropertyKey)) {
         def qualFilterValue = getProperty(caller_label + '_quality_filter')
-        msg "Setting quality filter for $caller to $qualFilterValue"
+        println "Setting quality filter for $caller to $qualFilterValue"
         batch_quality_params << " -quality ${caller_label}:$qualFilterValue"
+    }
+    else {
+        println "No quality parameters found for $caller under key " + caller_label + '_quality_filter'
     }
 }
 
