@@ -106,6 +106,9 @@ create_cnv_report = {
     if(genome_build != false) {
         refGeneOpts = "-refgene download -genome $genome_build"
     }
+    else {
+        refGeneOpts = "-refgene $refgene "
+    }
     
     List qualityParams = []
 
