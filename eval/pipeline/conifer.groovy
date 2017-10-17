@@ -2,8 +2,7 @@
 
 conifer_rpkm = {
 
-    output.dir="$output.dir/rpkms"
-
+    output.dir="$branch.dir/rpkms"
 
     println "Input.bam = $input.bam"
 
