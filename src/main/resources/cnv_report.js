@@ -265,14 +265,20 @@ $(document).ready(function() {
             $('#message').html('');
             with($('#message').$div()) {
                 $h4('Copy the text below to share these settings with somebody else:');
-                $button('Copy').click(function() {
-                    var range = document.createRange();  
-                    range.selectNode($('#copyDiv')[0]);  
-                    window.getSelection().addRange(range); 
-                    if(!document.execCommand('copy')) {
-                        alert('Sorry, could not copy the data to your clipboard');
-                    }
-                });
+//                $button('Copy').click(function() {
+//                    try {
+//                        var range = document.createRange();  
+//                        range.selectNode($('#copyDiv')[0]);  
+//                        window.getSelection().addRange(range); 
+//                        if(!document.execCommand('copy')) {
+//                            throw 'Exec command failed';
+//                        }
+//                    }
+//                    catch(e) {
+//                        console.log(e)
+//                        alert('Sorry, could not copy the data to your clipboard');
+//                    }
+//                });
                 $br();
                 $div({id:'copyDiv'}).$span(JSON.stringify(JSON.parse(localStorage.cnvSettings)[location.href]));
             }
