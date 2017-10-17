@@ -209,7 +209,7 @@ run {
         batch_dirs * [
             init_batch + caller_stages + 
                  create_cnv_report + create_cnv_report.using(file_name_prefix:"local_", imgpath: "") +
-                 INCLUDE_CHROMOSOMES * [ touch_chr + plot_cnv_coverage ]  +
+                 INCLUDE_CHROMOSOMES * [ plot_cnv_coverage ]  +
                  sample_names * [ extract_sample_files ] 
          ]
 } 
