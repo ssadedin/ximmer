@@ -525,7 +525,10 @@ class Ximmer {
             }
             
             String paramText = callerParams.collect { paramEntry ->
-                    "$paramEntry.key=$paramEntry.value"
+                    if(paramEntry instanceof String)
+                        "$paramEntry.key='$paramEntry.value'"
+                    else
+                        "$paramEntry.key=$paramEntry.value"
             }.join('\n') + '\n'
             
             File paramFile = new File(outputDir, callerParts.join(".")+".params.txt")
