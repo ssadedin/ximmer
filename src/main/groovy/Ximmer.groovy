@@ -525,7 +525,8 @@ class Ximmer {
             }
             
             String paramText = callerParams.collect { paramEntry ->
-                    if(paramEntry instanceof String)
+                
+                    if(paramEntry.value instanceof String)
                         "$paramEntry.key='$paramEntry.value'"
                     else
                         "$paramEntry.key=$paramEntry.value"
