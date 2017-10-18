@@ -445,9 +445,8 @@ class Ximmer {
         
         // Clone the default configuration
         ConfigObject analysisCfg = cfg.callers.clone() 
-                
         if(analysisName != "analysis") {
-            analysisCfg = cfg.analyses[analysisName]
+            analysisCfg = cfg.analyses[analysisName].clone()
             analysisName = "analysis-" + analysisName
         }
         
@@ -510,7 +509,7 @@ class Ximmer {
             
             callerParts[0] = callerId
                 
-            ConfigObject callerParams = defaultCfg.clone()[callerId]
+            Map callerParams = defaultCfg[callerId].clone()
             
             log.info "Anaysis keys are: " + analysisConfig[key]*.key
             
