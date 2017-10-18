@@ -1,13 +1,8 @@
 // vim: expandtab:sw=4:ts=4:cindent
 
 
-touch_chr = {
-
+init_chr = {
    branch.chromosome = branch.name
-
-   exec """
-        echo $chr > $output.txt
-   """
 }
 
 extract_sample_files = {
@@ -43,6 +38,8 @@ plot_cnv_coverage = {
     requires target_bed : "Flattened, sorted BED file describing target regions, with ID column containing gene",
              refgene : "UCSC refGene database (usually named refGene.txt)"
 
+    def chromosome = branch.name
+    
     output.dir="$branch.dir/report"
 
     var reportSamples : false,
