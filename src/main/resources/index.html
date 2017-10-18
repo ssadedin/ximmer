@@ -40,6 +40,8 @@
             var analysisName = "<%=analysisName%>";
             
             var simulationType = "<%=simulation_type%>";
+            
+            var analysisConfig = <%=groovy.json.JsonOutput.toJson(analysisConfig)%>;
         
             var layout = null;
             \$(document).ready(function() {

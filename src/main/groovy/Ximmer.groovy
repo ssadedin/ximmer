@@ -382,7 +382,6 @@ class Ximmer {
         String toolsPath = new File("$ximmerBase/eval/pipeline/tools").absolutePath
         String ximmerSrc = new File("$ximmerBase/src/main/groovy").absolutePath
         
-        
         List<String> bpipeCommand = [
                 "bash",
                 bpipe.absolutePath,
@@ -471,7 +470,20 @@ class Ximmer {
             }
         }
         
-        return new AnalysisConfig(analysisName:analysisName, callerCfgs: callerCfgs, callerLabels: callerLabels)
+        List<String> callerDetails = callerCfgs.collect { caller ->
+            if(analysisCfg[caller].containsKey('description')) {
+                analysisCfg[caller].description
+            }
+            else {
+                ''
+            }
+        }
+        
+        return new AnalysisConfig(
+            analysisName:analysisName, 
+            callerCfgs: callerCfgs, 
+            callerLabels: callerLabels,
+            callerDetails: callerDetails)
     }
     
     /**
@@ -973,6 +985,7 @@ class Ximmer {
                 runDirectories: runDirectories,
                 outputDirectory : this.outputDirectory.name,
                 summaryHTML : summaryHTML,
+                analysisConfig: analysis,
                 callers: this.callerIds,
                 enableTruePositives: this.enableTruePositives,
                 assets: assetPayload,
@@ -1289,6 +1302,8 @@ class AnalysisConfig {
     List<String> callerCfgs
     
     List<String> callerLabels
+    
+    List<String> callerDetails
     
     List<String> getCallerIds() {
         return callerCfgs.collect { String cfg -> cfg.tokenize('_')[0] }
