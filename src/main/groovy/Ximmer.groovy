@@ -44,6 +44,7 @@ class Ximmer {
         'd3.js',
         'c3.js',
         'nv.d3.js',
+        'lodash.min.js',
         'jquery-ui.css',
         'nv.d3.css',
         'c3.css',

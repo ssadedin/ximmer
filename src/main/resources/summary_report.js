@@ -481,7 +481,7 @@ class CNVROCCurve {
         this.sizeRange = props.sizeRange;
         this.targetsRange = props.targetsRange;
         
-        if(!this.targetsRange)
+        if(!this.targetsRange) 
             this.targetsRange = [0, 1000000];
         
         if((this.targetsRange[1] == "Infinity") || (this.targetsRange[1]<0)) {
@@ -572,11 +572,13 @@ class CNVROCCurve {
             
         // Now iterate through each caller's CNVs and compute the number of true and false positives
         Object.values(this.filteredCnvs).forEach((cnvs) => this.computeROCStats(cnvs));
+        
+        let callerLabels = new Map(_.zip(analysisConfig.callerCfgs, analysisConfig.callerLabels))
        
         let points = [];
         Object.keys(this.filteredCnvs).forEach(caller => points.push({
             values: this.filteredCnvs[caller].map(cnv => { return { x: cnv.fp, y: cnv.tp, quality: cnv.quality }}),
-            key: caller
+            key: callerLabels.get(caller)
         }))
         
         window.points = points;
