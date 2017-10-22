@@ -42,6 +42,8 @@
             var simulationType = "<%=simulation_type%>";
             
             var analysisConfig = <%=groovy.json.JsonOutput.toJson(analysisConfig)%>;
+            
+            var callerIdMap = <%=groovy.json.JsonOutput.toJson(callerIdMap)%>;
         
             var layout = null;
             \$(document).ready(function() {

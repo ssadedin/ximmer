@@ -991,6 +991,7 @@ class Ximmer {
                 summaryHTML : summaryHTML,
                 analysisConfig: analysis,
                 callers: this.callerIds,
+                callerIdMap: this.callerIdMap,
                 enableTruePositives: this.enableTruePositives,
                 assets: assetPayload,
                 simulation_type: cfg.simulation_type
