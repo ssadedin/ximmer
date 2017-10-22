@@ -26,7 +26,7 @@ conifer_analyze = {
 
     requires batch_name : "The name of the batch that Conifer is analysing"
     
-    var conifer_svd_num : 1
+    var conifer_svd_num : 2
 
     produce(batch_name+".conifer.hdf5",batch_name+".scree.png", batch_name+".singular_values.txt", batch_name+".sd_values.tsv") {
         exec """
