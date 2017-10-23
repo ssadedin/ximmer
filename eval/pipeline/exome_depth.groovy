@@ -9,7 +9,8 @@ run_exome_depth = {
     requires target_bed : "BED file containing regions to analyse",
             sample_names : "List of sample names to process (comma separated, or List object)"
 
-    var transition_probability : "0.0001"
+    var transition_probability : "0.0001",
+        expected_cnv_length: 50000
 
     def chr = branch.name
     
@@ -102,7 +103,8 @@ run_exome_depth = {
                                         chromosome = dsd.covered$chromosome,
                                         start = dsd.covered$start,
                                         end = dsd.covered$end,
-                                        name = dsd.covered$name)
+                                        name = dsd.covered$name,
+                                        expected.CNV.length=$expected_cnv_length)
 
 
                 dsd.results = dsd.cnvs@CNV.calls
