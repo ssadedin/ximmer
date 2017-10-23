@@ -534,6 +534,17 @@ class CNVROCCurve {
         });
     }
     
+    computeCallerLabelMap() {
+        // Ximmer replaces the original configs with short versions ... but here we have to convert them
+        // back to look up the labels
+        let convertedConfigIds = analysisConfig.callerCfgs.map(cfg => { 
+            let longId = cfg.split('_')[0]; 
+            return cfg.replace(new RegExp('^' + longId), callerIdMap[longId])
+        })
+        
+        return new Map(_.zip(convertedConfigIds, analysisConfig.callerLabels))
+    }
+    
     render(id) {
         
         let sizeMin = Math.pow(10, this.sizeRange[0]);
@@ -573,7 +584,7 @@ class CNVROCCurve {
         // Now iterate through each caller's CNVs and compute the number of true and false positives
         Object.values(this.filteredCnvs).forEach((cnvs) => this.computeROCStats(cnvs));
         
-        let callerLabels = new Map(_.zip(analysisConfig.callerCfgs, analysisConfig.callerLabels))
+        let callerLabels = this.computeCallerLabelMap()
        
         let points = [];
         Object.keys(this.filteredCnvs).forEach(caller => points.push({
@@ -598,6 +609,8 @@ class CNVROCCurve {
         
         let percFormat = d3.format('%0.1f')
         let fracFormat = d3.format('0.1f')
+        
+        console.log("Filtered truth has " + filteredTruth.length + " true positives")
         
         chart.tooltip.valueFormatter((y,index, p, d) => { 
             return 'TP='+y + ' Qual=' + fracFormat(d.point.quality) + ', Sens=' + percFormat(y / filteredTruth.length) + ' Prec='+percFormat(y / (d.point.x + y))  
