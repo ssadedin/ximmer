@@ -25,7 +25,7 @@ VERSION=0.9.9.5
 # Build date as an integer (unix epoch time)
 # This should be 0 in the source tree, 
 # it will be replaced by the build script at build time
-BUILDDATE=1507503611027
+BUILDDATE=1508826801500
 
 # Default memory used
 # Mainly here to limit memory on systems with very large memory
@@ -93,7 +93,7 @@ get_last_run_pid() {
     then
       LAST_PID="-1"
     else
-      LAST_PID=`ls -tc .bpipe/jobs/* | head -1 | xargs basename`
+      LAST_PID=`ls -t .bpipe/jobs/* | head -1 | xargs basename`
     fi
 }
 
