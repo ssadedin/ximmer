@@ -741,7 +741,7 @@ class Ximmer {
                 return cnvs
             }
                           
-            cnvs = simulateSampleCNV(bamDir, targetSAM)
+            cnvs = simulateSampleCNVs(bamDir, targetSAM)
             cnvs.each { it.sample = sample }
             return cnvs
         }
@@ -792,41 +792,31 @@ class Ximmer {
         return result
     }
     
-    Regions simulateSampleCNV(File outputDir, SAM targetSample) {
+    /**
+     * Simulate a set of deletions in a sample
+     * 
+     * @param outputDir
+     * @param targetSample
+     * @return
+     */
+    Regions simulateSampleCNVs(File outputDir, SAM targetSample) {
         
         String sampleId = targetSample.samples[0]
-        Regions deletions = new Regions()
         Regions exclusions = this.excludeRegions ? this.excludeRegions.collect { it } as Regions : new Regions()
         
         // If simulation mode is replacement, we need to select a male to simulate from
         SAM sourceSample = null
-        Regions simulationRegions = this.targetRegion
         if(cfg.simulation_type == "replace") {
             String maleId = this.males[random.nextInt(this.males.size())]
             sourceSample = this.bamFiles[maleId]
             if(sourceSample == null) 
                 throw new IllegalStateException("The configured male sample $maleId does not have a corresponding BAM file configured under bam_files")
-            simulationRegions = new Regions(this.targetRegion.grep { it.chr == 'chrX' || it.chr == 'X' })
         }
         
         if('groovy.lang.IntRange' != cfg.get('regions')?.class?.name)
             throw new IllegalArgumentException("The configured value for 'regions' is either missing or of incorrect type. Please set it to a range, for example: 1..5")
         
-        for(int cnvIndex = 0; cnvIndex < this.deletionsPerSample; ++cnvIndex) {
-            CNVSimulator simulator = new CNVSimulator(targetSample, sourceSample)
-            if(this.seed != null) 
-                simulator.random = new Random((this.seed<<16) + (cnvIndex << 8)  + (targetSample.hashCode() % 256))
-  
-            // Choose number of regions randomly in the range
-            // the user has given
-            int numRegions = cfg.regions.from + random.nextInt(cfg.regions.to - cfg.regions.from) 
-            Region r = simulator.selectRegion(simulationRegions, numRegions, exclusions)
-            
-            log.info "Seed region for ${sampleId} is $r" 
-            
-            exclusions.addRegion(r)
-            deletions.addRegion(r)
-        }
+        Regions deletions = selectSampleCNVRegions(targetSample, sourceSample, exclusions)
         
         File bedFile = new File(outputDir, sampleId + ".cnvs.bed")
         Region r = deletions[0]
@@ -848,6 +838,43 @@ class Ximmer {
         
         deletions.save(bedFile.absolutePath)
         new File(bedFile.absolutePath + ".tmp").delete()
+        return deletions
+    }
+    
+    /**
+     * Select the regions to be simulated as deletions in the given target sample
+     * 
+     * @param targetSample  Sample in which deletions will be simulated
+     * @param sourceSample  Sample which will be used to extract reads from in replace mode
+     * @param exclusions    Regions which should be excluded as deletion targets. Note that these regions
+     *                      will be expanded to include the added deletions.
+     *                      
+     * @return  deletion regions to be simulated
+     */
+    Regions selectSampleCNVRegions(SAM targetSample, SAM sourceSample, Regions exclusions) {
+        Regions simulationRegions = this.targetRegion
+        String sampleId = targetSample.samples[0]
+        if(cfg.simulation_type == "replace") {
+            simulationRegions = new Regions(this.targetRegion.grep { it.chr == 'chrX' || it.chr == 'X' })
+        }
+        
+        Regions deletions = new Regions()
+        for(int cnvIndex = 0; cnvIndex < this.deletionsPerSample; ++cnvIndex) {
+            CNVSimulator simulator = new CNVSimulator(targetSample, sourceSample)
+            if(this.seed != null) 
+                simulator.random = new Random((this.seed<<16) + (cnvIndex << 8)  + (targetSample.hashCode() % 256))
+  
+            // Choose number of regions randomly in the range
+            // the user has given
+            int numRegions = cfg.regions.from + random.nextInt(cfg.regions.to - cfg.regions.from) 
+            Region r = simulator.selectRegion(simulationRegions, numRegions, exclusions)
+            
+            log.info "Seed region for ${sampleId} is $r" 
+            
+            exclusions.addRegion(r)
+            deletions.addRegion(r)
+        }
+        
         return deletions
     }
     
