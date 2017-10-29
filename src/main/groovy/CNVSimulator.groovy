@@ -289,41 +289,86 @@ class CNVSimulator {
         writeProgress.extra = {
             " $outputReadCount reads written to $outputFileName"
         }
-        femaleBam.withWriter(outputFileName, false) { SAMFileWriter  writer ->
-            femaleBam.eachPair { SAMRecord r1, SAMRecord r2 ->
-                
-                if(r1 == null|| r2 == null)
-                    return
-                
-                def boundaries = [r1.alignmentStart, r1.alignmentEnd, r2.alignmentStart, r2.alignmentEnd]
-                int rStart = boundaries.min()
-                int rEnd = boundaries.max()
-                
-                if(cleanRegions.overlaps(chr, rStart, rEnd))
-                    return
-                
-                // For regions outside that which we are simulating for,
-                // downsample the reads to make the mean coverage
-                // the same as that from the lower coverage file
-                // (the lower coverage file might be this one or the other file that is the source for simulated reads)
-                if(random.nextFloat() < femaleDownSampleRate) {
-                    writer.addAlignment(r1)
-                    writer.addAlignment(r2)
-                    outputReadCount+=2
-                    writeProgress.count()
+        
+        boolean newWrite = true
+       
+        if(newWrite) {
+            Iterator<SAMRecordPair> nextMaleRegionReadIterator = maleRegionReads.iterator()
+            SAMRecordPair nextMaleReadPair = nextMaleRegionReadIterator.next()
+            
+            Closure flushReads = { actor ->
+                log.info "Flushing residual male reads for $outputFileName"
+                while(nextMaleRegionReadIterator.hasNext()) {
+                    if(random.nextFloat() < maleDownSampleRate) {
+                        actor << nextMaleRegionReadIterator.next()
+                    }
                 }
             }
             
-            for(List<SAMRecord> r in maleRegionReads) {
-                if(random.nextFloat() < maleDownSampleRate) {
-                    r[0].setAttribute("DL", "1")
-                    r[0].setAttribute(SAMTagUtil.getSingleton().RG, rgId);
-                    writer.addAlignment(r[0])
-                    r[1].setAttribute("DL","1")
-                    r[1].setAttribute(SAMTagUtil.getSingleton().RG, rgId);
-                    writer.addAlignment(r[1])
-                    outputReadCount+=2
-                    writeProgress.count()
+            femaleBam.filterOrderedPairs(outputFileName, end: flushReads) { SAMRecordPair pair ->
+                
+                List<SAMRecordPair> result = []
+                
+               // Are there male reads to write out first?
+               while(nextMaleReadPair && (nextMaleReadPair.r1.referenceName == pair.r1.referenceName) && (nextMaleReadPair.r1.alignmentStart < pair.r1.alignmentStart)) {
+                    if(random.nextFloat() < maleDownSampleRate) {
+                       result << nextMaleReadPair
+                    }
+                       
+                   if(nextMaleRegionReadIterator.hasNext())
+                       nextMaleReadPair = nextMaleRegionReadIterator.next()
+                   else {
+                       nextMaleReadPair = null
+                   }
+               }
+                    
+               if(!cleanRegions.overlaps(pair.r1.referenceName, pair.r1.alignmentStart, pair.r2.alignmentEnd)) {
+                   if(random.nextFloat() < femaleDownSampleRate) {
+                       result << pair
+                   }
+               }
+               writeProgress.count()
+               
+               return result
+            }
+        }
+        else {
+            femaleBam.withWriter(outputFileName, false) { SAMFileWriter  writer ->
+                femaleBam.eachPair { SAMRecord r1, SAMRecord r2 ->
+                    
+                    if(r1 == null|| r2 == null)
+                        return
+                    
+                    def boundaries = [r1.alignmentStart, r1.alignmentEnd, r2.alignmentStart, r2.alignmentEnd]
+                    int rStart = boundaries.min()
+                    int rEnd = boundaries.max()
+                    
+                    if(cleanRegions.overlaps(chr, rStart, rEnd))
+                        return
+                    
+                    // For regions outside that which we are simulating for,
+                    // downsample the reads to make the mean coverage
+                    // the same as that from the lower coverage file
+                    // (the lower coverage file might be this one or the other file that is the source for simulated reads)
+                    if(random.nextFloat() < femaleDownSampleRate) {
+                        writer.addAlignment(r1)
+                        writer.addAlignment(r2)
+                        outputReadCount+=2
+                        writeProgress.count()
+                    }
+                }
+                
+                for(List<SAMRecord> r in maleRegionReads) {
+                    if(random.nextFloat() < maleDownSampleRate) {
+                        r[0].setAttribute("DL", "1")
+                        r[0].setAttribute(SAMTagUtil.getSingleton().RG, rgId);
+                        writer.addAlignment(r[0])
+                        r[1].setAttribute("DL","1")
+                        r[1].setAttribute(SAMTagUtil.getSingleton().RG, rgId);
+                        writer.addAlignment(r[1])
+                        outputReadCount+=2
+                        writeProgress.count()
+                    }
                 }
             }
         }
