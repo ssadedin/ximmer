@@ -100,68 +100,27 @@
                     <%=summaryHTML%>
                 </div> <!-- simoverview -->
                 
-                <div id=simrocs>
-                    <h2>ROC Style Curves for <%=callers.size()%> CNV Callers</h2>
-                    <p>ROC curves show the number of true positives vs false positives found
-                       as quality score (or confidence measure) decreases.</p>
-                       
-                    <div id=cnv_roc_curve_container>
-                        <svg id=cnv_roc_curve>
-                        </svg>
-                    </div>
-                                           
-                   <!-- old static image version of same thing
-                    <img src="<%=analysisName%>_roc.png">
-                    -->
+                <div id=cnvsummarytabs>
+                    <div id=simrocs>
+                        <roc-curve :analysisconfig='analysisconfig'/>
+                    </div><!-- simrocs -->
                     
-                </div><!-- simrocs -->
-                
-                <div id=sample_counts>
-                    <h2>By Sample</h2>
-                    <div id=cnvs_by_sample_chart_container>
-                        <svg id=cnvs_by_sample_chart>
-                        </svg>
-                    </div>
-                </div> <!-- sample_counts -->
-                
-                <div id=genome_dist>
-                    <h2>Distribution Along Genome</h2>
-                    <p>It is common that certain regions of the genome can present extreme difficulty in CNV calling and result in
-                       clusters of false positives that undermine the results. Click anywhere in the main plot to zoom to the specific
-                       chromosome in a sub-plot.
-                    </p>
-                    <div id=cnv_genome_dist_container>
-                        <svg id=cnv_genome_dist>
-                        </svg>
-                        <svg id=cnv_chr_dist>
-                        </svg> 
-                    </div>
-                </div>
-              
-                <div id=sizebreakdown>
-                    <h2>Performance by Deletion Size</h2>
+                    <div id=sample_counts>
+                        <sample-counts/>
+                    </div> <!-- sample_counts -->
                     
-                    <svg id=cnv_size_breakdown>
-                    </svg>
-                                    
-                    <!-- 
-                    <img src="<%=analysisName%>_sens_by_bp.png"> 
-                    <img src="<%=analysisName%>_sens_by_seqbp.png"> 
-                    <img src="<%=analysisName%>_sens_by_tg.png"> 
-                     -->
-                    
-                </div> <!-- sizebreakdown -->
-                
-                <div id=qscorecalibration>
-                    <h2>Quality Score Calibration Curves</h2>
-                    <p>
-                        These curves estimate the precision as quality varies for each CNV caller. Use these curves
-                        to determine the appropriate level of filtering to control your false discovery rate.
-                    </p>
-                    <div id='qscore_calibration_figure'>
+                    <div id=genome_dist>
+                        <genome-distribution/>
                     </div>
+                  
+                    <div id=sizebreakdown>
+                        <sens-by-size/>
+                    </div> <!-- sizebreakdown -->
                     
-                </div> <!-- qscore calibration -->
+                    <div id=qscorecalibration>
+                        <qual-score-calibration/>
+                    </div> <!-- qscore calibration -->
+               </div> 
             <% } /* end if enableTruePositives */ %>
                
             <%runDirectories.eachWithIndex { File runDir, runIndex  -> %>

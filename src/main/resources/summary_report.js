@@ -1250,10 +1250,92 @@ function activatePanel(panelId) {
    }
 }
 
+Vue.component('sample-counts', {
+    template: `
+       <div>
+        <h2>By Sample</h2>
+        <div id=cnvs_by_sample_chart_container>
+            <svg id=cnvs_by_sample_chart>
+            </svg>
+        </div>
+      </div> 
+    `
+})
+
+Vue.component('roc-curve', {
+    props: ['analysisconfig'],
+    template: `
+       <div>
+        <h2>ROC Style Curves for {{analysisconfig.callerIds.length}} CNV Callers</h2>
+        <p>ROC curves show the number of true positives vs false positives found
+           as quality score (or confidence measure) decreases.</p>
+                       
+        <div id=cnv_roc_curve_container>
+            <svg id=cnv_roc_curve>
+            </svg>
+        </div>
+      </div>
+    `
+})
+
+Vue.component('genome-distribution',{
+    template: `
+      <div>
+        <h2>Distribution Along Genome</h2>
+        <p>It is common that certain regions of the genome can present extreme difficulty in CNV calling and result in
+           clusters of false positives that undermine the results. Click anywhere in the main plot to zoom to the specific
+           chromosome in a sub-plot.
+        </p>
+        <div id=cnv_genome_dist_container>
+            <svg id=cnv_genome_dist>
+            </svg>
+            <svg id=cnv_chr_dist>
+            </svg> 
+        </div>
+      </div>
+    `
+})
+
+Vue.component('sens-by-size', {
+    template: `
+        <div>
+            <h2>Performance by Deletion Size</h2>
+                        
+            <svg id=cnv_size_breakdown>
+            </svg>
+        </div>
+    `
+})
+
+Vue.component('qual-score-calibration', {
+    template: `
+        <div>
+            <h2>Quality Score Calibration Curves</h2>
+            <p>
+                These curves estimate the precision as quality varies for each CNV caller. Use these curves
+                to determine the appropriate level of filtering to control your false discovery rate.
+            </p>
+            <div id='qscore_calibration_figure'>
+            </div>
+        </div>
+    `
+})
+
+window.model = {
+    filters: {
+    }
+}
 
 $(document).ready(function() {
    console.log('Summary report init');
    
+     new Vue({
+       el: '#cnvsummarytabs',
+       data: {
+           analysisconfig: window.analysisConfig
+       }
+   }) 
+
    if((window.location.hash != '') && (window.location.hash != '#')) {
        let panelId = window.location.hash.replace(/^#/,'')
        console.log('Loading panel ' + panelId + ' from hash')
