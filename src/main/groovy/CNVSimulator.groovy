@@ -103,6 +103,8 @@ class CNVSimulator {
     
     static void main(String [] args) {
         
+        Utils.configureSimpleLogging()
+        
         println "=" * 100
         println "CNV Simulator " + new Date().toString()
         println "=" * 100
@@ -246,26 +248,33 @@ class CNVSimulator {
             throw new IllegalArgumentException("Simulation mode of $simulationMode is not recognized. Please use one of [replace,downsample,both]")
         }
         
-        println "Created $outputFileName"
+        log.info "Created $outputFileName"
+    }
+    
+    List<SAMRecordPair> loadMaleReads(Regions cleanRegions) {
+        log.info "Querying source reads from Male alignment ..."
+        int count = 0
+        List<SAMRecordPair> maleRegionReads = []
+        for(Region cleanRegion in cleanRegions) { 
+            maleBam.eachPair(cleanRegion.chr,cleanRegion.from,cleanRegion.to) { SAMRecord r1, SAMRecord r2 ->
+                long xpos = XPos.computePos(r1.referenceName, r1.alignmentStart)
+//                maleRegionReads.addRegion(new Region(r1.referenceName, r1.alignmentStart, r2.alignmentEnd), new SAMRecordPair(r1,r2))
+                maleRegionReads.add(new SAMRecordPair(r1:r1,r2:r2))
+                ++count
+            }
+        }
+        log.info "Found $count read pairs in region over male alignment " + this.maleBam.samples[0]
+        if(count == 0) 
+            throw new RuntimeException("Male alignment has no reads over targeted region for CNV")
+            
+        return maleRegionReads
     }
     
     void createBamByReplacement(String outputFileName, Regions cleanRegions) {
         
         log.info "Creating $outputFileName using replace mode"
        
-        println "Querying source reads from Male alignment ..."
-        int count = 0
-        List maleRegionReads = []
-        for(Region cleanRegion in cleanRegions) { 
-            maleBam.eachPair(cleanRegion.chr,cleanRegion.from,cleanRegion.to) { r1, r2 ->
-                maleRegionReads << [ r1, r2]
-                ++count
-            }
-        }
-            
-        println "Found $count read pairs in region over male alignment " + this.maleBam.samples[0]
-        if(count == 0) 
-            throw new RuntimeException("Male alignment has no reads over targeted region for CNV")
+        List<SAMRecordPair> maleRegionReads = loadMaleReads(cleanRegions)
             
         if(this.random == null)
             random = new Random()
