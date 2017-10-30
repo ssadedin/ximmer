@@ -382,6 +382,7 @@ class CNVSimulator {
      * @param outputFileName
      * @param region
      */
+    @CompileStatic
     void createBamByDownSample(String outputFileName, Regions cleanRegions) {
         
         log.info "Creating $outputFileName using downsample mode"
@@ -393,46 +394,51 @@ class CNVSimulator {
         double deletionDownSampleRate = 0.5d * femaleDownSampleRate
         
         // Read each BAM 
-        femaleBam.withOrderedPairWriter(outputFileName, true) { OrderedPairWriter  writer ->
-//            femaleBam.verbose = false
-            femaleBam.eachPair { SAMRecord r1, SAMRecord r2 ->
+        femaleBam.filterOrderedPairs(outputFileName) { SAMRecordPair pair ->
+               
+            SAMRecord r1 = pair.r1
+            SAMRecord r2 = pair.r2
                 
-                if(r1 == null|| r2 == null)
-                    return
+            if(r1 == null|| r2 == null)
+                return false
                 
-                def boundaries = [r1.alignmentStart, r1.alignmentEnd, r2.alignmentStart, r2.alignmentEnd]
-                int rStart = boundaries.min()
-                int rEnd = boundaries.max()
+            List<Integer> boundaries = [r1.alignmentStart, r1.alignmentEnd, r2.alignmentStart, r2.alignmentEnd]
+            int rStart = boundaries.min()
+            int rEnd = boundaries.max()
                 
-                float downSampleRate = femaleDownSampleRate
+            double downSampleRate = femaleDownSampleRate
                 
-                if(cleanRegions.any { cr ->  cr.overlaps(r1.referenceName, rStart, rEnd)}) {
-                    downSampleRate = deletionDownSampleRate
+            cleanRegions.overlaps(r1.referenceName, rStart, rEnd)
+                
+            if(cleanRegions.any { cr ->  cr.overlaps(r1.referenceName, rStart, rEnd)}) {
+                downSampleRate = deletionDownSampleRate
+            }
+                
+            // For regions outside that which we are simulating for,
+            // downsample the reads to make the mean coverage
+            // the same as that from the lower coverage file
+            // strictly not necesary for a pure downsample simulation, but we want to make
+            // output that is comparable with that produced when reads are sourced from a male
+            if(random.nextDouble() < downSampleRate) {
+                try {
+                    return true
                 }
-                
-                // For regions outside that which we are simulating for,
-                // downsample the reads to make the mean coverage
-                // the same as that from the lower coverage file
-                // strictly not necesary for a pure downsample simulation, but we want to make
-                // output that is comparable with that produced when reads are sourced from a male
-                if(random.nextFloat() < downSampleRate) {
-                    try {
-                        writer.addAlignmentPair(new SAMRecordPair(r1:r1, r2:r2))
+                catch(IllegalArgumentException e) {
+                    if(e.message.startsWith("Alignments added out of order")) {
+                        println "WARNING: failed to add alignment $r1.readName at $r1.referenceName:$r1.alignmentStart, $r2.referenceName:$r2.alignmentStart - is input file sorted?"
+                        println "WARNING: Full message is $e.message"
+                        throw e
                     }
-                    catch(IllegalArgumentException e) {
-                        if(e.message.startsWith("Alignments added out of order")) {
-                            println "WARNING: failed to add alignment $r1.readName at $r1.referenceName:$r1.alignmentStart, $r2.referenceName:$r2.alignmentStart - is input file sorted?"
-                            println "WARNING: Full message is $e.message"
-                            throw e
-                        }
-                        else {
-                            throw e
-                        }
+                    else {
+                        throw e
                     }
                 }
             }
-            femaleBam.verbose = false
-        }        
+            else {
+                return false
+            }
+        }
+        femaleBam.verbose = false
     }
     
     /**
@@ -447,7 +453,7 @@ class CNVSimulator {
         // Create a search window to expand the regions into
         Regions seedWindow = fromRegions.window(seedRegion, 10).grep { it.chr == seedRegion.chr } as Regions
         
-        println "Seed region = $seedRegion, search window = " +  seedWindow[0].chr + ":" + seedWindow[0].from + " - " + seedWindow[-1].to 
+        log.info "Seed region = $seedRegion, search window = " +  seedWindow[0].chr + ":" + seedWindow[0].from + " - " + seedWindow[-1].to 
         
         if(!seedWindow.overlaps(seedRegion)) {
             println "ERROR: window " +  seedWindow[0].chr + ":" + seedWindow[0].from + " - " + seedWindow[-1].to + " does not overlap original seed: " + seedRegion
