@@ -270,7 +270,74 @@ class CNVSimulator {
         return maleRegionReads
     }
     
+    /**
+     * Create a BAM file from this simulator's female BAM with regions overlapping
+     * cleanRegions substituted from this simulator's male BAM.
+     * <p>
+     * The two BAM file *must* be sorted in the same order. The output is written
+     * preserving the sort order.
+     * 
+     * @param outputFileName    file to write to
+     * @param cleanRegions      regions to replace with reads from male BAM file
+     */
     void createBamByReplacement(String outputFileName, Regions cleanRegions) {
+        
+        log.info "Creating $outputFileName using replace mode"
+       
+        List<SAMRecordPair> maleRegionReads = loadMaleReads(cleanRegions)
+            
+        if(this.random == null)
+            random = new Random()
+        
+        final String rgId = femaleBam.samFileReader.fileHeader.getReadGroups()[0].getId()
+        
+        long outputReadCount = 0;
+        
+        // Read each BAM 
+        ProgressCounter writeProgress = new ProgressCounter()
+        writeProgress.extra = {
+            " $outputReadCount reads written to $outputFileName"
+        }
+        
+        Iterator<SAMRecordPair> nextMaleRegionReadIterator = maleRegionReads.iterator()
+        SAMRecordPair nextMaleReadPair = nextMaleRegionReadIterator.next()
+            
+        Closure flushReads = { actor ->
+            log.info "Flushing residual male reads for $outputFileName"
+            while(nextMaleRegionReadIterator.hasNext()) {
+                if(random.nextFloat() < maleDownSampleRate) {
+                   SAMRecordPair pair = nextMaleRegionReadIterator.next()
+                   actor << pair
+                }
+            }
+        }
+            
+        femaleBam.filterOrderedPairs(outputFileName, end: flushReads) { SAMRecordPair pair ->
+                
+            List<SAMRecordPair> result = []
+                 
+            extractMaleReadsUntil(nextMaleRegionReadIterator, pair, result)
+                
+            if(!cleanRegions.overlaps(pair.r1.referenceName, pair.r1.alignmentStart, pair.r2.alignmentEnd)) {
+                if(random.nextFloat() < femaleDownSampleRate) {
+                    result << pair
+                }
+            }
+            writeProgress.count()
+                
+            result.each { SAMRecordPair resultPair ->
+                resultPair.setReadGroup(rgId)
+                resultPair.setTag("DL","1")
+                ++outputReadCount
+            }
+                
+            return result
+        }
+        
+        writeProgress.end()
+    } 
+    
+    void createBamByReplacementOld(String outputFileName, Regions cleanRegions) {
         
         log.info "Creating $outputFileName using replace mode"
        
@@ -290,89 +357,76 @@ class CNVSimulator {
             " $outputReadCount reads written to $outputFileName"
         }
         
-        boolean newWrite = true
-       
-        if(newWrite) {
-            Iterator<SAMRecordPair> nextMaleRegionReadIterator = maleRegionReads.iterator()
-            SAMRecordPair nextMaleReadPair = nextMaleRegionReadIterator.next()
-            
-            Closure flushReads = { actor ->
-                log.info "Flushing residual male reads for $outputFileName"
-                while(nextMaleRegionReadIterator.hasNext()) {
-                    if(random.nextFloat() < maleDownSampleRate) {
-                        actor << nextMaleRegionReadIterator.next()
-                    }
+        femaleBam.withWriter(outputFileName, false) { SAMFileWriter  writer ->
+            femaleBam.eachPair { SAMRecord r1, SAMRecord r2 ->
+                    
+                if(r1 == null|| r2 == null)
+                    return
+                    
+                def boundaries = [r1.alignmentStart, r1.alignmentEnd, r2.alignmentStart, r2.alignmentEnd]
+                int rStart = boundaries.min()
+                int rEnd = boundaries.max()
+                    
+                if(cleanRegions.overlaps(chr, rStart, rEnd))
+                    return
+                    
+                // For regions outside that which we are simulating for,
+                // downsample the reads to make the mean coverage
+                // the same as that from the lower coverage file
+                // (the lower coverage file might be this one or the other file that is the source for simulated reads)
+                if(random.nextFloat() < femaleDownSampleRate) {
+                    writer.addAlignment(r1)
+                    writer.addAlignment(r2)
+                    outputReadCount+=2
+                    writeProgress.count()
                 }
             }
-            
-            femaleBam.filterOrderedPairs(outputFileName, end: flushReads) { SAMRecordPair pair ->
                 
-                List<SAMRecordPair> result = []
-                
-               // Are there male reads to write out first?
-               while(nextMaleReadPair && (nextMaleReadPair.r1.referenceName == pair.r1.referenceName) && (nextMaleReadPair.r1.alignmentStart < pair.r1.alignmentStart)) {
-                    if(random.nextFloat() < maleDownSampleRate) {
-                       result << nextMaleReadPair
-                    }
-                       
-                   if(nextMaleRegionReadIterator.hasNext())
-                       nextMaleReadPair = nextMaleRegionReadIterator.next()
-                   else {
-                       nextMaleReadPair = null
-                   }
-               }
-                    
-               if(!cleanRegions.overlaps(pair.r1.referenceName, pair.r1.alignmentStart, pair.r2.alignmentEnd)) {
-                   if(random.nextFloat() < femaleDownSampleRate) {
-                       result << pair
-                   }
-               }
-               writeProgress.count()
-               
-               return result
-            }
-        }
-        else {
-            femaleBam.withWriter(outputFileName, false) { SAMFileWriter  writer ->
-                femaleBam.eachPair { SAMRecord r1, SAMRecord r2 ->
-                    
-                    if(r1 == null|| r2 == null)
-                        return
-                    
-                    def boundaries = [r1.alignmentStart, r1.alignmentEnd, r2.alignmentStart, r2.alignmentEnd]
-                    int rStart = boundaries.min()
-                    int rEnd = boundaries.max()
-                    
-                    if(cleanRegions.overlaps(chr, rStart, rEnd))
-                        return
-                    
-                    // For regions outside that which we are simulating for,
-                    // downsample the reads to make the mean coverage
-                    // the same as that from the lower coverage file
-                    // (the lower coverage file might be this one or the other file that is the source for simulated reads)
-                    if(random.nextFloat() < femaleDownSampleRate) {
-                        writer.addAlignment(r1)
-                        writer.addAlignment(r2)
-                        outputReadCount+=2
-                        writeProgress.count()
-                    }
-                }
-                
-                for(List<SAMRecord> r in maleRegionReads) {
-                    if(random.nextFloat() < maleDownSampleRate) {
-                        r[0].setAttribute("DL", "1")
-                        r[0].setAttribute(SAMTagUtil.getSingleton().RG, rgId);
-                        writer.addAlignment(r[0])
-                        r[1].setAttribute("DL","1")
-                        r[1].setAttribute(SAMTagUtil.getSingleton().RG, rgId);
-                        writer.addAlignment(r[1])
-                        outputReadCount+=2
-                        writeProgress.count()
-                    }
+            for(List<SAMRecord> r in maleRegionReads) {
+                if(random.nextFloat() < maleDownSampleRate) {
+                    r[0].setAttribute("DL", "1")
+                    r[0].setAttribute(SAMTagUtil.getSingleton().RG, rgId);
+                    writer.addAlignment(r[0])
+                    r[1].setAttribute("DL","1")
+                    r[1].setAttribute(SAMTagUtil.getSingleton().RG, rgId);
+                    writer.addAlignment(r[1])
+                    outputReadCount+=2
+                    writeProgress.count()
                 }
             }
         }
         writeProgress.end()
+    }
+    
+    SAMRecordPair extractMaleReadsUntil(SAMRecordPair start, Iterator<SAMRecordPair> iter, SAMRecordPair pair, List<SAMRecordPair> result) {
+        
+        SAMRecordPair nextMaleReadPair = start
+        
+       // Are there male reads to write out first?
+       while(isPairBefore(nextMaleReadPair, pair)) {
+            if(random.nextFloat() < maleDownSampleRate) {
+               result << nextMaleReadPair
+            }
+                       
+           if(iter.hasNext())
+               nextMaleReadPair = iter.next()
+           else {
+               nextMaleReadPair = null
+           }
+       }
+       return nextMaleReadPair
+    }
+    
+    
+    /**
+     * Returns true if pair1 is not null and has an alignment starting prior to pair2
+     * @param pair1
+     * @param pair2
+     * @return
+     */
+    @CompileStatic
+    boolean isPairBefore(SAMRecordPair pair1, SAMRecordPair pair2) {
+        return pair1 && (pair1.r1.referenceName == pair2.r1.referenceName) && (pair1.r1.alignmentStart < pair2.r1.alignmentStart)        
     }
     
     /**
@@ -474,15 +528,14 @@ class CNVSimulator {
         }
         
         if(maleBam != null)
-//            if(log.isLoggable(Level.FINE))
-                log.info "Overlaps of male region with target are " + maleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
+            log.info "Overlaps of male region with target start with " + maleReadRegions.getOverlaps(seedRegion).take(3).collect { it.from + "-" + it.to }
         
         if(femaleReadRegions == null)
             femaleReadRegions = femaleBam.toPairRegions(chromosome,seedWindow[0].from,seedWindow[-1].to,500)
             
-//        if(log.isLoggable(Level.FINE))
-            log.info "Overlaps of ${femaleReadRegions.numberOfRanges} female read regions with target are " + 
-                femaleReadRegions.getOverlaps(seedRegion).collect { it.from + "-" + it.to }
+        if(log.isLoggable(Level.FINE))
+            log.info "Overlaps of ${femaleReadRegions.numberOfRanges} female read regions with target start with " + 
+                femaleReadRegions.getOverlaps(seedRegion).take(3).collect { it.from + "-" + it.to }
         
         Regions combinedRegions = maleReadRegions ? maleReadRegions.reduce() : new Regions()
         femaleReadRegions.reduce().each { r ->
