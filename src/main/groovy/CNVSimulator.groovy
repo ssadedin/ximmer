@@ -316,7 +316,7 @@ class CNVSimulator {
                 
             List<SAMRecordPair> result = []
                  
-            extractMaleReadsUntil(nextMaleRegionReadIterator, pair, result)
+            nextMaleReadPair = extractMaleReadsUntil(nextMaleReadPair, nextMaleRegionReadIterator, pair, result)
                 
             if(!cleanRegions.overlaps(pair.r1.referenceName, pair.r1.alignmentStart, pair.r2.alignmentEnd)) {
                 if(random.nextFloat() < femaleDownSampleRate) {
@@ -398,6 +398,7 @@ class CNVSimulator {
         writeProgress.end()
     }
     
+    @CompileStatic
     SAMRecordPair extractMaleReadsUntil(SAMRecordPair start, Iterator<SAMRecordPair> iter, SAMRecordPair pair, List<SAMRecordPair> result) {
         
         SAMRecordPair nextMaleReadPair = start
