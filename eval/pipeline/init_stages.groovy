@@ -49,7 +49,7 @@ create_analysable_target = {
    }
    
    // Overwrite global variable
-   analysable_chromosomes = new BED(output.bed).load()*.chr.unique().grep { it in INCLUDE_CHROMOSOMES }
+   analysable_chromosomes = new BED(output.bed.toString()).load()*.chr.unique().grep { it in INCLUDE_CHROMOSOMES }
    
    branch.analysable_target = output.bed
 }
