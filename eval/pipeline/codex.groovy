@@ -95,7 +95,7 @@ merge_codex = {
         exec """
             head -1 $input.tsv >> $output.tsv; 
 
-            for i in $inputs.tsv; do echo "Merge $i"; grep -v '^sample_name' $i >> $output.tsv ; done
+            for i in $inputs.tsv; do echo "Merge $i"; grep -v '^sample_name' $i  >> $output.tsv || true ; done
 
             echo "Done."
         """
