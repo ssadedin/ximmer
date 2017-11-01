@@ -258,8 +258,9 @@ class CNVSimulator {
         for(Region cleanRegion in cleanRegions) { 
             maleBam.eachPair(cleanRegion.chr,cleanRegion.from,cleanRegion.to) { SAMRecord r1, SAMRecord r2 ->
                 long xpos = XPos.computePos(r1.referenceName, r1.alignmentStart)
-//                maleRegionReads.addRegion(new Region(r1.referenceName, r1.alignmentStart, r2.alignmentEnd), new SAMRecordPair(r1,r2))
-                maleRegionReads.add(new SAMRecordPair(r1:r1,r2:r2))
+                SAMRecordPair pair = new SAMRecordPair(r1:r1,r2:r2)
+                pair.setTag("DL","1") // Set tag to indicate this read is part of a deletion
+                maleRegionReads.add(pair)
                 ++count
             }
         }
@@ -301,12 +302,18 @@ class CNVSimulator {
         
         Iterator<SAMRecordPair> nextMaleRegionReadIterator = maleRegionReads.iterator()
         SAMRecordPair nextMaleReadPair = nextMaleRegionReadIterator.next()
+        
+        Closure setPairInfo = { SAMRecordPair pair ->
+           pair.setReadGroup(rgId)
+           ++outputReadCount
+        }
             
         Closure flushReads = { actor ->
             log.info "Flushing residual male reads for $outputFileName"
             while(nextMaleRegionReadIterator.hasNext()) {
                 if(random.nextFloat() < maleDownSampleRate) {
                    SAMRecordPair pair = nextMaleRegionReadIterator.next()
+                   setPairInfo(pair)
                    actor << pair
                 }
             }
@@ -320,16 +327,12 @@ class CNVSimulator {
                 
             if(!cleanRegions.overlaps(pair.r1.referenceName, pair.r1.alignmentStart, pair.r2.alignmentEnd)) {
                 if(random.nextFloat() < femaleDownSampleRate) {
-                    result << pair
+                   result << pair
                 }
             }
             writeProgress.count()
                 
-            result.each { SAMRecordPair resultPair ->
-                resultPair.setReadGroup(rgId)
-                resultPair.setTag("DL","1")
-                ++outputReadCount
-            }
+            result.each(setPairInfo)
                 
             return result
         }
@@ -401,7 +404,7 @@ class CNVSimulator {
     @CompileStatic
     SAMRecordPair extractMaleReadsUntil(SAMRecordPair start, Iterator<SAMRecordPair> iter, SAMRecordPair pair, List<SAMRecordPair> result) {
         
-        SAMRecordPair nextMaleReadPair = start
+       SAMRecordPair nextMaleReadPair = start
         
        // Are there male reads to write out first?
        while(isPairBefore(nextMaleReadPair, pair)) {
