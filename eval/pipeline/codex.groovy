@@ -94,6 +94,8 @@ merge_codex = {
     transform('.chr*.cnvs.tsv','.merge.tsv') {
         exec """
             (head -1 $input.tsv; for i in $inputs.tsv; do grep -v '^sample_name' $i ; done) >> $output.tsv
+
+             true
         """
         
         branch.caller_result = output.tsv
