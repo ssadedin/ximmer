@@ -94,6 +94,8 @@ if(chromosomes instanceof String) {
 
 if(chromosomes.isEmpty())
     throw new RuntimeException("No entries were found in the configured BED file ($target_bed) corresponding to the configured chromosomes ($chromosomes, $INCLUDE_CHROMOSOMES)!")
+    
+println "Chromosomes for analysis are: $chromosomes"
 
 load 'excavator.groovy'
 load 'xhmm.groovy'
