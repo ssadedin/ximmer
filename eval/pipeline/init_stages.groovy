@@ -47,6 +47,10 @@ create_analysable_target = {
            filteredTargets.save("$output.bed", sorted:true)
         """,config:"small"
    }
+   
+   // Overwrite global variable
+   analysable_chromosomes = new BED(output.bed).load()*.chr.unique().grep { it in INCLUDE_CHROMOSOMES }
+   
    branch.analysable_target = output.bed
 }
 

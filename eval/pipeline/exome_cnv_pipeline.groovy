@@ -95,6 +95,9 @@ if(chromosomes instanceof String) {
 if(chromosomes.isEmpty())
     throw new RuntimeException("No entries were found in the configured BED file ($target_bed) corresponding to the configured chromosomes ($chromosomes, $INCLUDE_CHROMOSOMES)!")
     
+// NOTE: this global variable is modified by the create_analysable_target pipeline stage!
+analysable_chromosomes = chromosomes.clone()
+    
 println "Chromosomes for analysis are: $chromosomes"
 
 load 'excavator.groovy'

@@ -10,6 +10,9 @@ codex_call_cnvs = {
 
     def chr = branch.name
     
+    if(!(chr in analysable_chromosomes))
+        succeed "Chromosome $chr is not analysable by CODEX"
+    
     def outputFile = batch_name ? batch_name + '.codex.' + chr + '.cnvs.tsv' : input.bam + '.codex.' + chr + '.cnvs.tsv'
 
     produce(outputFile) {
