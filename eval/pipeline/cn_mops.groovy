@@ -55,10 +55,16 @@ cn_mops_call_cnvs = {
                     minWidth=$min_width,
                     lowerThreshold=$lower_threshold)
 
-            mops.results.cn = calcIntegerCopyNumbers(mops.results)
-
-            mops.cnvs = mops.results.cn@cnvs
-
+            if(length(cnvs(mops.results)) > 0) {
+                mops.results.cn = calcIntegerCopyNumbers(mops.results)
+    
+                mops.cnvs = mops.results.cn@cnvs
+            } else {
+                mops.cnvs = data.frame( 
+                  seqnames=character(),start=character(),end=character(),width=character(),strand=character(),sampleName=character(),median=character(),mean=character(),CN=character()
+                )
+            }
+    
             print(sprintf("Writing results ..."))
             write.table(file="$output.tsv", 
                             x=as.data.frame(mops.cnvs),
