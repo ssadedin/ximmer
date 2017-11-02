@@ -81,7 +81,6 @@ codex_call_cnvs = {
                         row.names=F,
                         col.names=T,
                         quote=F,
-                        append=T,
                         sep="\\t"
                         )
 
