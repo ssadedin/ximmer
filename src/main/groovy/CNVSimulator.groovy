@@ -251,13 +251,13 @@ class CNVSimulator {
         log.info "Created $outputFileName"
     }
     
+    @CompileStatic
     List<SAMRecordPair> loadMaleReads(Regions cleanRegions) {
         log.info "Querying source reads from Male alignment ..."
         int count = 0
         List<SAMRecordPair> maleRegionReads = []
         for(Region cleanRegion in cleanRegions) { 
             maleBam.eachPair(cleanRegion.chr,cleanRegion.from,cleanRegion.to) { SAMRecord r1, SAMRecord r2 ->
-                long xpos = XPos.computePos(r1.referenceName, r1.alignmentStart)
                 SAMRecordPair pair = new SAMRecordPair(r1:r1,r2:r2)
                 pair.setTag("DL","1") // Set tag to indicate this read is part of a deletion
                 maleRegionReads.add(pair)
@@ -268,7 +268,7 @@ class CNVSimulator {
         if(count == 0) 
             throw new RuntimeException("Male alignment has no reads over targeted region for CNV")
             
-        return maleRegionReads
+        return maleRegionReads.sort { SAMRecordPair pair -> pair.r1.alignmentStart }
     }
     
     /**
@@ -340,6 +340,27 @@ class CNVSimulator {
         writeProgress.end()
     } 
     
+    
+    @CompileStatic
+    SAMRecordPair extractMaleReadsUntil(SAMRecordPair start, Iterator<SAMRecordPair> iter, SAMRecordPair pair, List<SAMRecordPair> result) {
+        
+       SAMRecordPair nextMaleReadPair = start
+        
+       // Are there male reads to write out first?
+       while(isPairBefore(nextMaleReadPair, pair)) {
+            if(random.nextFloat() < maleDownSampleRate) {
+               result << nextMaleReadPair
+            }
+                       
+           if(iter.hasNext())
+               nextMaleReadPair = iter.next()
+           else {
+               nextMaleReadPair = null
+           }
+       }
+       return nextMaleReadPair
+    }
+    
     void createBamByReplacementOld(String outputFileName, Regions cleanRegions) {
         
         log.info "Creating $outputFileName using replace mode"
@@ -401,27 +422,6 @@ class CNVSimulator {
         writeProgress.end()
     }
     
-    @CompileStatic
-    SAMRecordPair extractMaleReadsUntil(SAMRecordPair start, Iterator<SAMRecordPair> iter, SAMRecordPair pair, List<SAMRecordPair> result) {
-        
-       SAMRecordPair nextMaleReadPair = start
-        
-       // Are there male reads to write out first?
-       while(isPairBefore(nextMaleReadPair, pair)) {
-            if(random.nextFloat() < maleDownSampleRate) {
-               result << nextMaleReadPair
-            }
-                       
-           if(iter.hasNext())
-               nextMaleReadPair = iter.next()
-           else {
-               nextMaleReadPair = null
-           }
-       }
-       return nextMaleReadPair
-    }
-    
-    
     /**
      * Returns true if pair1 is not null and has an alignment starting prior to pair2
      * @param pair1
@@ -430,7 +430,7 @@ class CNVSimulator {
      */
     @CompileStatic
     boolean isPairBefore(SAMRecordPair pair1, SAMRecordPair pair2) {
-        return pair1 && (pair1.r1.referenceName == pair2.r1.referenceName) && (pair1.r1.alignmentStart < pair2.r1.alignmentStart)        
+        return pair1 && (pair1.r1.referenceIndex == pair2.r1.referenceIndex) && (pair1.r1.alignmentStart < pair2.r1.alignmentStart)        
     }
     
     /**
