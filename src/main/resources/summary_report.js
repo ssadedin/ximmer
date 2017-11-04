@@ -377,7 +377,8 @@ function showQscores() {
 
 
 class CNVsBySample {
-    constructor(props) {
+    constructor(cnv_calls) {
+        this.cnv_calls = cnv_calls
     }
     
     /**
@@ -401,9 +402,9 @@ class CNVsBySample {
     
     render(id) {
         
-        let callers = Object.keys(cnv_calls).filter(c => c != 'truth');
+        let callers = Object.keys(this.cnv_calls).filter(c => c != 'truth');
         
-        let counts = this.calculateCounts(cnv_calls);
+        let counts = this.calculateCounts(this.cnv_calls);
         
         let samples = Object.values(counts).reduce((samples,callerCounts) => {
             return Object.keys(callerCounts).reduce((samples,sample) => { samples[sample] = true; return samples; }, samples)
@@ -460,288 +461,31 @@ class CNVsBySample {
     }
 }
 
-
-function showSampleCounts() {
-    console.log("Showing sample count plot");
-    let plot = new CNVsBySample(); 
-    plot.render('cnvs_by_sample_chart')    
-}
-
-
-// ----------------------------- ROC Curve Functions  ----------------------------------
-
-class CNVROCCurve {
+Vue.component('sample-counts', {
     
-    constructor(props) {
-        /**
-         * cnvs - a map keyed on caller id with values being the calls
-         */
-        this.rawCnvs = props.cnvs;
-        this.maxFreq = props.maxFreq ? props.maxFreq : MAX_RARE_CNV_FREQ;
-        this.sizeRange = props.sizeRange;
-        this.targetsRange = props.targetsRange;
-        
-        if(!this.targetsRange) 
-            this.targetsRange = [0, 1000000];
-        
-        if((this.targetsRange[1] == "Infinity") || (this.targetsRange[1]<0)) {
-            console.log("Infinite no. targets")
-            this.targetsRange[1] = 1000000;
+    props: ['model'],
+    
+    methods: {
+        showSampleCounts: function() {
+            console.log("Showing sample count plot");
+            let plot = new CNVsBySample(model.filterCNVs()); 
+            plot.render('cnvs_by_sample_chart')    
         }
-        
-        if(!this.rawCnvs.truth) 
-            throw new Error("ROC Curve requires true positives specified in CNV calls as 'truth' property")
-    }
+    },
     
-    computeROCStats(cnvs) {
-        
-        // the set of true positives that we have identified
-        let tps = this.rawCnvs.truth.map(function(cnv, i) {
-            var tp = {
-                range: cnv.range,
-                sample: cnv.sample,
-                id: i,
-                detected: false
-            }
-            return tp;
-        });
-        
-        window.tps = tps;
-        
-        let tpCount = 0;
-        let fpCount = 0;
-        
-        cnvs.forEach(function(cnv) {
-            if(cnv.truth) {
-                // Which tp? we don't want to double count
-                let tp = tps.find(tp => tp.range.overlaps(cnv.range) && (tp.sample == cnv.sample))
-                
-                if(!tp) {
-                    console.log(`CNV marked as true but does not overlap truth set: ${cnv.chr}:${cnv.start}-${cnv.end}`);
-                }
-                else
-                if(!tp.detected) {
-                    tp.detected = true;
-                    ++tpCount;
-                }
-            }
-            else {
-                if(cnv.spanningFreq < MAX_RARE_CNV_FREQ)
-                    ++fpCount;
-            }
-            cnv.tp = tpCount;
-            cnv.fp = fpCount
-        });
-    }
+    data: function() { return this.model },
     
-    computeCallerLabelMap() {
-        // Ximmer replaces the original configs with short versions ... but here we have to convert them
-        // back to look up the labels
-        let convertedConfigIds = analysisConfig.callerCfgs.map(cfg => { 
-            let longId = cfg.split('_')[0]; 
-            return cfg.replace(new RegExp('^' + longId), callerIdMap[longId])
-        })
-        
-        return new Map(_.zip(convertedConfigIds, analysisConfig.callerLabels))
-    }
-    
-    render(id) {
-        
-        let sizeMin = Math.pow(10, this.sizeRange[0]);
-        let sizeMax = Math.pow(10, this.sizeRange[1]);
-        let targetsMin = this.targetsRange[0];
-        let targetsMax = this.targetsRange[1];
-        
-        const unfilteredCount = Object.values(this.rawCnvs).reduce((n,caller) => n+caller.length, 0);
-        console.log(`There are ${unfilteredCount} raw cnv calls`);
-        
-        console.log("Filtering by spanningFreq < " + this.maxFreq + " size range = " + this.sizeRange);
-        
-        // First, filter by maxFreq since that makes everything else faster
-        // then sort each cnv caller's CNVs in descending order of quality
-        this.filteredCnvs = {};
-        Object.keys(this.rawCnvs).filter(caller => caller != 'truth').forEach((caller) =>
-            this.filteredCnvs[caller] = 
-                this.rawCnvs[caller].filter(cnv => (cnv.targets >= targetsMin) && (cnv.targets<=targetsMax) &&
-                                                  (cnv.end - cnv.start > sizeMin) && 
-                                                  (cnv.end - cnv.start < sizeMax) && 
-                                                  ((simulationType != 'replace') || (cnv.chr == 'chrX' || cnv.chr == 'X')) && // replace - only look at chrX
-                                                  ((simulationType == 'replace') || (cnv.chr != 'chrX' && cnv.chr != 'X'))) // downsample - don't look at chrX
-                                    .sort((cnv1,cnv2) => cnv2.quality - cnv1.quality)
-        );
-        
-        let filteredTruth = 
-            this.rawCnvs.truth.filter((cnv) => (cnv.targets >= targetsMin) && (cnv.targets<=targetsMax) && 
-                                               (cnv.end - cnv.start > sizeMin) && (cnv.end - cnv.start < sizeMax) &&
-                                               ((simulationType == 'replace') || (cnv.chr != 'chrX' && cnv.chr != 'X')))
-                                               ;
-        
-        let cnvCount = Object.values(this.filteredCnvs).reduce((n,caller) => n+caller.length, 0);
-        console.log(`There are ${cnvCount} cnv calls after filtering by spanningFreq<${this.maxFreq}`);
-        
-        window.cnvs = this.filteredCnvs;
-            
-        // Now iterate through each caller's CNVs and compute the number of true and false positives
-        Object.values(this.filteredCnvs).forEach((cnvs) => this.computeROCStats(cnvs));
-        
-        let callerLabels = this.computeCallerLabelMap()
-       
-        let points = [];
-        Object.keys(this.filteredCnvs).forEach(caller => points.push({
-            values: this.filteredCnvs[caller].map(cnv => { return { x: cnv.fp, y: cnv.tp, quality: cnv.quality }}),
-            key: callerLabels.get(caller)
-        }))
-        
-        window.points = points;
-        
-        var chart = nv.models.lineChart()
-                             .margin({left: 100, right: 130})  // note: right margin is mainly just to allow for the word 'Sensitivity'
-                             .showLegend(true)       //Show the legend, allowing users to turn on/off line series.
-                             .showYAxis(true)
-                             .showXAxis(true)
-                             .padData(true)
-                             .yDomain([0,filteredTruth.length])
-                             .forceX([0])
-                        ;
-                    
-        chart.xAxis.axisLabel('False Positives')
-        chart.yAxis.axisLabel('True Positives')
-        
-        let percFormat = d3.format('%0.1f')
-        let fracFormat = d3.format('0.1f')
-        
-        console.log("Filtered truth has " + filteredTruth.length + " true positives")
-        
-        chart.tooltip.valueFormatter((y,index, p, d) => { 
-            return 'TP='+y + ' Qual=' + fracFormat(d.point.quality) + ', Sens=' + percFormat(y / filteredTruth.length) + ' Prec='+percFormat(y / (d.point.x + y))  
-        })
-        
-        chart.tooltip.headerFormatter(function(d) { 
-            return 'False Positives = ' + d
-        })
-  
-        
-        console.log("rendering to " + id);
-        d3.select('#' + id)
-          .datum(points)  
-          .call(chart);  
-        
-        let yScale = d3.scale.linear()
-                             .domain(chart.lines.yScale().domain())
-                             .range(chart.lines.yScale().range())
-                            
-        // Add right hand axis with percentage sensitivity
-        var axis = nv.models.axis()
-                            .scale(yScale)
-                            .orient('right')
-                            .tickPadding(6)
-                            .tickValues([0,10,20,30,40,50,60,70,80,90,100].map(x => Math.round(filteredTruth.length*(x/100))))
-                            .tickFormat(y => { console.log('tick y = ' + y); let val = percFormat(y / filteredTruth.length); if(y==filteredTruth.length) { return ' ' + val + ' Sensitivity';}; return val;})
-                
+    template: `
+       <div>
+        <h2>By Sample</h2>
+        <div id=cnvs_by_sample_chart_container>
+            <svg id=cnvs_by_sample_chart>
+            </svg>
+        </div>
+      </div> 
+    `
+})
 
-        d3.select('#'+id+' .nv-wrap.nv-lineChart .nv-focus')
-          .selectAll('.nv-y2')
-          .data([points])      
-          .enter()
-          .append('g')
-          .attr('class', 'nv-y2 nv-axis')
-          .attr('transform', 'translate(' + (chart.xAxis.scale().range()[1]+10) + ',0)') 
-          .call(axis);   
-                
-        
-        window.chart = chart;
-//        nv.utils.windowResize(function() { chart.update() });        
-    }
-}
-
-function showROCCurve() {
-    console.log("ROC Curve");
-    
-    $('#cnv_roc_curve_container').html(
-      '<svg style="display: inline;" id=cnv_roc_curve></svg><div id=slider_label class=sizeSliderLabel></div>' +
-      '<div style="display: block; margin-left: 100px" id=slider></div>' +
-      '<div id=target_slider_label class=sizeSliderLabel></div>' +
-      '<div style="display: block; margin-left: 100px" id=targetSlider></div>'
-    );
-    
-    
-    let initialRange = [0, 7];
-    let initialTargets = [0, 7];
-    
-    let targetStops = function(i) {
-        let stops = [1,2,3,5,10,20,50,-1];    
-        let stop = stops[i];
-        if(stop < 0)
-            return "Infinity";
-        else
-            return stop
-    }
-    
-    var currentRange = initialRange;
-    var currentTargets = initialTargets;
-    
-    let makePlot = () =>  {
-        let plot = new CNVROCCurve({
-            cnvs: cnv_calls,
-            sizeRange: currentRange,
-            targetsRange: [targetStops(currentTargets[0]), targetStops(currentTargets[1])]
-        });
-        plot.render('cnv_roc_curve');
-    };
-        
-    let labelFn = () => {
-        $( "#slider_label" ).html("CNV Size Range: " + humanSize(Math.pow(10,currentRange[0])) + " - " + humanSize(Math.pow(10,currentRange[1])));
-        $( "#target_slider_label" ).html("No. of Target Regions: " + targetStops(currentTargets[0]) + " - " + targetStops(currentTargets[1]));
-    };
-    
-    let sliderWidth = 550;
-    
-    var redrawTimeout = null;
-    $(function() {
-        
-        // CNV size slider
-        var sizeSlider = $("#slider").slider({
-          range: true,
-          values: initialRange,
-          min: initialRange[0],
-          max: initialRange[1],
-          step: 1,
-          slide: function( event, ui ) {
-            console.log(ui.values);
-            currentRange = ui.values;
-            labelFn();
-            if(redrawTimeout)
-                clearTimeout(redrawTimeout);
-            redrawTimeout = setTimeout(() => {
-                makePlot();
-              }, 2000);
-          }
-        }).width(sliderWidth);
-        
-        // CNV target regions slider
-        var targetsSlider = $("#targetSlider").slider({
-          range: true,
-          values: initialRange,
-          min: initialTargets[0],
-          max: initialTargets[1],
-          step: 1,
-          slide: function( event, ui ) {
-            currentTargets = ui.values;
-            console.log(ui.values);
-            labelFn();
-            if(redrawTimeout)
-                clearTimeout(redrawTimeout);
-            redrawTimeout = setTimeout(() => {
-                makePlot();
-              }, 2000);
-          }
-        }).width(sliderWidth); 
-        
-     });    
-    
-    labelFn();
-    makePlot();
-}
 
 // ----------------------------- Genome Distribution  ----------------------------------
 
@@ -856,25 +600,6 @@ class CNVGenomeDistribution {
         window.chart = chart;
         return chart;
     }
-}
-
-
-function showCNVGenomeDistribution() {
-    
-    let callsToShow = rare_calls;
-    
-    console.log("Showing genome distribution plot");
-    let plot = new CNVGenomeDistribution({bin_size: 5 * 1000 * 1000, cnvCalls: callsToShow}); 
-    let chart = plot.render('cnv_genome_dist')    
-    
-    chart.lines.dispatch.on('elementClick', function(info) {
-        let pointInfo = info[0]
-        let index = pointInfo.pointIndex;
-        let chr = plot.bins[index].chr
-        let subPlot = new CNVGenomeDistribution({bin_size: 500 * 1000, cnvCalls: callsToShow, xLabel: 'Position in Chromosome ' + chr }); 
-        subPlot.render('cnv_chr_dist',[chr])
-    });
-    
 }
 
 // ----------------------------- CNV Size Binning  ----------------------------------
@@ -1140,6 +865,8 @@ function loadCnvs(callback, runsToLoad, results) {
         script.onload = () => {
             mergeResults()
             window.cnv_calls = results;
+            window.model.cnv_calls = results;
+            vue.cnv_calls = results
             window.rare_calls = {};
             
             // A number of different outputs are based on CNVs absent from the population,
@@ -1221,15 +948,15 @@ function activatePanel(panelId) {
    }
    else 
    if(panelId == "simrocs") {
-       loadAndShowTab(panelId, showROCCurve);
+       loadAndShowTab(panelId,vue.$refs.rocCurve.showROCCurve);
    }
    else 
    if(panelId == "sample_counts") {
-       loadAndShowTab(panelId,showSampleCounts);
+       loadAndShowTab(panelId,vue.$refs.sampleCounts.showSampleCounts);
    }
    else 
    if(panelId == "genome_dist") {
-       loadAndShowTab(panelId,showCNVGenomeDistribution);
+       loadAndShowTab(panelId,function() { vue.$refs.genomeDistribution.showCNVGenomeDistribution() });
    } 
    else
    if(panelId == "sizebreakdown") {
@@ -1250,35 +977,38 @@ function activatePanel(panelId) {
    }
 }
 
-Vue.component('sample-counts', {
-    template: `
-       <div>
-        <h2>By Sample</h2>
-        <div id=cnvs_by_sample_chart_container>
-            <svg id=cnvs_by_sample_chart>
-            </svg>
-        </div>
-      </div> 
-    `
-})
-
-Vue.component('roc-curve', {
-    props: ['analysisconfig'],
-    template: `
-       <div>
-        <h2>ROC Style Curves for {{analysisconfig.callerIds.length}} CNV Callers</h2>
-        <p>ROC curves show the number of true positives vs false positives found
-           as quality score (or confidence measure) decreases.</p>
-                       
-        <div id=cnv_roc_curve_container>
-            <svg id=cnv_roc_curve>
-            </svg>
-        </div>
-      </div>
-    `
-})
 
 Vue.component('genome-distribution',{
+    
+    props: ['model'],
+    
+    data: function() { return this.model },
+    
+    methods: {
+        showCNVGenomeDistribution: function() {
+        
+            let callsToShow = model.filterCNVs();
+            
+            console.log("Showing genome distribution plot (vue)");
+            let plot = new CNVGenomeDistribution({bin_size: 5 * 1000 * 1000, cnvCalls: callsToShow}); 
+            let chart = plot.render('cnv_genome_dist')    
+            
+            if(this.subPlot) {
+                console.log("Showing genome dist subplot (vue)");
+                this.subPlot.cnvCalls = callsToShow
+                this.subPlot.render('cnv_chr_dist',[this.subPlotChr])
+            }
+            
+            chart.lines.dispatch.on('elementClick', (info) => {
+                let pointInfo = info[0]
+                let index = pointInfo.pointIndex;
+                this.subPlotChr = plot.bins[index].chr
+                this.subPlot = new CNVGenomeDistribution({bin_size: 500 * 1000, cnvCalls: callsToShow, xLabel: 'Position in Chromosome ' + this.subPlotChr }); 
+                this.subPlot.render('cnv_chr_dist',[this.subPlotChr])
+            });
+        }
+    },
+    
     template: `
       <div>
         <h2>Distribution Along Genome</h2>
@@ -1297,6 +1027,11 @@ Vue.component('genome-distribution',{
 })
 
 Vue.component('sens-by-size', {
+    
+    props: ['model'],
+    
+    data: function() { return this.model },
+  
     template: `
         <div>
             <h2>Performance by Deletion Size</h2>
@@ -1308,6 +1043,11 @@ Vue.component('sens-by-size', {
 })
 
 Vue.component('qual-score-calibration', {
+    
+    props: ['model'],
+    
+    data: function() { return this.model },
+  
     template: `
         <div>
             <h2>Quality Score Calibration Curves</h2>
@@ -1322,30 +1062,127 @@ Vue.component('qual-score-calibration', {
 })
 
 window.model = {
-    filters: {
-    }
+   analysisconfig: analysisConfig,
+   cnv_calls: {},
+   targetRange: [0,7],
+   sizeRange: [0,7],
+   callSizeRange: [0,7],
+   callTargetRange: [0,7],
+   maxFreq : MAX_RARE_CNV_FREQ,
+   filterCNVs: function() {
+        let rawCnvs = this.cnv_calls;
+        let callSizeMin = Math.pow(10, this.callSizeRange[0]);
+        let callSizeMax = Math.pow(10, this.callSizeRange[1]);
+        let callTargetsMin = this.callTargetRange[0];
+        let callTargetsMax = this.callTargetRange[1];
+        
+        const unfilteredCount = Object.values(rawCnvs).reduce((n,caller) => n+caller.length, 0);
+        console.log(`There are ${unfilteredCount} raw cnv calls`);
+        
+        console.log("Filtering by spanningFreq < " + this.maxFreq + " size range = " + this.sizeRange);
+        
+        // First, filter by maxFreq since that makes everything else faster
+        // then sort each cnv caller's CNVs in descending order of quality
+        this.filteredCnvs = {};
+        Object.keys(rawCnvs).filter(caller => caller != 'truth').forEach((caller) =>
+            this.filteredCnvs[caller] = 
+                rawCnvs[caller].filter(cnv =>
+                                               (cnv.targets >= callTargetsMin) && (cnv.targets<=callTargetsMax) && 
+                                               (cnv.end - cnv.start > callSizeMin) && (cnv.end - cnv.start < callSizeMax) &&
+                                               ((simulationType != 'replace') || (cnv.chr == 'chrX' || cnv.chr == 'X')) && // replace - only look at chrX
+                                               ((simulationType == 'replace') || (cnv.chr != 'chrX' && cnv.chr != 'X'))) // downsample - don't look at chrX
+                                    .sort((cnv1,cnv2) => cnv2.quality - cnv1.quality)
+        );       
+        return this.filteredCnvs
+   }
 }
 
-$(document).ready(function() {
-   console.log('Summary report init');
-   
-     new Vue({
-       el: '#cnvsummarytabs',
-       data: {
-           analysisconfig: window.analysisConfig
-       }
-   }) 
+var vue = null
 
-   if((window.location.hash != '') && (window.location.hash != '#')) {
-       let panelId = window.location.hash.replace(/^#/,'')
-       console.log('Loading panel ' + panelId + ' from hash')
-       activatePanel(panelId)
-   }
-   
-   $(events).on("activate", (event,ui) => {
+main_template = `
+<div>
+   <div id=simrocs>
+        <roc-curve :model='model' ref='rocCurve'/>
+    </div><!-- simrocs -->
+                    
+    <div id=sample_counts>
+        <sample-counts :model='model' ref='sampleCounts'/>
+    </div> <!-- sample_counts -->
+                    
+    <div id=genome_dist>
+        <genome-distribution :model='model' ref='genomeDistribution'/>
+    </div>
+                  
+    <div id=sizebreakdown>
+        <sens-by-size :model='model'/>
+    </div> <!-- sizebreakdown -->
+                    
+    <div id=qscorecalibration>
+        <qual-score-calibration :model='model'/>
+    </div> <!-- qscore calibration --> 
+</div>
+`
+    
+function createTabs() {
+    console.log("initializing tabs")
+    window.tabs = $('#innerLayout').tabs({
+            activate: function(event,ui) {
+                                    
+                console.log("Activate tab");
+                $(events).trigger("activate",ui);
+                                    
+                if(!ui.newPanel[0]) {
+                    console.log("No new panel");
+                    return;
+                }
+                                    
+                $('#maincenter').css('padding','0px');
+    
+                var panelId = ui.newPanel[0].id;
+            }
+    });
+    
+    // Ugly hack: inline width setting causes incorrect width - remove it
+    $('.ui-layout-center').css('width', '')
+    
+}
+
+require(['N3Components.min','roccurve'], function(N3Components, roccurve) {
+    
+    $(document).ready(function() {
+        
+       console.log('Summary report init');
        
-       console.log("Activated in summary");
-       var panelId = ui.newPanel[0].id;
-       activatePanel(panelId)
-   }); 
-})
+       Vue.use(N3Components, 'en');
+       
+       vue = new Vue({
+           el: '#cnvsummarytabs',
+           
+           template: main_template,
+           
+           mounted: function() {
+               console.log('main template rendered')
+               
+                // Calling tabs() directly doesn't seem to work
+                setTimeout(createTabs, 0);
+           },
+           
+           data: {
+               model: model
+           }
+       }) 
+    
+       if((window.location.hash != '') && (window.location.hash != '#')) {
+           let panelId = window.location.hash.replace(/^#/,'')
+           console.log('Loading panel ' + panelId + ' from hash')
+           activatePanel(panelId)
+       }
+       
+       $(events).on("activate", (event,ui) => {
+           
+           console.log("Activated in summary");
+           var panelId = ui.newPanel[0].id;
+           activatePanel(panelId)
+       }); 
+    })
+ })

@@ -280,4 +280,32 @@ h3.qualCalTitle {
     text-align: center;
  }
  
+ .filterSettings {
+     margin-left: 100px;
+     padding: 0 5px 5px 5px 5px;
+     width: 540px;
+     border: 1px solid #aaa;
+ }
+ 
+ .filterSettings h3 {
+    margin-top: 8px;
+    margin-bottom: 2px;
+    font-size: 14px;
+    font-weight: bold;
+ }
+ 
+ .filterSettings h4 {
+    font-size: 12px;
+ }
+ 
+ .filterSettings .header {
+    background-color: #f0f0f0;
+    padding-bottom: 2px;
+ }
+ 
+ .sliderLabel {
+    font-size: 10px;
+ }
+ 
+ 
  

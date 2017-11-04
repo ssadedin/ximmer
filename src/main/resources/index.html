@@ -53,25 +53,6 @@
                 layout.sizePane("north",50);
             });
             
-            // Calling tabs() directly doesn't seem to work
-            setTimeout(function() { 
-                    window.tabs = \$('#innerLayout').tabs({
-                            activate: function(event,ui) {
-                                
-                                console.log("Activate tab");
-                                \$(events).trigger("activate",ui);
-                                
-                                if(!ui.newPanel[0]) {
-                                    console.log("No new panel");
-                                    return;
-                                }
-                                
-                                \$('#maincenter').css('padding','0px');
-
-                                var panelId = ui.newPanel[0].id;
-                            }
-                    });
-           }, 0);
             
         </script>
     </head>
@@ -101,25 +82,6 @@
                 </div> <!-- simoverview -->
                 
                 <div id=cnvsummarytabs>
-                    <div id=simrocs>
-                        <roc-curve :analysisconfig='analysisconfig'/>
-                    </div><!-- simrocs -->
-                    
-                    <div id=sample_counts>
-                        <sample-counts/>
-                    </div> <!-- sample_counts -->
-                    
-                    <div id=genome_dist>
-                        <genome-distribution ref='genomeDistribution'/>
-                    </div>
-                  
-                    <div id=sizebreakdown>
-                        <sens-by-size/>
-                    </div> <!-- sizebreakdown -->
-                    
-                    <div id=qscorecalibration>
-                        <qual-score-calibration/>
-                    </div> <!-- qscore calibration -->
                </div> 
             <% } /* end if enableTruePositives */ %>
                
