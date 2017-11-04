@@ -80,7 +80,7 @@ class CNVROCCurve {
     
     render(id) {
         
-        this.filteredCnvs = model.filterCNVs()
+        this.filteredCnvs = model.filterCNVs(true)
         
         let rawCnvs = this.rawCnvs;
         let sizeMin = Math.pow(10, this.sizeRange[0]);

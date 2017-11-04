@@ -1069,7 +1069,7 @@ window.model = {
    callSizeRange: [0,7],
    callTargetRange: [0,7],
    maxFreq : MAX_RARE_CNV_FREQ,
-   filterCNVs: function() {
+   filterCNVs: function(simulationRegionsOnly) {
         let rawCnvs = this.cnv_calls;
         let callSizeMin = Math.pow(10, this.callSizeRange[0]);
         let callSizeMax = Math.pow(10, this.callSizeRange[1]);
@@ -1084,15 +1084,26 @@ window.model = {
         // First, filter by maxFreq since that makes everything else faster
         // then sort each cnv caller's CNVs in descending order of quality
         this.filteredCnvs = {};
+        
+        let filters = [
+            (cnv) => (cnv.targets >= callTargetsMin) && (cnv.targets<=callTargetsMax),
+            (cnv) => (cnv.end - cnv.start > callSizeMin) && (cnv.end - cnv.start < callSizeMax)
+        ]
+        
+        if(simulationRegionsOnly) {
+            let simRegionFilter = (cnv) => (cnv.chr != 'chrX' && cnv.chr != 'X')
+            if(simulationType == 'replace') {
+                simRegionFilter = (cnv) => (cnv.chr == 'chrX' || cnv.chr == 'X')
+            }
+            filters.push(simRegionFilter)
+        }
+        
         Object.keys(rawCnvs).filter(caller => caller != 'truth').forEach((caller) =>
             this.filteredCnvs[caller] = 
-                rawCnvs[caller].filter(cnv =>
-                                               (cnv.targets >= callTargetsMin) && (cnv.targets<=callTargetsMax) && 
-                                               (cnv.end - cnv.start > callSizeMin) && (cnv.end - cnv.start < callSizeMax) &&
-                                               ((simulationType != 'replace') || (cnv.chr == 'chrX' || cnv.chr == 'X')) && // replace - only look at chrX
-                                               ((simulationType == 'replace') || (cnv.chr != 'chrX' && cnv.chr != 'X'))) // downsample - don't look at chrX
-                                    .sort((cnv1,cnv2) => cnv2.quality - cnv1.quality)
-        );       
+                rawCnvs[caller].filter(cnv => filters.every(fn => fn(cnv)))
+                               .sort((cnv1,cnv2) => cnv2.quality - cnv1.quality)
+        );        
+
         return this.filteredCnvs
    }
 }
