@@ -146,7 +146,7 @@ if(!localStorage.cnvSettings) {
 
 var SAMPLE_ID_COLUMN=7;
 
-var idMaskRegExp = (typeof(window.idMask)!='undefined') ? new RegExp(idMask) : null;
+var idMaskRegExp = (typeof(window.idMask)!='undefined') && idMask ? new RegExp(idMask) : null;
 
 function createCnvRow(row, data, dataIndex) {
     
