@@ -61,6 +61,18 @@ class Ximmer {
     ]
     
     /**
+     * These assets are loaded via requirejs and thus should NOT
+     * have script tags written
+     */
+    static List<String> NO_TAG_HTML_ASSETS = [
+        'require.js',
+        'summary_report.js',
+        'N3Components.min.js',
+        'roccurve.js'
+    ]
+    
+    
+    /**
      * These assets are copied to the same folder as the CNV report
      */
     static List<String> CNV_REPORT_HTML_ASSETS = [
@@ -1013,7 +1025,7 @@ class Ximmer {
         
         HTMLAssetSource source = new HTMLClassloaderAssetSource()
         HTMLAssets assets = new HTMLAssets(source, outputDirectory)
-        for(asset in SUMMARY_HTML_ASSETS)
+        for(asset in SUMMARY_HTML_ASSETS.grep { !(it in NO_TAG_HTML_ASSETS) })
             assets << new HTMLAsset(source:asset)
             
         String assetPayload = assets.render()

@@ -19,7 +19,18 @@
         
         <link rel="stylesheet" href='http://cdnjs.cloudflare.com/ajax/libs/jquery-layout/1.3.0-rc-30.79/layout-default.css'>
         
+        <script type='text/javascript'>
+            var events = {};
+            var runs = <%=groovy.json.JsonOutput.toJson(runDirectories*.name)%>;
+            var analysisName = "<%=analysisName%>";
+            var simulationType = "<%=simulation_type%>";
+            var analysisConfig = <%=groovy.json.JsonOutput.toJson(analysisConfig)%>;
+            var callerIdMap = <%=groovy.json.JsonOutput.toJson(callerIdMap)%>;
+        </script>
+        
         ${assets}
+        
+        <script type='text/javascript' src='require.js' data-main='summary_report.js'></script>        
         
         <style type='text/css'>
             .ui-tabs .ui-tabs-panel {
@@ -32,19 +43,6 @@
         </style>
 
         <script type='text/javascript'>
-        
-            var events = {};
-            
-            var runs = <%=groovy.json.JsonOutput.toJson(runDirectories*.name)%>;
-            
-            var analysisName = "<%=analysisName%>";
-            
-            var simulationType = "<%=simulation_type%>";
-            
-            var analysisConfig = <%=groovy.json.JsonOutput.toJson(analysisConfig)%>;
-            
-            var callerIdMap = <%=groovy.json.JsonOutput.toJson(callerIdMap)%>;
-        
             var layout = null;
             \$(document).ready(function() {
                 
