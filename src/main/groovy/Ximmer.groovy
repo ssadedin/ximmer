@@ -38,6 +38,10 @@ class Ximmer {
      * These assets are copied to the same folder as the HTML report
      */
     static List<String> SUMMARY_HTML_ASSETS = [
+        'require.js',
+        'velocity.min.js',
+        'vue-focus.min.js',
+        'N3Components.min.js',
         'vue.js',
         'summary_report.js',
         'DOMBuilder.dom.min.js',
@@ -50,6 +54,7 @@ class Ximmer {
         'jquery-ui.css',
         'nv.d3.css',
         'c3.css',
+        'N3Components.min.css',
         'ximmer.css',
         'cnv_report.css'
     ]
