@@ -50,6 +50,7 @@ class Ximmer {
         'c3.js',
         'nv.d3.js',
         'lodash.min.js',
+        'roccurve.js',
         'cnv_report.js',
         'jquery-ui.css',
         'nv.d3.css',
