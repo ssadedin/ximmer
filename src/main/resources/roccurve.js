@@ -82,7 +82,7 @@ class CNVROCCurve {
         
         this.filteredCnvs = model.filterCNVs()
         
-        let rawCnvs = this.cnv_calls;
+        let rawCnvs = this.rawCnvs;
         let sizeMin = Math.pow(10, this.sizeRange[0]);
         let sizeMax = Math.pow(10, this.sizeRange[1]);
         let targetsMin = this.targetRange[0];
@@ -231,7 +231,7 @@ Vue.component('roc-curve', {
             let plot = new CNVROCCurve({
                 cnvs: this.cnv_calls,
                 sizeRange: this.sizeRange,
-                targetsRange: [this.targetStops(this.targetRange[0]), this.targetStops(this.targetRange[1])],
+                targetRange: [this.targetStops(this.targetRange[0]), this.targetStops(this.targetRange[1])],
                 callSizeRange: this.callSizeRange,
                 callTargetRange: [this.targetStops(this.callTargetRange[0]), this.targetStops(this.callTargetRange[1])],
             });
