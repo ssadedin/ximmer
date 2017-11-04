@@ -39,10 +39,10 @@ class Ximmer {
      */
     static List<String> SUMMARY_HTML_ASSETS = [
         'require.js',
+        'vue.js',
         'velocity.min.js',
         'vue-focus.min.js',
         'N3Components.min.js',
-        'vue.js',
         'summary_report.js',
         'DOMBuilder.dom.min.js',
         'jquery-ui.min.js',
@@ -840,6 +840,7 @@ class Ximmer {
         }
         
         simulator.createBam(outputFile.absolutePath, deletions)
+        
         indexBAM(outputFile)
         
         deletions.save(bedFile.absolutePath)
