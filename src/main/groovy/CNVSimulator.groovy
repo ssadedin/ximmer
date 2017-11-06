@@ -66,6 +66,10 @@ class CNVSimulator {
      */
     String simulationMode="replace"
     
+    DGV dgv = null
+    
+    float maxDGVFreq = 0.01
+    
     /**
      * The mean coverage to be targeted in the output samples.
      * This value is an optional input parameter. If provided,
@@ -621,14 +625,30 @@ class CNVSimulator {
             }
             
             // Check if the cleaned up region overlaps any excluded regions
-            if(!excludeRegions || !excludeRegions.overlaps(cleanRegion))
-                break
-               
+            if(!excludeRegions || !excludeRegions.overlaps(cleanRegion)) {
+                // Check if the cleaned up region overlaps region excluded by DGV spanning freq
+                if(dgv != null) {
+                    float regionCNVFreq = dgv.maxFreq(cleanRegion)
+                    if(regionCNVFreq < this.maxDGVFreq) {
+                        break // accept deletion region
+                    }
+                    else {
+                        log.info "Region $cleanRegion overlaps a region in DGV with CNV frequency $regionCNVFreq > $maxDGVFreq"
+                    }
+                }
+                else {
+                    break // accept deletion region
+                }
+            }
+            else {
+                log.info "Region $cleanRegion overlaps excluded regions"
+            }
+                
             ++attemptCount
             if(attemptCount > 20)
                 throw new RuntimeException("Failed to identify a non-excluded region for placement of deletion after $attemptCount tries")
                 
-            println "Selected range $r.from-$r.to overlaps one or more excluded regions: trying again"
+            log.info "Selected range $r.from-$r.to failed one or more exclusion criteria: trying again"
         }
         return cleanRegion
     }

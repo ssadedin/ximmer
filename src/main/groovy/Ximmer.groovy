@@ -131,6 +131,10 @@ class Ximmer {
     
     File hg19RefGeneFile
     
+    DGV dgv
+    
+    float maxDGVFreq
+    
     boolean enableSimulation = true
     
     int deletionsPerSample = -1
@@ -170,6 +174,8 @@ class Ximmer {
         }
         
         ximmerBase=System.properties['ximmer.base']
+        
+        this.maxDGVFreq = (cfg.get('dgv')?:[:]).get('max_freq')?:0.05f
         
         // This should be set by the script that launches ximmer. If not set,
         // it probably means that it was launched directly as a java class instead of
@@ -251,6 +257,7 @@ class Ximmer {
                     log.info("Downloading DGV database from UCSC ...")
                     o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/dgvMerged.txt.gz").openStream() 
                 }
+                dgv = new DGV(dgvMergedFile.absolutePath).parse()
             }
             catch(Exception e) {
                 dgvMergedFile.delete() // otherwise we can leave behind a corrupt partial download
@@ -881,6 +888,11 @@ class Ximmer {
         Regions deletions = new Regions()
         for(int cnvIndex = 0; cnvIndex < this.deletionsPerSample; ++cnvIndex) {
             CNVSimulator simulator = new CNVSimulator(targetSample, sourceSample)
+            if(dgv) {
+                simulator.dgv = this.dgv
+                simulator.maxDGVFreq = this.maxDGVFreq
+            }
+            
             if(this.seed != null) 
                 simulator.random = new Random((this.seed<<16) + (cnvIndex << 8)  + (targetSample.hashCode() % 256))
   
@@ -1194,7 +1206,7 @@ class Ximmer {
                 XIMMER_RUNS: runs*.value*.runDirectory*.name.join(","),
                 TARGET_REGION: analysedTargetRegions.absolutePath,
                 DGV_CNVS: dgvMergedFile.absolutePath,
-                DGV_MAX_FREQ: String.valueOf((cfg.get('dgv')?:[:]).get('max_freq')?:0.05),
+                DGV_MAX_FREQ: String.valueOf(maxDGVFreq),
                 DGV_MIN_STUDY_SIZE: String.valueOf(cfg.get('min_study_size')?:10),
                 XIMMER_CALLERS: callerCfgs,
                 XIMMER_CALLER_LABELS: analysisCfg.callerLabels.join(','),
