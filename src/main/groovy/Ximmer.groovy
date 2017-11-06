@@ -257,13 +257,14 @@ class Ximmer {
                     log.info("Downloading DGV database from UCSC ...")
                     o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/dgvMerged.txt.gz").openStream() 
                 }
-                dgv = new DGV(dgvMergedFile.absolutePath).parse()
             }
             catch(Exception e) {
                 dgvMergedFile.delete() // otherwise we can leave behind a corrupt partial download
                 throw e
             }
         }
+        
+        dgv = new DGV(dgvMergedFile.absolutePath).parse()
         
         hg19RefGeneFile = new File(cacheDirectory, "refGene.txt.gz")    
         if(!hg19RefGeneFile.exists()) {
