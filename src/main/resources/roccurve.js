@@ -26,10 +26,10 @@ class CNVROCCurve {
             throw new Error("ROC Curve requires true positives specified in CNV calls as 'truth' property")
     }
     
-    computeROCStats(cnvs) {
+    computeROCStats(cnvs,truthSet) {
         
         // the set of true positives that we have identified
-        let tps = this.rawCnvs.truth.map(function(cnv, i) {
+        let tps = truthSet.map(function(cnv, i) {
             var tp = {
                 range: cnv.range,
                 sample: cnv.sample,
@@ -50,7 +50,7 @@ class CNVROCCurve {
                 let tp = tps.find(tp => tp.range.overlaps(cnv.range) && (tp.sample == cnv.sample))
                 
                 if(!tp) {
-                    console.log(`CNV marked as true but does not overlap truth set: ${cnv.chr}:${cnv.start}-${cnv.end}`);
+                    // This case occurs when the tp set is filtered (eg: by size etc.)
                 }
                 else
                 if(!tp.detected) {
@@ -100,7 +100,7 @@ class CNVROCCurve {
         window.cnvs = this.filteredCnvs;
             
         // Now iterate through each caller's CNVs and compute the number of true and false positives
-        Object.values(this.filteredCnvs).forEach((cnvs) => this.computeROCStats(cnvs));
+        Object.values(this.filteredCnvs).forEach((cnvs) => this.computeROCStats(cnvs,filteredTruth));
         
         let callerLabels = this.computeCallerLabelMap()
        
