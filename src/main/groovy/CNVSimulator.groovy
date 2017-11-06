@@ -182,7 +182,7 @@ class CNVSimulator {
             return
         
         GParsPool.withPool(this.concurrency) {
-            println "Using $concurrency threads"
+            log.info "Using $concurrency threads to calculate downsample rates"
             if(this.targetCoverage > 0.0d) {
                 Regions autosomalRegions = null
                 synchronized(this) { // cause write flush after we build this block
