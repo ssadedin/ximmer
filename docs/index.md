@@ -51,16 +51,22 @@ cd ximmer
 ```
 
 
-## Configuring Ximmer
+## One Time Configuration
 
-Ximmer sets all the basic configuration parameters to sensible defaults all by 
-itself. You may like to inspect these and check if they are optimal for your
-environment.  To do this, open the file `eval/pipeline/config.groovy` in a text
+Ximmer needs some global configuration to set some basic settings that are used
+by all Ximmer anlayses. The installer sets all the basic configuration parameters to 
+sensible defaults all by itself. You may like to inspect these and check if they are 
+optimal for your environment.  To do this, open the file `eval/pipeline/config.groovy` in a text
 editor. 
+
+If you just want to run everything on a single computer or server then the settings 
+in this file should be sufficient. If you would like to configure Ximmer to run jobs
+on a cluster computing system, you can configure that by editing 
+`eval/pipeline/bpipe.groovy`.
 
 See the [Configuration](config.md) documentation for more details. 
 
 ## Running Ximmer
 
 See information about how to run an analysis using Ximmer in the [Running](running.md) 
-section.
+section, and how to configure CNV simulation in [Simulations](simulations.md).
