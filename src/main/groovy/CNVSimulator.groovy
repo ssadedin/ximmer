@@ -323,7 +323,7 @@ class CNVSimulator {
             }
         }
             
-        femaleBam.filterOrderedPairs(outputFileName, end: flushReads, spoolSize:16000) { SAMRecordPair pair ->
+        femaleBam.filterOrderedPairs(outputFileName, end: flushReads, spoolSize:8000) { SAMRecordPair pair ->
                 
             List<SAMRecordPair> result = []
                  
