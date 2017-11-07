@@ -617,7 +617,7 @@ class CNVSimulator {
             if(cleanRegion == null) {
                 ++attemptCount
                 if(attemptCount > 20)
-                    throw new RuntimeException("Failed to identify a viable seed region for placement of deletion after $attemptCount tries")
+                    throw new RuntimeException("Failed to identify a viable seed region for deletion in ${this.femaleBam.samples[0]} after $attemptCount tries")
                     
                 this.femaleReadRegions = null
                 this.maleReadRegions = null
@@ -646,7 +646,7 @@ class CNVSimulator {
                 
             ++attemptCount
             if(attemptCount > 20)
-                throw new RuntimeException("Failed to identify a non-excluded region for placement of deletion after $attemptCount tries")
+                throw new RuntimeException("Failed to identify a non-excluded region in ${this.femaleBam.samples[0]} for placement of deletion after $attemptCount tries")
                 
             log.info "Selected range $r.from-$r.to failed one or more exclusion criteria: trying again"
         }
