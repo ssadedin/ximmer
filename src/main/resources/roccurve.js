@@ -210,17 +210,8 @@ Vue.component('roc-curve', {
             return humanSize(Math.pow(10,n))    
         },
         
-        targetStops: function(i) {
-            let stops = [1,2,3,5,10,20,50,-1];    
-            let stop = stops[i];
-            if(stop < 0)
-                return "Infinity";
-            else
-                return stop
-        },
-        
         formatSizeTooltip: function(x) {
-            return humanSize(Math.pow(10,x[0])) + " - " + humanSize(Math.pow(10,x[1]))
+            return this.sizeValue(x[0]) + " - " + this.sizeValue(x[1])
         },
         
         formatTargetsTooltip: function(x) {
@@ -231,9 +222,9 @@ Vue.component('roc-curve', {
             let plot = new CNVROCCurve({
                 cnvs: this.cnv_calls,
                 sizeRange: this.sizeRange,
-                targetRange: [this.targetStops(this.targetRange[0]), this.targetStops(this.targetRange[1])],
+                targetRange: [this.model.targetStops(this.targetRange[0]), this.model.targetStops(this.targetRange[1])],
                 callSizeRange: this.callSizeRange,
-                callTargetRange: [this.targetStops(this.callTargetRange[0]), this.targetStops(this.callTargetRange[1])],
+                callTargetRange: [this.model.targetStops(this.callTargetRange[0]), this.model.targetStops(this.callTargetRange[1])],
             });
             plot.render('cnv_roc_curve'); 
         },

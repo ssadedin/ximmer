@@ -1069,12 +1069,22 @@ window.model = {
    callSizeRange: [0,7],
    callTargetRange: [0,7],
    maxFreq : MAX_RARE_CNV_FREQ,
+   
+   targetStops: function(i) {
+        let stops = [1,2,3,5,10,20,50,-1];    
+        let stop = stops[i];
+        if(stop < 0)
+            return "Infinity";
+        else
+            return stop
+   },
+ 
    filterCNVs: function(simulationRegionsOnly) {
         let rawCnvs = this.cnv_calls;
         let callSizeMin = Math.pow(10, this.callSizeRange[0]);
         let callSizeMax = Math.pow(10, this.callSizeRange[1]);
-        let callTargetsMin = this.callTargetRange[0];
-        let callTargetsMax = this.callTargetRange[1];
+        let callTargetsMin = this.targetStops(this.callTargetRange[0]);
+        let callTargetsMax = this.targetStops(this.callTargetRange[1]);
         
         const unfilteredCount = Object.values(rawCnvs).reduce((n,caller) => n+caller.length, 0);
         console.log(`There are ${unfilteredCount} raw cnv calls`);
