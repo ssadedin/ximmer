@@ -15,6 +15,13 @@ then
     exit 1
 fi
 
+NO_REF=false
+
+if [ "$1" == --no-ref ];
+then
+    NO_REF=true
+fi
+
 function init_config() {
 
     CONFIG="eval/pipeline/config.groovy"
@@ -23,20 +30,23 @@ function init_config() {
 
         echo 'BASE="'"$BASE"'"' > $CONFIG
 
-        REF="doesnotexist"
-        while [ ! -e "$REF" ];
-        do 
-            echo "Please enter the location of the reference FASTA file you would like to use Ximmer with: "
-
-            read REF
-
-           [ ! -e "$REF" ] && { 
-                echo "That file could not be found - please try again" 
-           }
-
-        done
-
-        echo 'REF="'"$REF"'"' >> $CONFIG
+        if [ ! $NO_REF ]; 
+        then
+            REF="doesnotexist"
+            while [ ! -e "$REF" ];
+            do 
+                echo "Please enter the location of the reference FASTA file you would like to use Ximmer with: "
+    
+                read REF
+    
+               [ ! -e "$REF" ] && { 
+                    echo "That file could not be found - please try again" 
+               }
+    
+            done
+    
+            echo 'REF="'"$REF"'"' >> $CONFIG
+        fi
 
         cat eval/pipeline/config.groovy.template >> $CONFIG
     fi
