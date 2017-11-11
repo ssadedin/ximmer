@@ -25,7 +25,7 @@ VERSION=0.9.9.5
 # Build date as an integer (unix epoch time)
 # This should be 0 in the source tree, 
 # it will be replaced by the build script at build time
-BUILDDATE=1508826801500
+BUILDDATE=1510398823367
 
 # Default memory used
 # Mainly here to limit memory on systems with very large memory
@@ -53,6 +53,7 @@ tmsg() {
 launch_in_foreground() {
     LAUNCH_MODE="$1"
     shift 1
+    
     exec java -Xmx${MAX_JAVA_MEM} \
              -noverify \
               -classpath "$CP" \
