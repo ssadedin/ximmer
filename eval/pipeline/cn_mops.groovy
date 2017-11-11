@@ -10,7 +10,10 @@ cn_mops_call_cnvs = {
 
     var prior_impact : 10,
         min_width : 5,
-        lower_threshold : -0.8
+        lower_threshold : -0.8,
+        upper_threshold: 0.55,
+        panel_type: 'exome',
+        norm_type: 0
 
     def outputFile = batch_name ? batch_name + '.cnmops.cnvs.tsv' : input.bam + '.cnmops.cnvs.tsv'
 
@@ -50,10 +53,11 @@ cn_mops_call_cnvs = {
             mops.counts.norm <- normalizeChromosomes(mops.counts)
 
             print("Fitting MOPs ...")
-            mops.results = exomecn.mops(mops.counts.norm, norm=FALSE,
+            mops.results = ${panel_type}cn.mops(mops.counts.norm, norm=$norm_type,
                     priorImpact=$prior_impact,
                     minWidth=$min_width,
-                    lowerThreshold=$lower_threshold)
+                    lowerThreshold=$lower_threshold,
+                    upperThreshold=$upper_threshold)
 
             if(length(cnvs(mops.results)) > 0) {
                 mops.results.cn = calcIntegerCopyNumbers(mops.results)
