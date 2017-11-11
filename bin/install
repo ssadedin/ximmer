@@ -15,11 +15,13 @@ then
     exit 1
 fi
 
-NO_REF=false
+QUIET=false
+QUIET_FLAG=""
 
-if [ "$1" == --no-ref ];
+if [ "$1" == -q ];
 then
-    NO_REF=true
+    QUIET_FLAG="-q"
+    QUIET=true
 fi
 
 function init_config() {
@@ -30,7 +32,7 @@ function init_config() {
 
         echo 'BASE="'"$BASE"'"' > $CONFIG
 
-        if [ ! $NO_REF ]; 
+        if [ ! $QUIET ]; 
         then
             REF="doesnotexist"
             while [ ! -e "$REF" ];
@@ -70,4 +72,5 @@ init_config
 
 init_bpipe_config
 
-./eval/bpipe install ./eval/pipeline/exome_cnv_pipeline.groovy
+./eval/bpipe install $QUIET_FLAG  ./eval/pipeline/exome_cnv_pipeline.groovy
+
