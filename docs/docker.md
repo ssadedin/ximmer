@@ -54,13 +54,14 @@ need to map the file systems where the files reside into the docker image. Speci
 Here is an example of an invocation of Ximmer which does these things:
 
 ```bash
-docker run -e XIMMER_REF=/reference/ucsc.hg19.with_decoy.fasta  # tell Ximmer where the reference  FASTA is
-           -v /Volumes/reference/hg19.decoy:/reference # map the file system containing the reference
-           -v /Volumes/reference/data:/data ximmer \ # map the file system containing the data
-           /usr/local/ximmer/bin/ximmer \
-             -c /data/config.groovy \
-             -v \
-             -o /data/output.docker # here is where the output goes
+docker run
+     -e XIMMER_REF=/reference/ucsc.hg19.fasta \  # tell Ximmer the reference FASTA 
+     -v /Volumes/reference:/reference \ # map the file system containing the reference
+     -v /Volumes/data:/data \  # map the file system containing the data
+        ximmer ximmer \ # run the ximmer executable in the ximmer image
+     -c /data/config.groovy \
+     -v \
+     -o /data/output.docker # send output to the /data
 ```
 
 Also important is that the `config.groovy` file you pass will contain file paths itself.
