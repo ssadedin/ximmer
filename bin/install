@@ -25,7 +25,7 @@ function init_config() {
             echo 'HGFA="'"$REF"'"' >> $CONFIG
         fi
 
-        cat eval/pipeline/config.groovy.template >> $CONFIG
+        cat $BASE/eval/pipeline/config.groovy.template >> $CONFIG
     fi
 }
 
