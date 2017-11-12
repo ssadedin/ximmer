@@ -21,18 +21,20 @@ hard to estimate. This is why Ximmer builds in simulation: to allow
 a quick and easy estimation of the performance of any tool on any data set.
 
 
-## Installation and Requirements
+## Installation and Requirements (Native)
 
 To make Ximmer easier to use we have included support to automatically 
 download and build a range of tools. You should make sure before starting
 that you have at minimum the following requirements:
 
+
  * Java 1.7 (note: Java 1.8 does not work, unless you upgrade the bundled GATK)
  * Python 2.7, preferably the Anaconda installation
  * R 3.2 or higher
-
+   
 Ideally, these should all be directly accessible from your environment. 
 If necessary, you can specify custom locations for them in the configuration file.
+
 
 You should also make sure you have internet access while doing the installation
 because Ximmer will try to download some components. It may be necessary to set 
@@ -50,7 +52,6 @@ cd ximmer
 ./bin/install
 ```
 
-
 ## One Time Configuration
 
 Ximmer needs some global configuration to set some basic settings that are used
@@ -65,6 +66,29 @@ on a cluster computing system, you can configure that by editing
 `eval/pipeline/bpipe.groovy`.
 
 See the [Configuration](config.md) documentation for more details. 
+
+## Docker
+
+Ximmer comes with a Docker file that can be used to build a complete image,
+fully configured including all the relevant tools.
+
+To build the Docker image use:
+
+```bash
+git clone git@github.com:ssadedin/ximmer.git
+cd ximmer/docker
+docker build -t ximmer . 
+```
+
+Note: if your machine is behind a proxy, you may need to use something like this:
+
+```bash
+git clone git@github.com:ssadedin/ximmer.git
+cd ximmer/docker
+docker build --build-arg http_proxy='http://wwwproxy.unimelb.edu.au:8000' -t ximmer . 
+```
+
+See [Running inside Docker](docker.md) for tips on how to run inside Docker.
 
 ## Running Ximmer
 

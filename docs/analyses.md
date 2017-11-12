@@ -282,7 +282,7 @@ gene_filter="/home/ximmer/genes/gene_list.txt
 ```
 
 
-## Full Configuration Example
+## Minimal Complete Configuration Example
 
 Below is a very simple, minimal but working configuration which analyses
 a set of BAM files to find CNVs using XHMM and ExomeDepth using their
