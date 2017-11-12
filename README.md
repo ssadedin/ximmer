@@ -15,6 +15,9 @@ It offers three essential features that users of CNV detection tools need:
    CNV detection tools and allow the user to inspect them, along with 
    relevant annotations.
 
+All of these are integrated into one streamlined package that you can run
+easily on any data set you want to analyse.
+
 We created Ximmer because although there are very many CNV detection tools,
 they can be hard to run and their performance can be highly variable and
 hard to estimate. This is why Ximmer builds in simulation: to allow 
