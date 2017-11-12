@@ -12,6 +12,12 @@ then
     $BASE/bin/install --set-reference $XIMMER_REF
 fi
 
+# Set JAVA_HOME based on java location
+if [ ! -z "$JAVA_HOME" ];
+then
+    export JAVA_HOME=`dirname $(which java) | xargs dirname`
+fi
+
 : ${XIMMER_MEM:=20g}
 JAVA_OPTS="-Xmx$XIMMER_MEM -noverify -Dsamjdk.reference_fasta=$XIMMER_REF -Dsnappy.disable=true -Djava.io.tmpdir=./.ximmertmp -Dximmer.base=$BASE"
 
