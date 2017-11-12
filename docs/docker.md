@@ -11,6 +11,9 @@ extra accommodations when invoking Ximmer.  This section describes these.
 Build the docker image using the following docker invocation:
 
 ```
+git clone git@github.com:ssadedin/ximmer.git
+cd ximmer/docker
+docker build -t ximmer . 
 ```
 
 ## Running
