@@ -2,11 +2,11 @@ Ximmer
 ======
 
 
-Ximmer is a tool designed to help users of targeted high throughput (or "next generation") 
-genomic sequencing data (such as exome data) to accurately detect copy number variants
-(CNVs). Ximmer is not a copy number detection tool itself. Rather, it is a framework for
-running and evaluating other copy number detection tools. It offers three essential features
-that users of CNV detection tools need:
+Ximmer is a tool designed to help users of exome and targeted genomic
+sequencing data accurately detect and interpret copy number variants (CNVs).
+Ximmer is not a copy number detection tool itself. Rather, it is a framework
+for running other copy number detection tools and interpreting their results.
+It offers three essential features that users of CNV detection tools need:
 
  * A suite of pipelines for running a variety of well known CNV detection tools
  * A simulation tool that can create artificial CNVs in sequencing data for 
@@ -20,6 +20,9 @@ they can be hard to run and their performance can be highly variable and
 hard to estimate. This is why Ximmer builds in simulation: to allow 
 a quick and easy estimation of the performance of any tool on any data set.
 
+See an online [example report](http://example.ximmer.org) to get an idea what 
+Ximmer's output looks like.
+
 
 Requirements
 ============
@@ -27,11 +30,17 @@ Requirements
  * Java 1.7 (note: Java 1.8 does not work, unless you upgrade the bundled GATK)
  * Python 2.7, preferably the Anaconda installation
  * R 3.2 or higher
+ * 24GB of RAM
+
+or 
+
+ * Use [Docker](https://ssadedin.github.io/ximmer/docker.html)!
 
 
 Building and Running It
 =======================
 
 See the online [documentation](https://ssadedin.github.io/ximmer/) for more details!
+
 
 
