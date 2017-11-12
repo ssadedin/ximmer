@@ -53,7 +53,7 @@ function set_reference() {
            exit 1
     fi
 
-        REF="$1"
+    REF="$1"
 
     if [ -z "$REF" ];
     then
@@ -65,10 +65,10 @@ function set_reference() {
 
     fi
 
-        if [ ! -e $REF ];
+    if [ ! -e $REF ];
     then
         echo
-        echo "WARNING: specified reference could not be found. Make sure to map this path when running Ximmer"
+        echo "WARNING: specified reference ($REF) could not be found. Make sure to map this path when running Ximmer"
         echo
     fi
 
@@ -110,8 +110,7 @@ CONFIG="$BASE/eval/pipeline/config.groovy"
 
 if [ "$1" == "--set-reference" ];
 then 
-        set_reference $2
-
+    set_reference $2
 else
     init_config
 
