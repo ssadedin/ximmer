@@ -4,10 +4,16 @@ BASE=`cd $(dirname $0 | xargs dirname); pwd`
 
 unset GROOVY_HOME
 
-: ${XIMMER_REF:="/group/bioi1/shared/genomes/GRCh37/broad/Homo_sapiens_assembly19.fasta"}
+# : ${XIMMER_REF:="/group/bioi1/shared/genomes/GRCh37/broad/Homo_sapiens_assembly19.fasta"}
 
-: ${JAVA_MEM:=20g}
-JAVA_OPTS="-Xmx$JAVA_MEM -noverify -Dsamjdk.reference_fasta=$XIMMER_REF -Dsnappy.disable=true -Djava.io.tmpdir=./.ximmertmp -Dximmer.base=$BASE"
+if [ ! -z "$XIMMER_REF" ];
+then
+    echo "Using reference sequence: $XIMMER_REF"
+    $BASE/bin/install --set-reference $XIMMER_REF
+fi
+
+: ${XIMMER_MEM:=20g}
+JAVA_OPTS="-Xmx$XIMMER_MEM -noverify -Dsamjdk.reference_fasta=$XIMMER_REF -Dsnappy.disable=true -Djava.io.tmpdir=./.ximmertmp -Dximmer.base=$BASE"
 
 export JAVA_OPTS
 
@@ -15,7 +21,7 @@ mkdir -p .ximmertmp
 
 if [ "$1" == "install" ];
 then
-    $BASE/eval/tools/bpipe/0.9.9.4/bin/bpipe install $BASE/eval/pipeline/exome_cnv_pipeline.groovy 
+    $BASE/eval/tools/bpipe/0.9.9.5/bin/bpipe install $BASE/eval/pipeline/exome_cnv_pipeline.groovy 
 else
         $BASE/eval/pipeline/tools/groovy/2.4.6/bin/groovy \
         -cp $BASE/src/main/groovy:$BASE/src/main/resources:$BASE/eval/pipeline/tools/groovy-ngs-utils/1.0.6/groovy-ngs-utils.jar \
