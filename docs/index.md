@@ -30,9 +30,9 @@ A picture of Ximmer's accuracy report is below:
 
 ## Installation and Requirements (Native)
 
-To make Ximmer easier to use we have included support to automatically 
-download and build a range of tools. You should make sure before starting
-that you have at minimum the following requirements:
+To make Ximmer easier to use we have included support to automatically download
+and build the tools and other dependencies it needs. You should make sure
+before starting that you have at minimum the following requirements:
 
 
  * Java 1.7 (note: Java 1.8 does not work, unless you upgrade the bundled GATK)
