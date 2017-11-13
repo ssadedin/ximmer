@@ -20,6 +20,9 @@ they can be hard to run and their performance can be highly variable and
 hard to estimate. This is why Ximmer builds in simulation: to allow 
 a quick and easy estimation of the performance of any tool on any data set.
 
+Want see how Ximmer results look without running it? Try out the live 
+[example report](http://example.ximmer.org/).
+
 
 ## Installation and Requirements (Native)
 
