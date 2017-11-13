@@ -59,7 +59,7 @@ cd ximmer
 ./bin/install
 ```
 
-## One Time Configuration
+### One Time Configuration
 
 Ximmer needs some global configuration to set some basic settings that are used
 by all Ximmer anlayses. The installer sets all the basic configuration parameters to 
