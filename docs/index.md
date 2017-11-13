@@ -74,10 +74,12 @@ on a cluster computing system, you can configure that by editing
 
 See the [Configuration](config.md) documentation for more details. 
 
-## Docker
+## Installation and Requirements (Docker)
 
-Ximmer comes with a Docker file that can be used to build a complete image,
-fully configured including all the relevant tools.
+If you use Docker, you can install and run Ximmer simply by building it
+from the Docker file. In this case the primary requirement is that you do 
+this on a computer with enough RAM, we recommend at least 24GB of RAM for 
+the analysis pipeline to run successfully.
 
 To build the Docker image use:
 
@@ -87,12 +89,12 @@ cd ximmer/docker
 docker build -t ximmer . 
 ```
 
-Note: if your machine is behind a proxy, you may need to use something like this:
+Note: if your machine is behind a proxy, you can provide it ike this:
 
 ```bash
 git clone git@github.com:ssadedin/ximmer.git
 cd ximmer/docker
-docker build --build-arg http_proxy='http://wwwproxy.unimelb.edu.au:8000' -t ximmer . 
+docker build --build-arg http_proxy='http://proxy.host.com:proxy-port' -t ximmer . 
 ```
 
 See [Running inside Docker](docker.md) for tips on how to run inside Docker.
