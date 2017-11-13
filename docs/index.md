@@ -23,6 +23,10 @@ a quick and easy estimation of the performance of any tool on any data set.
 Want see how Ximmer results look without running it? Try out the live 
 [example report](http://example.ximmer.org/).
 
+A picture of Ximmer's accuracy report is below:
+
+![Ximmer Accuracy Report](ximmer_roc_example.png)
+
 
 ## Installation and Requirements (Native)
 
