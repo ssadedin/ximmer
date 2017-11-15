@@ -570,9 +570,13 @@ class Ximmer {
                     if((paramEntry.value instanceof String) || (paramEntry.value instanceof GString))
                         "$paramEntry.key='$paramEntry.value'"
                     else
+                    if(paramEntry.value instanceof List) {
+                        "$paramEntry.key=['${paramEntry.value.join("','")}']"
+                    }
+                    else
                         "$paramEntry.key=$paramEntry.value"
             }.join('\n') + '\n'
-            
+
             File paramFile = new File(outputDir, callerParts.join(".")+".params.txt")
             paramFile.text = paramText
             log.info "Write file $paramFile with caller parameters"

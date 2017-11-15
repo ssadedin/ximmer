@@ -161,7 +161,10 @@ init_caller_params = {
     
     println "Using parameters " + params + " for $caller with output to " + branch.dir
     
-    load("$batch_name/${caller}.${params}.params.txt")
+    def paramsPath = "$batch_name/${caller}.${params}.params.txt"
+    load(paramsPath)
+    
+    var exclude_samples: []
     
     String qualPropertyKey = caller_label + "_quality_filter"
     
@@ -176,6 +179,14 @@ init_caller_params = {
     }
     else {
         println "No quality parameters found for $caller under key " + caller_label + '_quality_filter'
+    }
+    
+    if(!exclude_samples.isEmpty()){
+        println "Excluding samples: " + exclude_samples.join(',')
+        forward(inputs.bam.grep { bamFile -> !(new SAM(bamFile).samples[0] in exclude_samples) })
+    }
+    else {
+        println "No samples are excluded for $caller_label: "
     }
 }
 
