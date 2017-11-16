@@ -93,6 +93,8 @@ class CNVDiagram {
     
     boolean redraw = false
     
+    double yMax = 2.0d
+    
     /**
      * What kind(s) of output to produce
      */
@@ -282,7 +284,7 @@ var cnv = {
 
         List<String> genes = geneDb.getGenes(cnv).grep { gene -> geneDb.getExons(gene).overlaps(this.targetRegions) }
 
-        List targets = determineCnvTargets(cnv, genes)
+        List<IntRange> targets = determineCnvTargets(cnv, genes)
        
         def froms = targets*.from
         def tos = targets*.to
@@ -292,84 +294,43 @@ var cnv = {
             return
         }
         
-        def displayRegion = new Region(cnv.chr, froms[0]..tos[-1])
+        Region displayRegion = new Region(cnv.chr, froms[0]..tos[-1])
         
-        double yMax = 2.0d
+        
+        boolean drawPNG = 'png' in writeTypes 
 
-        graxxia.Drawing d = new graxxia.Drawing(
-                        imageFileName,
-                        width,
-                        height,
-                        froms,
-                        0.0d,
-                        tos,
-                        yMax)
-
-        d.autoSave = false
-        d.setMargin(50,50)
-        d.color(200,200,200)
-        d.drawBorder()
-        d.drawRegions()
-
-        d.drawYAxis([0,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0], true)
+        graxxia.Drawing d
+        if(drawPNG) 
+            d = createDiagramFrame(imageFileName, displayRegion, targets, width, height)
 
         double minX = targets[0].from
         double maxX = targets[-1].to
 
-        // Line at 1.0 in black
-        d.line(displayRegion.from, 1.0, displayRegion.to, 1.0)
-
         for(target in targets) {
-            
             
             Region targetRegion = new Region(cnv.chr, target)
             Matrix coverage = getNormalisedCoverage(targetRegion, cnv.sample)
-            //                double [] coverageValues = coverage[][0] as double[]
 
             double [] targetRange = target as double[]
-            double [] otherCoverage = coverage.others as double[]
             
-            Map targetJson = [
-                start: targetRegion.from,
-                end: targetRegion.to,
-                sampleCov: coverage.sample.collect { round2Digits(it) },
-                otherCov: coverage.others,
-                coverageSd: coverage.sd
-            ]
-            
-            json.println("      " + JsonOutput.toJson(targetJson)+ ",")
+            outputTargetJSONCoverage(json, targetRegion, coverage)
             
             // Can't plot a curve through too few points (exception from loess interpolator)
             if(targetRange.length < 8)
                 continue
 
-            def sds = coverage.collect { c -> c[0] > 1.0d ? 1.0d + c[2] : 1.0d - c[2]}
-            
-            if('png' in writeTypes) {
-                LoessInterpolator interp = new LoessInterpolator()
-                PolynomialSplineFunction otherMeansFn = interp.interpolate(targetRange, otherCoverage)
-                d.color(220,220,220)
-                d.loess(target, sds)
-    
-                d.color("red")
-                d.loess(target, coverage.sample, color : { x, y ->
-                    def otherMean = otherMeansFn.value(x)
-                    if(otherMean > 30d)
-                        "red"
-                    else
-                    if(otherMean > 15d)
-                        [100,0,100]
-                    else
-                        "blue"
-                })
+            if(drawPNG) {
+                drawInterpolatedCoverage(d, coverage, target, targetRange)
             }
         }
         
         json.println("    ],")
         json.println("""  "genes" : [""")
 
-        // Find the genes overlapping the CNV
-        d.color("black")
+        if(d)
+            d.color("black")
+            
+        // For each genes overlapping the CNV
         for(gene in genes) {
             def geneExons = geneDb.getExons(gene).reduce().grep { it.chr == cnv.chr }
 
@@ -383,9 +344,12 @@ var cnv = {
                 exons: []
             ]
             
-            d.bar(geneFrom, geneTo, -0.1, gene)
-            d.barHeightUp = 0
-            d.barHeightDown = 3
+            if(d) {
+                d.bar(geneFrom, geneTo, -0.1, gene)
+                d.barHeightUp = 0
+                d.barHeightDown = 3
+            }
+            
             geneExons.eachWithIndex { exon, exonCount ->
 
                 List<Range> intersects = targetRegions.intersect(exon)
@@ -399,8 +363,8 @@ var cnv = {
                 //d.text(clipped.to + (clipped.to - clipped.from)/2, 0.05, "${exonCount+1}")
 
                 for(exonIntersect in intersects) {
-                    //                        println "Drawing exon ${exonCount+1}:  $exonIntersect.from-$exonIntersect.to"
-                    d.bar(exonIntersect.from, exonIntersect.to, -0.1, null, "${exonCount+1}")
+                    if(d)
+                        d.bar(exonIntersect.from, exonIntersect.to, -0.1, null, "${exonCount+1}")
                     jsonGene.exons << [ 
                         from: exonIntersect.from, 
                         to: exonIntersect.to,
@@ -408,8 +372,11 @@ var cnv = {
                     ]
                 }
             }
-            d.barHeightUp = 5
-            d.barHeightDown = 5
+            
+            if(d) {
+                d.barHeightUp = 5
+                d.barHeightDown = 5
+            }
             
             json.println("      " + JsonOutput.toJson(jsonGene) + ",")
         }
@@ -426,12 +393,12 @@ var cnv = {
                 continue
             }
 
-
-            d.color(colors[caller])
+            if(d) 
+                d.color(colors[caller])
 
             println "Caller $caller cnvs are: " + callerCnvs.collect { it.from + " - " + it.to + " (qual=" + it.extra.quality + ")" }
             
-            def labels = callerCnvs.collect { (it.extra.quality != null) ? "$caller [" + numberFormat.format(it.extra.quality.toFloat()) + "]" : caller  }
+            List labels = callerCnvs.collect { (it.extra.quality != null) ? "$caller [" + numberFormat.format(it.extra.quality.toFloat()) + "]" : caller  }
             
             Map callerJson = [
                 caller: caller,
@@ -442,60 +409,25 @@ var cnv = {
                 ]}
             ]
             
-            d.bars(callerCnvs*.from, callerCnvs*.to, [1.8 - offset]*callerCnvs.size(), labels)
+            if(d)
+                d.bars(callerCnvs*.from, callerCnvs*.to, [1.8 - offset]*callerCnvs.size(), labels)
             offset += 0.08
-            
             json.println("      " +  JsonOutput.toJson(callerJson) + ",")
         }
         
         json.println("    ],")
         json.println("""  "variants" : [""")
         if(vcfs[cnv.sample]) {
-            Regions vcf = vcfs[cnv.sample]
-            
-            def variants = null
-            synchronized(vcf) {
-                variants = targets.collect { vcf.getOverlaps(cnv)*.extra.grep { it.sampleDosage(cnv.sample) > 0 } }.sum()
-            }
-            log.info "Found ${variants.size()} variants for CNV $cnv"
-            for(Variant variant in variants) {
-                float variantHeight = 0.1f
-                d.color("red")
-                d.line(variant.pos, yMax, variant.pos, yMax - variantHeight) 
-                
-                float altFrac = 1.0f
-                int dosage = variant.sampleDosage(cnv.sample)
-                int sampleIndex = variant.header.samples.indexOf(cnv.sample)
-                int altReads = variant.getAlleleDepths(1)[sampleIndex]
-                int refReads = variant.getAlleleDepths(0)[sampleIndex]
-                if(dosage==1) {
-                    d.color("green")
-                    try {
-                        altFrac = ((float)refReads / (refReads+altReads))
-                        d.line(variant.pos, yMax, variant.pos, yMax - variantHeight * altFrac)
-                    }
-                    catch(ArithmeticException e) {
-                        log.warning "WARNING: Unable to draw variant $variant (refReads=$refReads, altReads=$altReads)"
-                    }
-                }
-                
-                Map variantJson = [
-                    pos: variant.pos,
-                    dosage: dosage,
-                    frac: altFrac.isNaN() ? 0.0f : altFrac,
-                    ref: refReads,
-                    alt: altReads
-                ]
-                json.println("      " +  JsonOutput.toJson(variantJson) + ",")
-            }
+            drawVariants(json, d, cnv, targets)
         }
         else {
             log.info "Sample $cnv.sample does not have an associated VCF"
         }
-        if('png' in writeTypes)
+        
+        if(drawPNG)
             d.save()
         
-        if(this.amplicons) {
+        if(this.amplicons && d) {
             d.fileName = d.fileName.replaceAll('.png$','.ac.png')
             drawAmplicons(d, cnv)
             d.save()
@@ -506,6 +438,114 @@ var cnv = {
             json.println("    ]\n}")
             json.close()
         }
+    }
+    
+    void drawInterpolatedCoverage(graxxia.Drawing d, Matrix coverage, IntRange target, double [] targetRange) {
+        double [] otherCoverage = coverage.others as double[]
+        def sds = coverage.collect { c -> c[0] > 1.0d ? 1.0d + c[2] : 1.0d - c[2]}
+        LoessInterpolator interp = new LoessInterpolator()
+        PolynomialSplineFunction otherMeansFn = interp.interpolate(targetRange, otherCoverage)
+        d.color(220,220,220)
+        d.loess(target, sds)
+    
+        d.color("red")
+        d.loess(target, coverage.sample, color : { x, y ->
+            def otherMean = otherMeansFn.value(x)
+            if(otherMean > 30d)
+                "red"
+            else
+            if(otherMean > 15d)
+                [100,0,100]
+            else
+                "blue"
+        })
+    }
+    
+    void drawVariants(Writer json, graxxia.Drawing d, Region cnv, List<IntRange> targets) {
+        
+        Regions vcf = vcfs[cnv.sample]
+            
+        def variants = null
+        
+        synchronized(vcf) {
+            variants = targets.collect { vcf.getOverlaps(cnv)*.extra.grep { it.sampleDosage(cnv.sample) > 0 } }.sum()
+        }
+        
+        log.info "Found ${variants.size()} variants for CNV $cnv"
+        for(Variant variant in variants) {
+            float variantHeight = 0.1f
+                
+            if(d) {
+                d.color("red")
+                d.line(variant.pos, yMax, variant.pos, yMax - variantHeight) 
+            }
+                
+            float altFrac = 1.0f
+            int dosage = variant.sampleDosage(cnv.sample)
+            int sampleIndex = variant.header.samples.indexOf(cnv.sample)
+            int altReads = variant.getAlleleDepths(1)[sampleIndex]
+            int refReads = variant.getAlleleDepths(0)[sampleIndex]
+            if(dosage==1) {
+                d.color("green")
+                try {
+                    altFrac = ((float)refReads / (refReads+altReads))
+                        
+                    if(d) 
+                        d.line(variant.pos, yMax, variant.pos, yMax - variantHeight * altFrac)
+                }
+                catch(ArithmeticException e) {
+                    log.warning "WARNING: Unable to draw variant $variant (refReads=$refReads, altReads=$altReads)"
+                }
+            }
+                
+            Map variantJson = [
+                pos: variant.pos,
+                dosage: dosage,
+                frac: altFrac.isNaN() ? 0.0f : altFrac,
+                ref: refReads,
+                alt: altReads
+            ]
+            json.println("      " +  JsonOutput.toJson(variantJson) + ",")
+        }
+    }
+    
+    void outputTargetJSONCoverage(Writer json, Region targetRegion, Matrix coverage) {
+        Map targetJson = [
+            start: targetRegion.from,
+            end: targetRegion.to,
+            sampleCov: coverage.sample.collect { round2Digits(it) },
+            otherCov: coverage.others,
+            coverageSd: coverage.sd
+        ]
+        json.println("      " + JsonOutput.toJson(targetJson)+ ",")
+    }
+    
+    graxxia.Drawing createDiagramFrame(String imageFileName, Region displayRegion, List<IntRange> targets, int width, int height) {
+        
+        double minX = targets[0].from
+        double maxX = targets[-1].to
+        
+        graxxia.Drawing d = new graxxia.Drawing(
+                imageFileName,
+                width,
+                height,
+                targets*.from,
+                0.0d,
+                targets*.to,
+                yMax)
+
+        d.autoSave = false
+        d.setMargin(50,50)
+        d.color(200,200,200)
+        d.drawBorder()
+        d.drawRegions()
+
+        d.drawYAxis([0,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0], true)
+        
+        // Line at 1.0 in black
+        d.line(displayRegion.from, 1.0, displayRegion.to, 1.0)
+        
+        return d
     }
     
     /**
@@ -599,7 +639,7 @@ var cnv = {
      * @param d
      * @param cnv
      */
-    void drawAmplicons(Drawing d, Region cnv) {
+    void drawAmplicons(graxxia.Drawing d, Region cnv) {
         
         d.color("black")
         
