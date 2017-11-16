@@ -199,6 +199,16 @@ init_common = {
     println "Running Common Stages"
 }
 
+all_bams = []
+
+init = {
+    all_bams = inputs.bam.collect { it } // clone
+}
+
+reset_bams = {
+    forward(all_bams)
+}
+
 run {
     
     common_stages = [ init_common, "%.bam" * [ gatk_depth_of_coverage  ] ]
@@ -221,9 +231,9 @@ run {
         (caller + '.%.params.txt') * [ init_caller_params.using(caller:caller) + caller_pipelines[caller] + register_caller_result ]
     }
     
-    create_analysable_target + common_stages + 
+    init + create_analysable_target + common_stages + 
         batch_dirs * [
-            init_batch + caller_stages + 
+            init_batch + caller_stages + reset_bams +
                  create_cnv_report + create_cnv_report.using(file_name_prefix:"local_", imgpath: "") +
                  INCLUDE_CHROMOSOMES * [ plot_cnv_coverage ]  +
                  sample_names * [ extract_sample_files ] 
