@@ -530,6 +530,13 @@ class Ximmer {
         List<String> callerCfgs = []
         for(String key in analysisConfig.keySet()) {
             
+            if(!(analysisConfig[key] instanceof ConfigObject)) {
+                throw new RuntimeException(
+                    "Error in analyses definition: expected a sub-configuration but found attribute with type: " + analysisConfig[key]?.class?.name + "\n\n" +
+                    "Please check that your analyses are correctly structured."
+                )
+            }
+            
             log.info "Analysis has caller configuration: $key"
             List callerParts = key.tokenize('_')
             String callerId = this.callerIdMap[callerParts[0]] ?:callerParts[0]
