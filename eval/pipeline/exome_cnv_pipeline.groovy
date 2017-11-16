@@ -181,9 +181,9 @@ init_caller_params = {
         println "No quality parameters found for $caller under key " + caller_label + '_quality_filter'
     }
     
-    if(!exclude_samples.isEmpty()){
-        println "Excluding samples: " + exclude_samples.join(',')
-        forward(inputs.bam.grep { bamFile -> !(new SAM(bamFile).samples[0] in exclude_samples) })
+    if(branch.exclude_samples){
+        println "Excluding samples: " + branch.exclude_samples.join(',')
+        forward(inputs.bam.grep { bamFile -> !(new SAM(bamFile).samples[0] in branch.exclude_samples) })
     }
     else {
         println "No samples are excluded for $caller_label: "
