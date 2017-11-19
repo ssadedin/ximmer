@@ -55,6 +55,7 @@ class Ximmer {
         'nv.d3.js',
         'lodash.min.js',
         'roccurve.js',
+        'cnv_diagram.js',
         'cnv_report.js',
         'jquery-ui.css',
         'nv.d3.css',
@@ -83,6 +84,7 @@ class Ximmer {
         'jquery-ui.min.js',
         'vue.js',
         'cnv_report.js',
+        'cnv_diagram.js',
         'jquery-ui.css',
         'cnv_report.css',
     ]
@@ -1017,8 +1019,9 @@ class Ximmer {
         // put it into a location where they can't be referenced easily
         for(SimulationRun run in this.runs*.value) {
             for(String asset in CNV_REPORT_HTML_ASSETS) {
-                File assetFile = new File(new File(run.runDirectory, analysis.analysisName),asset)
+                File assetFile = new File(new File(run.runDirectory, "$analysis.analysisName/report"),asset)
                 if(!assetFile.exists()) {
+                    log.info "Copy $asset -> ${assetFile}"
                     Files.copy(new File("$ximmerBase/src/main/resources/$asset").toPath(), 
                                assetFile.toPath())
                 }
