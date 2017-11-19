@@ -3,6 +3,10 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.regex.Matcher;
 
+import gngs.Cli
+import gngs.Region
+import gngs.Regions
+import gngs.SAM
 import graxxia.Matrix
 import groovy.text.SimpleTemplateEngine
 import groovy.transform.CompileStatic;

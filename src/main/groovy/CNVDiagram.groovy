@@ -8,6 +8,8 @@ import org.apache.commons.math3.analysis.interpolation.LoessInterpolator
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 import org.codehaus.groovy.runtime.StackTraceUtils
 
+import gngs.*
+
 import graxxia.Matrix
 import graxxia.Stats
 import groovy.json.JsonOutput

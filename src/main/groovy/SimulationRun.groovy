@@ -1,3 +1,4 @@
+import gngs.SAM
 import groovy.util.logging.Log;
 
 @Log

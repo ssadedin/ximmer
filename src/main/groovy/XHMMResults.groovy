@@ -1,6 +1,8 @@
 
 import com.xlson.groovycsv.PropertyMapper
 
+import gngs.Region
+
 
 class XHMMResults extends CNVResults {
     

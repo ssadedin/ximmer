@@ -1,3 +1,8 @@
+import gngs.Cli
+import gngs.Region
+import gngs.Regions
+import gngs.SAM
+
 println "=" * 100
 println "CNV Simulator " + (new Date().toString())
 println "=" * 100

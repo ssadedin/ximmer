@@ -2,6 +2,8 @@ import groovy.lang.Closure;
 
 import java.util.Map;
 
+import gngs.Region
+
 
 class ExcavatorResults extends CNVResults {
     
