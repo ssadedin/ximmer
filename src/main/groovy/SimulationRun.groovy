@@ -107,7 +107,7 @@ class SimulationRun {
             
             run.resolveBamFiles(bamFileSpec, cfg)
             
-            [runEntry.key, run] 
+            [run.id, run] 
         }
         
         log.info "Configured runs: " + runs.keySet().join(',')
