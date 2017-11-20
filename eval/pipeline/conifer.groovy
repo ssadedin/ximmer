@@ -1,4 +1,4 @@
-// vim: ts=4 sw=4 expandtab
+import gngs.SAM
 
 conifer_rpkm = {
 
@@ -7,7 +7,7 @@ conifer_rpkm = {
     println "Input.bam = $input.bam"
 
 
-    def rpkmOutput = new SAM(input.bam).samples[0]+".rpkm"
+    def rpkmOutput = new gngs.SAM(input.bam).samples[0]+".rpkm"
 
     println "Output rpkm = $rpkmOutput"
     
