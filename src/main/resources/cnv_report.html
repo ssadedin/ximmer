@@ -56,7 +56,7 @@
     
     def allCnvs = cnvs
 
-    cnvs = allCnvs.grep { it.type in cnvTypes && (!includeSamples || (it.sample in includeSamples)) }
+    cnvs = allCnvs.grep { cnv -> cnv.type.tokenize(',').any { it in cnvTypes } && (!includeSamples || (cnv.sample in includeSamples)) }
 
     log.println "${cnvs.size()} / ${allCnvs.size()} cnvs remain after filtering by types $types and samples ${includeSamples}"
 
