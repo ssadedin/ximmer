@@ -183,7 +183,7 @@ init_caller_params = {
     
     if(branch.exclude_samples){
         println "Excluding samples: " + branch.exclude_samples.join(',')
-        forward(inputs.bam.grep { bamFile -> !(new SAM(bamFile).samples[0] in branch.exclude_samples) })
+        forward(inputs.bam.grep { bamFile -> !(new gngs.SAM(bamFile).samples[0] in branch.exclude_samples) })
     }
     else {
         println "No samples are excluded for $caller_label: "
