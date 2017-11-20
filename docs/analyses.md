@@ -151,9 +151,23 @@ block and are specific to each caller (see table TODO).
 
 TODO:
 
-| Caller | Parameter |  Description | Example |
-|--------|-----------|--------------|---------|
-| foo   | bar   | frog | house |
+| Caller     | Parameter              | Description                                   | Example / Default |
+|------------|------------------------|-----------------------------------------------|-------------------|
+| ExomeDepth | transition_probability |                                               | 10e-4             |
+|            | expected_cnv_length    |                                               | 50000             |
+|            |                        |                                               |                   |
+| XHMM       | exome_wide_cnv_rate    |                                               | 10e-8             |
+|            | xhmm_pve_mean_factor   |                                               | 0.7               |
+|            |                        |                                               |                   |
+| Conifer    | conifer_svd_num        |                                               |                   |
+|            | conifer_call_threshold |                                               |                   |
+|            |                        |                                               |                   |
+| cn.MOPs    | prior_impact           | Weighting of prior probability of CNV         | 10                |
+|            | min_width              | Min target regions to call a CNV              | 5                 |
+|            | lower_threshold        | Affects threshold on coverage for CNV calling | -0.8              |
+|            | panel_type             | Sets a range of parameters for panel vs exome | exome (or blank)  |
+|            |                        |                                               |                   |
+| CODEX      |                        |                                               |                   |
 
 
 ## Filtering by quality
