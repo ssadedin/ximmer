@@ -16,8 +16,9 @@ cn_mops_call_cnvs = {
         norm_type: 0
 
     def outputFile = batch_name ? batch_name + '.cnmops.cnvs.tsv' : input.bam + '.cnmops.cnvs.tsv'
+    def outputData = batch_name ? batch_name + '.cnmops.cnvs.tsv' : input.bam + '.cnmops.cnvs.RData'
 
-    produce(outputFile) {
+    produce(outputFile, outputData) {
         R({"""
 
             source("$TOOLS/r-utils/cnv_utils.R")
@@ -68,6 +69,8 @@ cn_mops_call_cnvs = {
                   seqnames=character(),start=character(),end=character(),width=character(),strand=character(),sampleName=character(),median=character(),mean=character(),CN=character()
                 )
             }
+
+            save(mops.counts,file="$output.RData")
     
             print(sprintf("Writing results ..."))
             write.table(file="$output.tsv", 
