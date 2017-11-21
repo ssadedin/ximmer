@@ -16,7 +16,7 @@ cn_mops_call_cnvs = {
         norm_type: 0
 
     def outputFile = batch_name ? batch_name + '.cnmops.cnvs.tsv' : input.bam + '.cnmops.cnvs.tsv'
-    def outputData = batch_name ? batch_name + '.cnmops.cnvs.tsv' : input.bam + '.cnmops.cnvs.RData'
+    def outputData = batch_name ? batch_name + '.cnmops.cnvs.RData' : input.bam + '.cnmops.cnvs.RData'
 
     produce(outputFile, outputData) {
         R({"""
