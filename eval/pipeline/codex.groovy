@@ -74,9 +74,9 @@ codex_call_cnvs = {
             Yhat <- normObj$Yhat; AIC <- normObj$AIC; BIC <- normObj$BIC
 
             RSS <- normObj$RSS; 
-            K <- normObj$K + $codex_k
+            K <- normObj$K 
             
-            optK = K[which.max(BIC)]
+            optK = K[which.max(BIC)] + $codex_k
             
             finalcall <- segment(Y_qc, Yhat, optK = optK, K = K, sampname_qc,
                                  ref_qc, chr, lmax = 200, mode = "integer")
