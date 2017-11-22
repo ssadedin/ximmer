@@ -6,7 +6,8 @@
 //////////////////////////////////////////////////////////////////
 codex_call_cnvs = {
 
-    var batch_name : false
+    var batch_name : false,
+        codex_k : 0
 
     def chr = branch.name
     
@@ -38,7 +39,8 @@ codex_call_cnvs = {
             chr <- "$chr"
 
             bambedObj <- getbambed(bamdir = bam.files, bedFile = bedFile,
-                                     sampname = bam.samples, projectname = "sureselect_sim", chr)
+                                   sampname = bam.samples, 
+                                   projectname = "ximmer", chr)
             
             bamdir <- bambedObj$bamdir; sampname <- bambedObj$sampname
             
@@ -57,7 +59,9 @@ codex_call_cnvs = {
             mapp <- getmapp(chr, ref)
             
             qcObj <- qc(Y, sampname, chr, ref, mapp, gc, cov_thresh = c(20, 4000),
-                        length_thresh = c(20, 2000), mapp_thresh = 0.9, gc_thresh = c(20, 80))
+                        length_thresh = c(20, 2000), 
+                        mapp_thresh = 0.9, 
+                        gc_thresh = c(20, 80))
             
             Y_qc <- qcObj$Y_qc; 
             sampname_qc <- qcObj$sampname_qc; 
@@ -69,7 +73,8 @@ codex_call_cnvs = {
             
             Yhat <- normObj$Yhat; AIC <- normObj$AIC; BIC <- normObj$BIC
 
-            RSS <- normObj$RSS; K <- normObj$K
+            RSS <- normObj$RSS; 
+            K <- normObj$K + $codex_k
             
             optK = K[which.max(BIC)]
             
