@@ -107,7 +107,7 @@ class CNVROCCurve {
         let points = [];
         Object.keys(this.filteredCnvs).forEach(caller => points.push({
             values: this.filteredCnvs[caller].map(cnv => { return { x: cnv.fp, y: cnv.tp, quality: cnv.quality }}),
-            key: callerLabels.get(caller)
+            key: callerLabels.get(caller.replace(/\./,"_"))  || caller            
         }))
         
         window.points = points;
