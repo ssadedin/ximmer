@@ -1,5 +1,5 @@
-// Initialization stages - these just set specific output directories for each 
-// analysis tool
+import gngs.*
+
 init_excavator = { branch.excavator_batch=batch_name }
 init_xhmm = { branch.xhmm_batch_name=batch_name }
 init_exome_depth = {  }
@@ -26,6 +26,8 @@ create_analysable_target = {
     from(target_bed) filter('analysable') {
 
         groovy """
+           import gngs.*
+
            INCLUDE_CHROMOSOMES = "${chromosomes.join(/,/)}".split(",")
 
            targetRegion = new BED("$input.bed", withExtra:true).load()
