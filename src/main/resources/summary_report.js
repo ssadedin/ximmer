@@ -427,7 +427,8 @@ class CNVsBySample {
         window.count_data = count_data;
         
         var chart;
-        nv.addGraph(function() {
+        var self = this;
+//        nv.addGraph(function() {
             chart = nv.models.multiBarChart()
                 .barColor(d3.scale.category20().range())
                 .duration(300)
@@ -454,10 +455,35 @@ class CNVsBySample {
                 .datum(count_data)
                 .call(chart);
 
+            chart.multibar.dispatch.on('elementClick', (info) => {
+                let callerIndex = info.index;
+                let callerId = callers[callerIndex]
+                
+                let sampleIndex = info.data.series;
+                let sampleId = count_data[sampleIndex].key
+                
+                console.log('Hiding sample ' + sampleId + ' for caller ' + callerId)
+                
+                let samples_with_runs = runs.map(run_id => sampleId + '-' + run_id)
+                
+                let exclusions = model.excludedSamples[callerId] || []
+                if(exclusions.indexOf(samples_with_runs[0])<0) {
+                    for(var s of samples_with_runs)
+                        exclusions.push(s)
+                }
+                else {
+                    exclusions = exclusions.filter(sampleToToggle => samples_with_runs.indexOf(sampleToToggle)<0)
+                }
+                model.excludedSamples[callerId] = exclusions
+                model.excludedSamples = Object.assign({}, model.excludedSamples)
+                self.cnv_calls = model.filterCNVs()
+                setTimeout(() => self.render(id), 300)
+            }); 
+            
             nv.utils.windowResize(chart.update);
 
             return chart;
-        });
+//        });
     }
 }
 
@@ -583,6 +609,8 @@ class CNVGenomeDistribution {
                              .forceY([0])
                              
                         ;
+        
+        
                     
         let xLabel = this.xLabel ? this.xLabel : 'Genome Position'
         chart.xAxis.axisLabel(xLabel + ' (' + humanSize(this.bin_size) + ' bins)')
@@ -1070,6 +1098,11 @@ window.model = {
    callTargetRange: [0,7],
    maxFreq : MAX_RARE_CNV_FREQ,
    
+   /**
+    * Lists of excluded samples, keyed by caller id
+    */
+   excludedSamples: {},
+   
    targetStops: function(i) {
         let stops = [1,2,3,5,10,20,50,-1];    
         let stop = stops[i];
@@ -1091,14 +1124,17 @@ window.model = {
         
         console.log("Filtering by spanningFreq < " + this.maxFreq + " size range = " + this.sizeRange);
         
-        // First, filter by maxFreq since that makes everything else faster
-        // then sort each cnv caller's CNVs in descending order of quality
         this.filteredCnvs = {};
         
         let filters = [
             (cnv) => (cnv.targets >= callTargetsMin) && (cnv.targets<=callTargetsMax),
-            (cnv) => (cnv.end - cnv.start > callSizeMin) && (cnv.end - cnv.start < callSizeMax)
+            (cnv) => (cnv.end - cnv.start > callSizeMin) && (cnv.end - cnv.start < callSizeMax),
         ]
+        
+        if(!Object.values(this.excludedSamples).every(sampleList => sampleList.length == 0))  {
+            console.log('some samples are filtered')
+            filters.push((cnv,caller) => !this.excludedSamples[caller] || this.excludedSamples[caller].indexOf(cnv.sample)<0)
+        }
         
         if(simulationRegionsOnly) {
             let simRegionFilter = (cnv) => (cnv.chr != 'chrX' && cnv.chr != 'X')
@@ -1110,7 +1146,7 @@ window.model = {
         
         Object.keys(rawCnvs).filter(caller => caller != 'truth').forEach((caller) =>
             this.filteredCnvs[caller] = 
-                rawCnvs[caller].filter(cnv => filters.every(fn => fn(cnv)))
+                rawCnvs[caller].filter(cnv => filters.every(fn => fn(cnv,caller)))
                                .sort((cnv1,cnv2) => cnv2.quality - cnv1.quality)
         );        
 

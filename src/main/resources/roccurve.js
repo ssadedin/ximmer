@@ -183,7 +183,15 @@ Vue.component('roc-curve', {
         callerCount: function() {
            let count = Object.keys(this.model.cnv_calls).filter(c => c != 'truth').length
            return count
-        }
+        },
+        
+        hiddenSamples: function() {
+            let allHidden = {}
+            for(var ex of Object.values(model.excludedSamples)) {
+                ex.forEach(s => allHidden[s]=1)
+            }
+            return Object.keys(allHidden)
+        },
     },
     
     watch: {
@@ -244,8 +252,10 @@ Vue.component('roc-curve', {
     template: `
        <div>
         <h2>ROC Style Curves for {{callerCount}} CNV Callers</h2>
-        <p>ROC curves show the number of true positives vs false positives found
+        <p v-if='hiddenSamples.length==0'>ROC curves show the number of true positives vs false positives found
            as quality score (or confidence measure) decreases.</p>
+           
+        <p v-else><b>Note:</b> these samples are hidden in one or more callers: {{hiddenSamples.join(',')}}</p>
                        
         <div id=cnv_roc_curve_container>
             <svg id=cnv_roc_curve>
