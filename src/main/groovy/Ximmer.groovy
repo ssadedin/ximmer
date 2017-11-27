@@ -42,6 +42,8 @@ class Ximmer {
      * These assets are copied to the same folder as the HTML report
      */
     static List<String> SUMMARY_HTML_ASSETS = [
+        'jquery-2.1.0.min.js',
+        'jquery.layout.min.js',
         'require.js',
         'vue.js',
         'velocity.min.js',
