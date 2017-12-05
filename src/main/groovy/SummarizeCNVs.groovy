@@ -1,15 +1,9 @@
 // vim: sw=4 expandtab cindent ts=4
+import org.codehaus.groovy.runtime.StackTraceUtils;
+
+import gngs.*
 import groovy.text.SimpleTemplateEngine
 import groovy.util.logging.Log;
-
-import org.codehaus.groovy.runtime.StackTraceUtils;
-import org.omg.CORBA.SystemException
-
-import gngs.Cli
-import gngs.Region
-import gngs.Regions
-import gngs.Utils
-import graxxia.Matrix;
 
 /**
  * Reads results from any number of CNV callers and combines them together into
