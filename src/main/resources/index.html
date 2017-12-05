@@ -22,6 +22,7 @@
             var analysisName = "<%=analysisName%>";
             var simulationType = "<%=simulation_type%>";
             var analysisConfig = <%=groovy.json.JsonOutput.toJson(analysisConfig)%>;
+            var config = <%=groovy.json.JsonOutput.toJson(config.toProperties())%>;
             var callerIdMap = <%=groovy.json.JsonOutput.toJson(callerIdMap)%>;
         </script>
         

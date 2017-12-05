@@ -2,7 +2,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.regex.Matcher;
-
+import gngs.BED
 import gngs.Cli
 import gngs.Region
 import gngs.Regions
@@ -519,7 +519,8 @@ class Ximmer {
             analysisName:analysisName, 
             callerCfgs: callerCfgs, 
             callerLabels: callerLabels,
-            callerDetails: callerDetails)
+            callerDetails: callerDetails
+        )
     }
     
     /**
@@ -1075,7 +1076,8 @@ class Ximmer {
                 callerIdMap: this.callerIdMap,
                 enableTruePositives: this.enableTruePositives,
                 assets: assetPayload,
-                simulation_type: cfg.simulation_type
+                simulation_type: cfg.simulation_type,
+                config: cfg
             ).writeTo(w)
         }
     }
@@ -1390,6 +1392,8 @@ class AnalysisConfig {
     List<String> callerLabels
     
     List<String> callerDetails
+    
+    Properties parameters
     
     List<String> getCallerIds() {
         return callerCfgs.collect { String cfg -> cfg.tokenize('_')[0] }
