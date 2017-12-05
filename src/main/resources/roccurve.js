@@ -167,6 +167,8 @@ class CNVROCCurve {
           .call(axis);   
                 
         
+        this.points = points;
+        
         window.chart = chart;
 //        nv.utils.windowResize(function() { chart.update() });        
     }
@@ -213,6 +215,21 @@ Vue.component('roc-curve', {
     },
     
     methods: {
+        
+        downloadData: function() {
+            var json = JSON.stringify({
+                truth: model.cnv_calls.truth, 
+                points: this.plot.points
+            })
+            if (json == null) return;
+            if (!json.match(/^data:text\/json/i)) {
+                json = 'data:text/json;charset=utf-8,' + json;
+            }
+            let data = encodeURI(json);
+            $('#downloadROCExport').attr('download', 'roccurve.json')
+                                   .attr('href', json)
+            $('#downloadROCExport')[0].click()
+        },
        
         sizeValue: function(n) {
             return humanSize(Math.pow(10,n))    
@@ -235,6 +252,8 @@ Vue.component('roc-curve', {
                 callTargetRange: [this.model.targetStops(this.callTargetRange[0]), this.model.targetStops(this.callTargetRange[1])],
             });
             plot.render('cnv_roc_curve'); 
+            
+            this.plot = plot;
         },
         
         showROCCurve: function() {
@@ -251,7 +270,13 @@ Vue.component('roc-curve', {
     
     template: `
        <div>
+        <span id='downloadLinkBox'>
+            <a href='#' id=downloadROC v-on:click.prevent='downloadData()'>download</a>
+            <a href='#' id='downloadROCExport'>dummy</a>
+        </span>
+       
         <h2>ROC Style Curves for {{callerCount}} CNV Callers</h2>
+        
         <p v-if='hiddenSamples.length==0'>ROC curves show the number of true positives vs false positives found
            as quality score (or confidence measure) decreases.</p>
            
@@ -261,8 +286,8 @@ Vue.component('roc-curve', {
             <svg id=cnv_roc_curve>
             </svg>
         </div>
-          
-            <div class=filterSettings>
+                        
+        <div class=filterSettings>
             
             <n3-container fluid>
                  <n3-row>

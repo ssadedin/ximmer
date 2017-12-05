@@ -307,5 +307,12 @@ h3.qualCalTitle {
     font-size: 10px;
  }
  
+ #downloadLinkBox {
+     float: right;
+ }
+ 
+ #downloadROCExport {
+    display: none;
+ }
  
  
