@@ -71,7 +71,7 @@ else
 
 sample_names = run_samples
 
-target_regions = new BED(target_bed).load()
+target_regions = new gngs.BED(target_bed).load()
 
 // Sniff the target BED file to see if there is a 'chr' prefix or not
 chr_prefix = target_regions[0].chr.startsWith('chr') ? "chr" : "" 
