@@ -211,7 +211,7 @@ class CNVDiagram {
             loadMeans()
         
         def callers = cnvCalls.keySet() as List
-        List<String> palette = ["red","green","orange","blue","gray","magenta","yellow","cyan","black"]
+        List<String> palette = ["red","green","orange","blue","gray","magenta","yellow","cyan","black"]*10
         def colors = [ callers, palette[0..<callers.size()] ].transpose().collectEntries()
         
         Closure processCnv = { cnv ->
