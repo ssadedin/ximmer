@@ -60,7 +60,7 @@ gatk_depth_of_coverage = {
     
     transform("sample_interval_summary") {
         exec """
-            $JAVA -Xmx2g -jar $GATK/GenomeAnalysisTK.jar 
+            $JAVA -Xmx2g -Djava.io.tmpdir=$TMPDIR -jar $GATK/GenomeAnalysisTK.jar 
                  -T DepthOfCoverage 
                  ${inputs.bam.withFlag("-I")}
                  -L $input.bed
