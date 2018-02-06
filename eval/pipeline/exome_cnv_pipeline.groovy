@@ -115,7 +115,8 @@ cnv_callers = callers.split(",") as List
 
 bpipe.Config.userConfig.autoFilter = "false"
 
-tmpFile = new File("tmpdata").mkdirs()
+tmpFile = new File("tmpdata")
+tmpFile.mkdirs()
 TMPDIR=tmpFile.path
 
 set_sample = {
