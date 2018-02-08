@@ -7,7 +7,7 @@ conifer_rpkm = {
     println "Input.bam = $input.bam"
 
 
-    def rpkmOutput = new gngs.SAM(input.bam).samples[0]+".rpkm"
+    def rpkmOutput = new gngs.SAM("$input.bam").samples[0]+".rpkm"
 
     println "Output rpkm = $rpkmOutput"
     
