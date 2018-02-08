@@ -168,7 +168,7 @@ class SummarizeCNVs {
         Regions target = new BED(opts.target, withExtra:true).load()
         try {
             
-            RefGenes refGenes = opts.refgene ? new RefGenes(opts.refgene) : RefGenes.download(opts.genome?:"hg19")
+            RefGenes refGenes = (!opts.refgene || "download" == opts.refgene) ? new RefGenes(opts.refgene) : RefGenes.download(opts.genome?:"hg19")
             Set<String> filterToGenes = null
             if(opts.genefilter) {
                filterToGenes = new File(opts.genefilter).readLines()*.trim() as Set
