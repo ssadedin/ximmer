@@ -488,7 +488,8 @@ var cnv = {
             int altReads = variant.getAlleleDepths(1)[sampleIndex]
             int refReads = variant.getAlleleDepths(0)[sampleIndex]
             if(dosage==1) {
-                d.color("green")
+                if(d)
+                    d.color("green")
                 try {
                     altFrac = ((float)refReads / (refReads+altReads))
                         
