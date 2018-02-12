@@ -1,5 +1,6 @@
 FROM ubuntu:14.04
 MAINTAINER Simon Sadedin "simon.sadedin@mcri.edu.au" 
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update; 
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
 RUN apt-get update && \
