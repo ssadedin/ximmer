@@ -9,9 +9,6 @@ DGV_CNVS=false
 
 TOOLS="$BASE/tools"
 
-// Needed by CRAM support inside anything using Picard
-System.properties.reference=HGFA
-
 GATK="$TOOLS/gatk/2.3.9"
 
 EXCAVATOR="tools/excavator/2.0"
