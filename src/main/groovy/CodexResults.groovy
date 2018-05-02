@@ -2,6 +2,7 @@ import groovy.lang.Closure;
 
 import java.util.Map;
 
+import gngs.RangedData
 import gngs.Region
 
 

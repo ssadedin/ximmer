@@ -1,6 +1,8 @@
 
 import java.util.Map;
 
+import gngs.RangedData
+
 
 class AngelResults extends CNVResults {
     

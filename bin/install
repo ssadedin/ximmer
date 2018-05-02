@@ -36,7 +36,7 @@ function init_bpipe_config() {
     then
         echo
         echo "Creating $BPIPE_CONFIG"
-        echo 'libs="'"$BASE"'/eval/pipeline/tools/groovy-ngs-utils/1.0.6/groovy-ngs-utils.jar"' > $BPIPE_CONFIG
+        echo 'libs="'"$BASE"'/eval/pipeline/tools/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar"' > $BPIPE_CONFIG
 
         cat eval/pipeline/bpipe.config.template >> $BPIPE_CONFIG
     fi

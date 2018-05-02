@@ -2,6 +2,8 @@ import groovy.lang.Closure;
 
 import java.util.Map;
 
+import gngs.RangedData
+
 
 class PositiveControlResults extends CNVResults {
     

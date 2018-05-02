@@ -1,3 +1,4 @@
+import gngs.RangedData
 import groovy.json.JsonOutput
 
 /**

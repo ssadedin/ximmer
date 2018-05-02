@@ -1,6 +1,7 @@
 
 import com.xlson.groovycsv.PropertyMapper
 
+import gngs.RangedData
 import gngs.Region
 
 
