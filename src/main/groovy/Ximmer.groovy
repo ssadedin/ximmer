@@ -1,6 +1,7 @@
 import java.nio.file.FileSystems;
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.util.regex.Matcher;
 import gngs.*
 import graxxia.Matrix
@@ -39,20 +40,10 @@ class Ximmer {
      */
     static List<String> SUMMARY_HTML_ASSETS = [
         'jquery-2.1.0.min.js',
-        'jquery.layout.min.js',
         'require.js',
-        'vue.js',
-        'velocity.min.js',
-        'vue-focus.min.js',
-        'N3Components.min.js',
         'summary_report.js',
         'DOMBuilder.dom.min.js',
         'jquery-ui.min.js',
-        'd3.js',
-        'c3.js',
-        'nv.d3.js',
-        'lodash.min.js',
-        'roccurve.js',
         'cnv_diagram.js',
         'cnv_report.js',
         'jquery-ui.css',
@@ -1014,6 +1005,14 @@ class Ximmer {
                 Files.copy(sourceFile.toPath(), 
                            assetFile.toPath())
             }
+        }
+        
+        // Automatically copy everything in src/lib/js 
+        List<File> jsFiles = new File("$ximmerBase/src/main/js").listFiles().grep { it.name.endsWith('.js') }
+        for(File sourceFile in jsFiles) {
+            File assetFile = new File(outputDirectory,sourceFile.name)
+            log.info "Copy $sourceFile => $assetFile"
+            Files.copy(sourceFile.toPath(), assetFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
         }
     }
     
