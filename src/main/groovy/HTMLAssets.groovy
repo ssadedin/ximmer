@@ -1,4 +1,5 @@
 import java.io.InputStream
+import java.util.logging.Logger
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log
@@ -39,6 +40,7 @@ class HTMLAssets {
     
     @CompileStatic
     String render() {
+        Logger lg = log
         assets.collect { HTMLAsset script ->
             String code = source.getText(script.source)
             if(inline) {
@@ -51,7 +53,7 @@ class HTMLAssets {
             }
             else {
                 File assetFile = new File(outputDir, script.name)
-                log.info "Copy $script => $assetFile"
+                lg.info "Copy $script => $assetFile"
                 assetFile.text = code
                 if(script.name.endsWith('.js')) {
                     """<script type="text/javascript" src='$script.name'></script>\n"""
