@@ -1,6 +1,7 @@
 import java.io.InputStream
 
 import groovy.transform.CompileStatic
+import groovy.util.logging.Log
 
 
 /**
@@ -8,6 +9,7 @@ import groovy.transform.CompileStatic
  * 
  * @author Simon Sadedin
  */
+@Log
 class HTMLAssets {
     
     HTMLAssetSource source;
@@ -49,6 +51,7 @@ class HTMLAssets {
             }
             else {
                 File assetFile = new File(outputDir, script.name)
+                log.info "Copy $script => $assetFile"
                 assetFile.text = code
                 if(script.name.endsWith('.js')) {
                     """<script type="text/javascript" src='$script.name'></script>\n"""
