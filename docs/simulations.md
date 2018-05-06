@@ -36,7 +36,7 @@ over which reads are expected, through the `target_region` setting:
 
 ```
 target_regions="/home/simon/example/NIMBLEGENV2.bed"
-``
+```
 
 
 ## Specifying Simulation Type
