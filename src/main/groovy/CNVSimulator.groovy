@@ -36,10 +36,6 @@ class CNVSimulator {
     
     SAM femaleBam 
     
-    Regions maleReadRegions 
-    
-    Regions femaleReadRegions
-    
     /**
      * Fraction of female reads to use from X chromosome
      * Value < 0 means not calculated yet.
@@ -525,7 +521,8 @@ class CNVSimulator {
         
         String chromosome = seedRegion.chr
         
-        if(maleReadRegions == null && maleBam != null) {
+        Regions maleReadRegions 
+        if(maleBam != null) {
             SAM maleRegionBam = new SAM(maleBam.samFile)
             try {
                 maleReadRegions = maleRegionBam.toPairRegions(chromosome,seedWindow[0].from,seedWindow[-1].to)
@@ -533,14 +530,10 @@ class CNVSimulator {
             finally {
                 maleRegionBam.close()
             }
+            log.info "Overlaps of male region with target start with " + maleReadRegions.getOverlaps(seedRegion).take(3).collect { it.from + "-" + it.to }
         }
         
-        if(maleBam != null)
-            log.info "Overlaps of male region with target start with " + maleReadRegions.getOverlaps(seedRegion).take(3).collect { it.from + "-" + it.to }
-        
-        if(femaleReadRegions == null)
-            femaleReadRegions = femaleBam.toPairRegions(chromosome,seedWindow[0].from,seedWindow[-1].to,500)
-            
+        Regions femaleReadRegions = femaleBam.toPairRegions(chromosome,seedWindow[0].from,seedWindow[-1].to,500)
         if(log.isLoggable(Level.FINE))
             log.info "Overlaps of ${femaleReadRegions.numberOfRanges} female read regions with target start with " + 
                 femaleReadRegions.getOverlaps(seedRegion).take(3).collect { it.from + "-" + it.to }
@@ -549,7 +542,6 @@ class CNVSimulator {
         femaleReadRegions.reduce().each { r ->
             combinedRegions.addRegion(r)
         }
-        
         combinedRegions = combinedRegions.reduce()
         
         // Finally, find the overlaps with the desired region
@@ -565,7 +557,6 @@ class CNVSimulator {
         Region result = new Region(chromosome, overlaps*.from.min()..overlaps*.to.max())
         
         log.info "Original region $seedRegion expanded to $result [female=" + this.femaleBam.samples[0] + ", male=" + this.maleBam?.samples?.getAt(0) + "]"
-        
         return result
     }
     
@@ -620,9 +611,6 @@ class CNVSimulator {
                 ++attemptCount
                 if(attemptCount > 20)
                     throw new RuntimeException("Failed to identify a viable seed region for deletion in ${this.femaleBam.samples[0]} after $attemptCount tries")
-                    
-                this.femaleReadRegions = null
-                this.maleReadRegions = null
                 continue
             }
             
