@@ -55,3 +55,15 @@ number of cores available in the whole cluster, or about 120, whichever is small
 
 See the [Analyses](analyses.md) section for how to configure an individual simulation 
 or anlaysis run.
+
+## Setting Java Flags
+
+You can set arbitrary flags to configure the Java environment that ximmer uses by
+exporting the `XIMMER_FLAGS` environment variable. 
+
+Some parts of Ximmer may try to access the internet. If you need to set a proxy to
+enable internet access, you can do so using using a setting like:
+
+```
+export XIMMER_FLAGS="-Dhttp.proxyHost=your.proxy.host -Dhttp.proxyPort=8000"
+```

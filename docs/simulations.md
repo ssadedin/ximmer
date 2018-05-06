@@ -2,8 +2,23 @@
 
 ## Introduction
 
-This section explains how to configure Ximmer to simulate CNVs. Ximmer simulates
-CNVs using two alternative mechanisms. 
+This section explains how to configure Ximmer to simulate CNVs.
+
+## Specifying BAM Files
+
+```
+bam_files="/home/simon/example/*.recal.bam"
+```
+
+## Specifying the Target Region
+
+target_regions="/home/simon/example/NIMBLEGENV2.bed"
+
+
+## Specifying Simulation Type
+
+Before you start simulating you should decide which simulation method you want
+to use.  Ximmer offers two alternative mechanisms: 
 
  * by taking input files (BAM/CRAM format) and downsampling them over
    sequential target regions to create artificial "single copy deletions".
@@ -13,10 +28,15 @@ CNVs using two alternative mechanisms.
    needs to be done to make the read counts comparable before swapping the
    reads between samples.
 
-## Specifying Simulation Type
 
-As mentioned above, Ximmer can do two kinds of simulation. You should specify 
-in your configuration file which kind you want of the following:
+Downsampling has the advantage that it works anywhere in the genome, and
+also can be performed on any mix of sexes. However it is arguably not as 
+accurate as using the true difference in copy number represented by the 
+X chromosome in males and females. If you're just starting out, downsampling
+as fewer requirements, so this may be the easier way to get going.
+
+
+You should specify in your configuration file which kind you want of the following:
 
  * replace
  * downsample

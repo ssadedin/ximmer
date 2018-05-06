@@ -30,8 +30,10 @@ Ximmer's output looks like.
 Requirements
 ============
 
- * Java 1.7 (note: Java 1.8 does not work, unless you upgrade the bundled GATK)
- * Python 2.7, preferably the Anaconda installation
+ * Java 1.7+ 
+ * Python 2.7, preferably the Anaconda installation (you will need
+   support for pandas, numpy and other computational libraries that
+   are not always easy to compile in a vanilla installation).
  * R 3.2 or higher
  * 24GB of RAM
 

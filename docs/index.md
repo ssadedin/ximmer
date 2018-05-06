@@ -34,19 +34,20 @@ To make Ximmer easier to use we have included support to automatically download
 and build the tools and other dependencies it needs. You should make sure
 before starting that you have at minimum the following requirements:
 
-
- * Java 1.7 (note: Java 1.8 does not work, unless you upgrade the bundled GATK)
- * Python 2.7, preferably the Anaconda installation
+ * Java 1.7+ 
+ * Python 2.7, preferably the Anaconda installation (you will need
+   support for pandas, numpy and other computational libraries that
+   are not always easy to compile in a vanilla installation).
  * R 3.2 or higher
+ * 24GB of RAM
    
 Ideally, these should all be directly accessible from your environment. 
-If necessary, you can specify custom locations for them in the configuration file.
-
+If necessary, you can specify custom locations for them in the configuration 
+file.
 
 You should also make sure you have internet access while doing the installation
 because Ximmer will try to download some components. It may be necessary to set 
 the "http_proxy" environment variable if your network uses a proxy.
-
 
 ### Run Installer
 
@@ -70,7 +71,7 @@ editor.
 If you just want to run everything on a single computer or server then the settings 
 in this file should be sufficient. If you would like to configure Ximmer to run jobs
 on a cluster computing system, you can configure that by editing 
-`eval/pipeline/bpipe.groovy`.
+`eval/pipeline/bpipe.config`.
 
 See the [Configuration](config.md) documentation for more details. 
 
