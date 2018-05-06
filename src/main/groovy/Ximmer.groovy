@@ -896,7 +896,7 @@ class Ximmer {
             deletions.addRegion(r)
         }
         
-        log.info "Selected ${deletionsPerSample} CNV regions for ${targetSample.samples[0]} spanning ${Utils.humanBp(deletions)}"
+        log.info "Selected ${deletionsPerSample} CNV regions for ${targetSample.samples[0]} spanning ${Utils.humanBp(deletions.size())}"
         
         return deletions
     }
