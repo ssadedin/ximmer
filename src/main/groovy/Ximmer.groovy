@@ -141,6 +141,9 @@ class Ximmer {
         
         this.maxDGVFreq = (cfg.get('dgv')?:[:]).get('max_freq')?:0.05f
         
+        if(!cfg.containsKey('target_regions'))
+            throw new IllegalArgumentException('Please set the target_regions parameter in your config file')
+        
         // This should be set by the script that launches ximmer. If not set,
         // it probably means that it was launched directly as a java class instead of
         // using the launcher script
