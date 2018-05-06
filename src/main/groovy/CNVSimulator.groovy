@@ -520,9 +520,7 @@ class CNVSimulator {
         log.info "Seed region = $seedRegion, search window = " +  seedWindow[0].chr + ":" + seedWindow[0].from + " - " + seedWindow[-1].to 
         
         if(!seedWindow.overlaps(seedRegion)) {
-            println "ERROR: window " +  seedWindow[0].chr + ":" + seedWindow[0].from + " - " + seedWindow[-1].to + " does not overlap original seed: " + seedRegion
-            Regions testWindow = fromRegions.window(seedRegion, 10)
-            println "Test window = " + testWindow
+            log.severe "ERROR: window " +  seedWindow[0].chr + ":" + seedWindow[0].from + " - " + seedWindow[-1].to + " does not overlap original seed: " + seedRegion
         }
         
         String chromosome = seedRegion.chr
@@ -557,9 +555,9 @@ class CNVSimulator {
         // Finally, find the overlaps with the desired region
         List<IntRange> overlaps = combinedRegions.getOverlaps(seedRegion)
         if(overlaps.empty) {
-            println "WARNING: no overlapping reads for deletion seed $seedRegion over samples $femaleBam.samples / ${maleBam?.samples}"
+            log.info "WARNING: no overlapping reads for deletion seed $seedRegion over samples $femaleBam.samples / ${maleBam?.samples}"
             Regions testRegions = femaleBam.toPairRegions(chromosome,seedWindow[0].from,seedWindow[-1].to,500)
-            println "Try again: " + testRegions
+            log.info "Try again: " + testRegions
             return null
         }
     
@@ -602,11 +600,13 @@ class CNVSimulator {
         log.info "Selected chromosome " + chromosome + " to simulate next deletion, now choosing region"
         
         while(true) {
-            int selectedRange =  (int)Math.floor(random.nextDouble() * (fromRegions.allRanges[chromosome].size()-numRanges)) 
+            // The largest target region we can choose to start from is numRanges before the last target region
+            int maxViableRange = fromRegions.allRanges[chromosome].size()-numRanges
+            int selectedRange =  (int)Math.floor(random.nextDouble() * maxViableRange) 
             List<Range> regions = fromRegions.allRanges[chromosome][selectedRange..(selectedRange+numRanges-1)] 
             Range r = (regions[0].from)..(regions[-1].to)
             
-            log.info "Examining region " + chromosome + ":" + r.from + "-" + r.to
+            log.info "Examining region " + chromosome + ":" + r.from + "-" + r.to + "(${Utils.humanBp(r.size())}"
             
             Region seedRegion = new Region(chromosome,r)
             
