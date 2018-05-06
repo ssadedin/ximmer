@@ -114,9 +114,12 @@ class Ximmer {
         
         
         this.enableSimulation = simulate && (cfg.simulation_type != 'none') && (cfg.get('simulation_enabled') in [null,true])
-
-        if(!enableSimulation)
-            log.info "Simulation disabled!"
+        if(enableSimulation) {
+            log.info "Simulatione enabled in ${cfg.simulation_type} mode"
+        }
+        else
+            log.info "Simulation disabled."
+            
         
         if(cfg.containsKey('deletionsPerSample'))
             this.deletionsPerSample = cfg.deletionsPerSample
@@ -879,6 +882,9 @@ class Ximmer {
             // Choose number of regions randomly in the range
             // the user has given
             int numRegions = cfg.regions.from + random.nextInt(cfg.regions.to - cfg.regions.from) 
+            
+            log.info "Deletion size in ${targetSample.samples[0]} is $numRegions"
+            
             Region r = simulator.selectRegion(simulationRegions, numRegions, exclusions)
             
             log.info "Seed region for ${sampleId} is $r" 
