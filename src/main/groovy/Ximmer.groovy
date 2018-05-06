@@ -862,6 +862,9 @@ class Ximmer {
      * @return  deletion regions to be simulated
      */
     Regions selectSampleCNVRegions(SAM targetSample, SAM sourceSample, Regions exclusions) {
+        
+        log.info "Selecting CNV regions for ${targetSample.samples[0]}"
+        
         Regions simulationRegions = this.targetRegion
         String sampleId = targetSample.samples[0]
         if(cfg.simulation_type == "replace") {
@@ -892,6 +895,8 @@ class Ximmer {
             exclusions.addRegion(r)
             deletions.addRegion(r)
         }
+        
+        log.info "Selected ${deletionsPerSample} CNV regions for ${targetSample.samples[0]} spanning ${Utils.humanBp(deletions)}"
         
         return deletions
     }
