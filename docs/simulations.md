@@ -4,15 +4,39 @@
 
 This section explains how to configure Ximmer to simulate CNVs.
 
+The configuration for simulations is done via a configuration file. This file
+is written in a simple configuration format which is a subset of `groovy`
+programming language syntax, so it is common to call it `config.groovy`, which
+will give syntax highlighting in editors and other environments.
+
 ## Specifying BAM Files
+
+The first step is to indicate where the BAM or CRAM files are for the 
+samples you wish to process. You can set the path to these files using
+a simple wildcard expression as a string:
+
 
 ```
 bam_files="/home/simon/example/*.recal.bam"
 ```
 
+You can also set these as a list, in which case all of the locations will be included:
+
+```
+bam_files=[
+    "/home/simon/example1/*.recal.bam",
+    "/home/simon/example2/*.recal.bam"
+]
+```
+
 ## Specifying the Target Region
 
+The next most important aspect to configure is the target regions of the genome 
+over which reads are expected, through the `target_region` setting:
+
+```
 target_regions="/home/simon/example/NIMBLEGENV2.bed"
+``
 
 
 ## Specifying Simulation Type
@@ -28,13 +52,11 @@ to use.  Ximmer offers two alternative mechanisms:
    needs to be done to make the read counts comparable before swapping the
    reads between samples.
 
-
 Downsampling has the advantage that it works anywhere in the genome, and
 also can be performed on any mix of sexes. However it is arguably not as 
 accurate as using the true difference in copy number represented by the 
 X chromosome in males and females. If you're just starting out, downsampling
 as fewer requirements, so this may be the easier way to get going.
-
 
 You should specify in your configuration file which kind you want of the following:
 
