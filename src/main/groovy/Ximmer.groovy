@@ -1193,7 +1193,13 @@ class Ximmer {
         }
         
         // Parse the configuration
-        ConfigObject cfg = new ConfigSlurper().parse(new File(opts.c).text)
+        File configFile = new File(opts.c)
+        if(!configFile.exists()) {
+            log.severe "The specified configuration file $configFile does not exist or could not be read"
+            System.exit(1)
+        }
+            
+        ConfigObject cfg = new ConfigSlurper().parse(configFile.text)
         
         if(opts.nosim && !cfg.containsKey('simulation_type'))
             cfg.simulation_type = 'none'
