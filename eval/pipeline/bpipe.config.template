@@ -19,6 +19,8 @@ install {
             version="0.3.4"
         }
         CODEX = "0.0"
+        pandas = '0.18.0'
+        VariantAnnotation = '*'
     }
 }
 
