@@ -112,7 +112,6 @@ class Ximmer {
         this.cfg = cfg
         this.random = this.seed != null ? new Random(this.seed)  : new Random()
         
-        
         this.enableSimulation = simulate && (cfg.simulation_type != 'none') && (cfg.get('simulation_enabled') in [null,true])
         if(enableSimulation) {
             log.info "Simulatione enabled in ${cfg.simulation_type} mode"
@@ -144,6 +143,14 @@ class Ximmer {
         
         this.maxDGVFreq = (cfg.get('dgv')?:[:]).get('max_freq')?:0.05f
         
+        validateConfiguration()
+    }
+    
+    
+    Boolean enableTruePositives = null
+   
+    void validateConfiguration() {
+        
         if(!cfg.containsKey('target_regions'))
             throw new IllegalArgumentException('Please set the target_regions parameter in your config file')
         
@@ -151,10 +158,23 @@ class Ximmer {
         // it probably means that it was launched directly as a java class instead of
         // using the launcher script
         assert ximmerBase != null : "Ximmer was launched without setting the ximmer.base system property. Please set this property or launch Ximmer using the provided script."
+        
+        // Check the pipeline configuration
+        File pipelineConfigFile = new File("$ximmerBase/eval/pipeline/config.groovy")
+        if(!pipelineConfigFile.exists())
+            throw new IllegalStateException("The analysis pipeline configuration file could not be found at the expected location: $pipelineConfigFile\n\nHave you run the installer?")
+        
+        ConfigObject pipelineCfg = new ConfigSlurper().parse(pipelineConfigFile.text)
+        if(!pipelineCfg.containsKey('HGFA'))
+            throw new IllegalArgumentException("Please set the REF parameter in your config file at: $pipelineConfigFile")
+            
+        File hgfa = new File(pipelineCfg.HGFA)
+        if(!hgfa.exists())
+            throw new IllegalArgumentException("The configured reference file $hgfa does not exist. Please check the HGFA entry in $pipelineConfigFile")
+            
+        log.info "Configuration validated!"
     }
     
-    Boolean enableTruePositives = null
-   
     void run(analyse=true) {
         
         this.checkConfig()
