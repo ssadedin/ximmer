@@ -1154,6 +1154,12 @@ class Ximmer {
             throw new RuntimeException("Execution of R script $scriptFile failed: \n"  + rLogFile.text + "\n")
     }
     
+    static void abort(String message) {
+        log.severe "FATAL: $message"
+        System.err.println "\nAborted due to fatal error!\n"
+        System.exit(1)        
+    }
+    
     public static void main(String [] args) {
         
         println "*" * 50
@@ -1194,10 +1200,8 @@ class Ximmer {
         
         // Parse the configuration
         File configFile = new File(opts.c)
-        if(!configFile.exists()) {
-            log.severe "The specified configuration file $configFile does not exist or could not be read"
-            System.exit(1)
-        }
+        if(!configFile.exists()) 
+            abort "The specified configuration file $configFile does not exist or could not be read"
             
         ConfigObject cfg = new ConfigSlurper().parse(configFile.text)
         
