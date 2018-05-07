@@ -166,7 +166,7 @@ class Ximmer {
         
         ConfigObject pipelineCfg = new ConfigSlurper().parse(pipelineConfigFile.text)
         if(!pipelineCfg.containsKey('HGFA'))
-            throw new IllegalArgumentException("Please set the REF parameter in your config file at: $pipelineConfigFile")
+            throw new IllegalArgumentException("Please set the HGFA parameter to your human genome reference in the config file at: $pipelineConfigFile")
             
         File hgfa = new File(pipelineCfg.HGFA)
         if(!hgfa.exists())
