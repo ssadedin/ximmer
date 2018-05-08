@@ -565,36 +565,26 @@ var cnv = {
      * @param genes a list of genes that should be plotted
      * @return   a list of intervals to be plotted
      */
-    List<IntRange> determineCnvTargets(Region cnv, List<String> genes) {
+    List<IntRange> determineCnvTargets(Region rawCNV, List<String> genes) {
         
         println "Genes are $genes"
         List targets = null
         
+        // We assume later on that the CNV call boundaries line up with the 
+        // target region boundaries. To avoid breaking this assumption, 
+        // intersect them now
+        
+        List<Range> cnvTargetIntersect = this.targetRegions.intersect(rawCNV)
+        
+        Region cnv = new Region(rawCNV.chr, cnvTargetIntersect[0].from, cnvTargetIntersect[-1].to)
+        
         // If one or more genes is overlapped, display the whole gene(s)
         if(!genes.empty) {
     
-            Regions exons = genes.sum { geneDb.getExons(it) }.reduce().grep { it.chr == cnv.chr } as Regions
-    
-            log.info "Exons are " + exons.collect { it.from + "-" + it.to }.join(",")
+            IntRange geneExonsRange = resolveOverlappingGeneExonsRange(genes, cnv)
             
-            int exonsStart = exons[0].from 
-            int exonsEnd = exons[-1].to 
-            
-            log.info "Overlapping exons are " + exons + " from " + exonsStart + " to " + exonsEnd
-    
-            
-            // Problem: if CNV starts / ends in target region that is prior to begin / end 
-            // of gene then this puts the targets chosen as *smaller* than the CNV
-            // itself. So expand to at least include the CNV itself (may be further expanded
-            // to include some more padding below)
-            if(exonsStart > cnv.from)
-                exonsStart = cnv.from
-                
-            if(exonsEnd < cnv.to)
-                exonsEnd = cnv.to
-            
-            // Find the overlapping target regions from the coverage file
-            targets = targetRegions.getOverlaps(cnv.chr, exonsStart, exonsEnd)
+            // Find all the target regions that overlap these exons
+            targets = targetRegions.getOverlaps(cnv.chr, geneExonsRange.from, geneExonsRange.to)
             
             println "Overlapping targets are " + targets.collect { it.from+"-"+it.to }.join(",")
             
@@ -616,24 +606,79 @@ var cnv = {
             return []
         }
         
+        targets = padTargets(cnv, targets)
+        
+        return targets
+    }
+    
+    /**
+     * @param cnv
+     * @param targets
+     * @return         the given target ranges padded with 2 extra regions
+     *                 if the CNV ends at the target boundary
+     */
+    List<Range> padTargets(Region cnv, List<Range> targets) {
+        
         // If the first region is the same as the start of the CNV, show one region to left as well
         // for context
         int minContext = 50
         if(Math.abs(cnv.from - targets[0].from)<minContext) {
             log.info "Pad targets for $cnv to ensure left context"
             IntRange leftTarget = targetRegions.previousRange(cnv.chr, targets[0].from)
-            if(leftTarget)
-                targets = [leftTarget] + targets
+            if(leftTarget) {
+                IntRange leftLeftTarget = targetRegions.previousRange(cnv.chr, leftTarget.from)
+                if(leftLeftTarget)
+                    targets = [leftLeftTarget,leftTarget] + targets
+                else
+                    targets = [leftTarget] + targets
+            }
         }
         
         if(Math.abs(cnv.to - targets[-1].to)<minContext) {
             log.info "Pad targets for $cnv to ensure right context"
             IntRange rightTarget = targetRegions.nextRange(cnv.chr, targets[-1].to)
-            if(rightTarget)
-                targets = targets + [rightTarget]
+            if(rightTarget) {
+                IntRange rightRightTarget = targetRegions.nextRange(cnv.chr, rightTarget.to)
+                if(rightRightTarget)
+                    targets = targets + [rightTarget, rightRightTarget]
+                else
+                    targets = targets + [rightTarget]
+            }
         } 
         
         return targets
+    }
+    
+    /**
+     * Return a suitable range for plotting that encompasses both exons of the
+     * given genes and the CNV specified
+     * 
+     * @param genes
+     * @param cnv
+     * @return  range encompassing exons of given genes AND the given CNV
+     */
+    IntRange resolveOverlappingGeneExonsRange(List<String> genes, Region cnv) {
+        
+        Regions geneExons = genes.sum { geneDb.getExons(it) }.reduce().grep { it.chr == cnv.chr } as Regions
+    
+        log.info "Exons are " + geneExons.collect { it.from + "-" + it.to }.join(",")
+            
+        int exonsStart = geneExons[0].from 
+        int exonsEnd = geneExons[-1].to 
+            
+        log.info "Overlapping exons are " + geneExons + " from " + exonsStart + " to " + exonsEnd
+            
+        // Problem: if CNV starts / ends in target region that is prior to begin / end 
+        // of gene then this puts the targets chosen as *smaller* than the CNV
+        // itself. So expand to at least include the CNV itself (may be further expanded
+        // to include some more padding below)
+        if(exonsStart > cnv.from)
+            exonsStart = cnv.from
+                
+        if(exonsEnd < cnv.to)
+            exonsEnd = cnv.to
+        
+        return exonsStart..exonsEnd
     }
     
     /**
