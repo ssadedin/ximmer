@@ -605,7 +605,7 @@ class CNVSimulator {
             List<Range> regions = fromRegions.allRanges[chromosome][selectedRange..(selectedRange+numRanges-1)] 
             Range r = (regions[0].from)..(regions[-1].to)
             
-            log.info "Examining region " + chromosome + ":" + r.from + "-" + r.to + "(${Utils.humanBp(r.size())})"
+            log.info "Examining region " + chromosome + ":" + r.from + "-" + r.to + " (${Utils.humanBp(r.size())})"
             
             Region seedRegion = new Region(chromosome,r)
             

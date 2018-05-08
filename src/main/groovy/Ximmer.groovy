@@ -120,7 +120,7 @@ class Ximmer {
         
         this.enableSimulation = simulate && (cfg.simulation_type != 'none') && (cfg.get('simulation_enabled') in [null,true])
         if(enableSimulation) {
-            log.info "Simulatione enabled in ${cfg.simulation_type} mode"
+            log.info "Simulation enabled in ${cfg.simulation_type} mode"
         }
         else
             log.info "Simulation disabled."
