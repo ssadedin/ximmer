@@ -9,6 +9,12 @@ import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMTagUtil;
 
+class RegionSelectionException extends Exception {
+    public RegionSelectionException(String message) {
+        super(message);
+    }
+}
+
 /**
  * Produce a BAM file that simulates the presence of a heterozygous deletion in
  * the X chromosome of a given female sample, by substituting reads from a male 
@@ -31,6 +37,8 @@ class CNVSimulator {
      * on diploid chromosomes
      */
     public static List<String> NON_AUTOSOMES = ["chrX",  "chrY", "chrM"]
+
+    private static final int MAX_REGION_SELECTION_TRIES = 10
     
     SAM maleBam 
     
@@ -52,7 +60,7 @@ class CNVSimulator {
     /**
      * Maximum number of attempts to select a random region satisfying all constraints
      */
-    int maxSelectionAttempts = 20
+    int maxSelectionAttempts = MAX_REGION_SELECTION_TRIES
     
     /**
      * Default concurrency used for some multithreadded parts
@@ -609,37 +617,58 @@ class CNVSimulator {
             
             if(cleanRegion == null) {
                 ++attemptCount
-                if(attemptCount > 20)
-                    throw new RuntimeException("Failed to identify a viable seed region for deletion in ${this.femaleBam.samples[0]} after $attemptCount tries")
+                if(attemptCount > MAX_REGION_SELECTION_TRIES)
+                    throw new RegionSelectionException("Failed to identify a viable seed region of $numRanges regions for deletion in ${this.femaleBam.samples[0]} after $attemptCount tries")
                 continue
             }
             
-            // Check if the cleaned up region overlaps any excluded regions
-            if(!excludeRegions || !excludeRegions.overlaps(cleanRegion)) {
-                // Check if the cleaned up region overlaps region excluded by DGV spanning freq
-                if(dgv != null) {
-                    float regionCNVFreq = dgv.maxFreq(cleanRegion)
-                    if(regionCNVFreq < this.maxDGVFreq) {
-                        break // accept deletion region
-                    }
-                    else {
-                        log.info "Region $cleanRegion overlaps a region in DGV with CNV frequency $regionCNVFreq > $maxDGVFreq"
-                    }
-                }
-                else {
-                    break // accept deletion region
-                }
-            }
-            else {
-                log.info "Region $cleanRegion overlaps excluded regions"
-            }
-                
+            boolean isExcluded = isExcludedRegion(excludeRegions, cleanRegion)
+            if(!isExcluded)
+                break
+            
             ++attemptCount
-            if(attemptCount > 20)
-                throw new RuntimeException("Failed to identify a non-excluded region in ${this.femaleBam.samples[0]} for placement of deletion after $attemptCount tries")
+            if(attemptCount > MAX_REGION_SELECTION_TRIES)
+                throw new RegionSelectionException("Failed to identify $numRanges continguous non-excluded regions in ${this.femaleBam.samples[0]} after $attemptCount tries")
                 
             log.info "Selected range $r.from-$r.to failed one or more exclusion criteria: trying again"
         }
         return cleanRegion
+    }
+    
+    /**
+     * Determine if the given region to check overlaps any regions that have been excluded.
+     * <p>
+     * Regions are excluded if they
+     * <li>overlap a region already selected to simulate a CNV in
+     * <li>overlap a region where there are known population CNVs,
+     *     determined using the {@link #maxDGVFreq} setting.
+     * 
+     * @param excludeRegions
+     * @param cleanRegion
+     * @return  true if the given region should be excluded
+     */
+    boolean isExcludedRegion(Regions excludeRegions, Region regionToCheck) {
+        
+        // Check if the cleaned up region overlaps any excluded regions
+        if(!excludeRegions || !excludeRegions.overlaps(regionToCheck)) {
+            // Check if the cleaned up region overlaps region excluded by DGV spanning freq
+            if(dgv != null) {
+                float regionCNVFreq = dgv.maxFreq(regionToCheck)
+                if(regionCNVFreq < this.maxDGVFreq) {
+                    return false
+                }
+                else {
+                    log.info "Region $regionToCheck overlaps a region in DGV with CNV frequency $regionCNVFreq > $maxDGVFreq"
+                }
+            }
+            else {
+                return false
+            }
+        }
+        else {
+            log.info "Region $regionToCheck overlaps excluded regions"
+        }
+            
+        return true
     }
 }

@@ -46,6 +46,12 @@ class Ximmer {
         'jquery-ui.css',
         'cnv_report.css',
     ]
+
+    /**
+     * The number of times a new region size will be tried if a deletion
+     * cannot be simulated at a given size.
+     */
+    static final int REGION_SIZE_SELECTION_RETRIES = 3
     
     /**
      * Convert the expanded form of the configuration id into the simplified
@@ -886,32 +892,13 @@ class Ximmer {
         log.info "Selecting CNV regions for ${targetSample.samples[0]}"
         
         Regions simulationRegions = this.targetRegion
-        String sampleId = targetSample.samples[0]
         if(cfg.simulation_type == "replace") {
             simulationRegions = new Regions(this.targetRegion.grep { it.chr == 'chrX' || it.chr == 'X' })
         }
         
         Regions deletions = new Regions()
         for(int cnvIndex = 0; cnvIndex < this.deletionsPerSample; ++cnvIndex) {
-            CNVSimulator simulator = new CNVSimulator(targetSample, sourceSample)
-            if(dgv) {
-                simulator.dgv = this.dgv
-                simulator.maxDGVFreq = this.maxDGVFreq
-            }
-            
-            if(this.seed != null) 
-                simulator.random = new Random((this.seed<<16) + (cnvIndex << 8)  + (targetSample.hashCode() % 256))
-  
-            // Choose number of regions randomly in the range
-            // the user has given
-            int numRegions = cfg.regions.from + random.nextInt(cfg.regions.to - cfg.regions.from) 
-            
-            log.info "Deletion size in ${targetSample.samples[0]} is $numRegions"
-            
-            Region r = simulator.selectRegion(simulationRegions, numRegions, exclusions)
-            
-            log.info "Seed region for ${sampleId} is $r" 
-            
+            Region r = selectSampleCNVRegion(cnvIndex, simulationRegions, exclusions, targetSample, sourceSample)
             exclusions.addRegion(r)
             deletions.addRegion(r)
         }
@@ -919,6 +906,40 @@ class Ximmer {
         log.info "Selected ${deletionsPerSample} CNV regions for ${targetSample.samples[0]} spanning ${Utils.humanBp(deletions.size())}"
         
         return deletions
+    }
+    
+    Region selectSampleCNVRegion(int cnvId, Regions simulationRegions, Regions exclusions, SAM targetSample, SAM sourceSample) {
+        String sampleId = targetSample.samples[0]
+        CNVSimulator simulator = new CNVSimulator(targetSample, sourceSample)
+        if(dgv) {
+            simulator.dgv = this.dgv
+            simulator.maxDGVFreq = this.maxDGVFreq
+        }
+            
+        if(this.seed != null) 
+            simulator.random = new Random((this.seed<<16) + (cnvId << 8)  + (targetSample.hashCode() % 256))
+  
+        // Choose number of regions randomly in the range the user has given
+        int maxRegions = cfg.regions.to
+        Region selectedRegion = Utils.withRetries(REGION_SIZE_SELECTION_RETRIES, message: 'Select deletion region') {
+            
+            log.info "Selectiong deletion size from range $cfg.regions.from - $maxRegions"
+            
+            int numRegions = cfg.regions.from + random.nextInt(maxRegions - cfg.regions.from) 
+            
+            log.info "Deletion size in ${targetSample.samples[0]} is $numRegions"
+            
+            // We adjust the max regions down in case region selection fails. This way, 
+            // if selection fails because the range is to big, we won't waste retrying 
+            // an even bigger selection
+            maxRegions = Math.max(cfg.regions.from+1,numRegions)
+            
+            Region r = simulator.selectRegion(simulationRegions, numRegions, exclusions)
+            log.info "Seed region for ${sampleId} is $r" 
+            return r
+        }
+        
+        return selectedRegion
     }
     
     void indexBAM(File bamFile) {
