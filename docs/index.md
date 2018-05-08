@@ -47,5 +47,5 @@ Ximmer to work on a computational cluster), see the
 
 ## Running Ximmer
 
-See information about how to run an analysis using Ximmer in the [Running](running.md) 
-section, and how to configure CNV simulation in [Simulations](simulations.md).
+See information about how to run Ximmer in the [Running](running.md) section.
+
