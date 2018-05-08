@@ -7,8 +7,7 @@ function init_config() {
 
         echo 'BASE="'"$BASE"'"' > $CONFIG
 
-        if [ ! $QUIET ]; 
-        then
+        $QUIET || {
             REF="doesnotexist"
             while [ ! -e "$REF" ];
             do 
@@ -23,7 +22,7 @@ function init_config() {
             done
     
             echo 'HGFA="'"$REF"'"' >> $CONFIG
-        fi
+        }
 
         cat $BASE/eval/pipeline/config.groovy.template >> $CONFIG
     fi
