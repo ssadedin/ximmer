@@ -211,6 +211,25 @@ in a BED-like tab-separated format consisting of columns:
 an event will be counted as a true positive if it is detected overlapping the known CNV 
 even if the type of event detected is wrong.
 
+## Downsampling to a Target Coverage
+
+One factor that can heavily affect performance of CNV calling is the coverage depth 
+of the data. To allow you to understand the effect of coverage on accuracy,
+Ximmer allows you to downsample the coverage in your simulated samples to a specified
+level. To do this, set the `targetCoverage` parameter. For example:
+
+```
+targetCoverage = 50
+```
+
+Obviously, Ximmer can only downsample reads, not "upsample" them, so you will need 
+to ensure that the targetCoverage you specify is less than the actual mean coverage
+of the samples you provide. Note that target coverage can be specified per-run,
+so you can configure multiple coverage levels for comparison in a single 
+simulation (see below).
+
+Note also that due to the mechanism that Ximmer uses, there may be as much 
+as 20% variation around the targeted level.
 
 ## Advanced: Using Per-Run Settings
 
@@ -229,10 +248,12 @@ runs {
     "sim0_2" { 
         known_cnvs="/home/simon/bam_files/sim0.2/true_cnvs.bed" 
         bam_files="/home/simon/bam_files/sim0.2/*.bam" 
+        targetCoverage=60
     }
     "sim3_1" { 
         known_cnvs="/home/simon/bam_files/sim3.1/true_cnvs.bed" 
         bam_files="/home/simon/bam_files/sim3.1/*.bam" 
+        targetCoverage=30
     }
 }
 ```

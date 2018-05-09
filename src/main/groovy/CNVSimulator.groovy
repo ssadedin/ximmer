@@ -101,14 +101,15 @@ class CNVSimulator {
     public CNVSimulator(SAM femaleBam, SAM maleBam) {
         this.maleBam = maleBam
         this.femaleBam = femaleBam
-        this.random = new Random()
+        if(random == null)
+            this.random = new Random()
     }
-  
     
     void setTargetCoverage(Regions targetRegions, double value) {
         this.targetRegions = targetRegions
         this.targetCoverage = value
-        this.random = new Random()
+        if(random == null)
+            this.random = new Random()
     }
     
     static void main(String [] args) {
@@ -183,8 +184,9 @@ class CNVSimulator {
         femaleDownSampleRate = 1.0d
         maleDownSampleRate = 1.0d
         
-        // If there is no male bam then down sampling is not necessary
-        if(maleBam == null)
+        // If there is no male bam and there is not a specific target coverage set,
+        // then down sampling is not necessary
+        if(maleBam == null && targetCoverage <= 0.0d)
             return
         
         GParsPool.withPool(this.concurrency) {
@@ -197,11 +199,12 @@ class CNVSimulator {
             
                 List femaleStats = null
                 List maleStats = null
-                println "Determining coverage of female autosomal regions ..."
+                log.info "Determining coverage of female autosomal regions ..."
+                
                 ProgressCounter counter = new ProgressCounter()
                 femaleStats = autosomalRegions.collectParallel { counter.count(); femaleBam.coverageStatistics(it.chr, it.from, it.to); }
                 
-                println "Determining coverage of male autosomal regions ..."
+                log.info "Determining coverage of male autosomal regions ..."
                 maleStats = autosomalRegions.collectParallel { counter.count(); maleBam.coverageStatistics(it.chr, it.from, it.to); }
                 
                 double femaleSum = (femaleStats.sum { it.mean * it.n })

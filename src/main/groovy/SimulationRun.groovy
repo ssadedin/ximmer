@@ -12,6 +12,8 @@ class SimulationRun {
     
     File runDirectory
     
+    double targetCoverage = 0.0d
+    
     void addBamFiles(List<String> bamFilePaths) {
        
        Set knownSamples = (this.bamFiles*.key) as Set
@@ -62,7 +64,6 @@ class SimulationRun {
         
     }
     
-    
     static Map<String,SimulationRun> configureRuns(File outputDirectory, String runDirectoryPrefix, ConfigObject cfg) {
         
         // Map of run id to true_cnvs file
@@ -97,6 +98,11 @@ class SimulationRun {
                 new SimulationRun(id:runEntry.key,
                                   knownCnvs:runEntry.value.isSet('known_cnvs') ? runEntry.value.known_cnvs : defaultKnownCnvs,
                                   runDirectory: dir)
+                
+            if(runEntry.value.isSet('targetCoverage')) {
+                run.targetCoverage = runEntry.value.targetCoverage.toDouble()
+                log.info "Target coverage for simulation run $run.id is set to $run.targetCoverage"
+            }
                 
             // Bam file could be specified globally (same for all runs, from cfg.bam_files)
             // or it could be specified specifically for this run
@@ -143,6 +149,11 @@ class SimulationRun {
             }
             else {
                 run = new SimulationRun(id:runId, knownCnvs:null, runDirectory:dir)
+            }
+            
+            if(cfg.isSet('targetCoverage')) {
+                run.targetCoverage = cfg.targetCoverage.toDouble()
+                log.info "Target coverage for simulation run $runId is set to $run.targetCoverage"
             }
             
             // When configured as a simple integer, the bam files are assumed to be the same for all runs
