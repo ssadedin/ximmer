@@ -308,6 +308,7 @@ class SummarizeCNVs {
     
     void metaAnnotate(Regions results) {
         for(Region cnv in results) {
+            cnv.targets = this.targetRegions.getOverlaps(cnv).size()
             cnv.samples = results.grep { it.overlaps(cnv) }*.sample.unique()
             cnv.sampleCount = cnv.samples.size()
             cnv.sampleFreq = (cnv.sampleCount / (double)samples.size())
@@ -378,7 +379,7 @@ class SummarizeCNVs {
         new File(fileName).withWriter { w ->
             
             List<String> columnNames = 
-                       ["chr","start","end","sample","genes", "type","count","stotal","sampleCount","sampleFreq"] + 
+                       ["chr","start","end","targets","sample","genes", "type","count","stotal","sampleCount","sampleFreq"] + 
                        (cnvAnnotator ? ["spanning","spanningFreq"] : []) +
                        cnvCallers + 
                        cnvCallers.collect { it+"_qual" }
@@ -394,6 +395,7 @@ class SummarizeCNVs {
                     cnv.chr, 
                     cnv.from,
                     cnv.to, 
+                    cnv.targets,
                     cnv.sample,
                     cnv.genes,
                     cnv.type, 

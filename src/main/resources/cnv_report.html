@@ -143,7 +143,7 @@
                   };
                 
                   return [ chr : cnv.chr, start: cnv.from, end: cnv.to ] + 
-                      ['sample','type','count','stotal','sampleCount','sampleFreq'].collectEntries { [it, cnv.getProperty(it)] } +
+                      ['targets','sample','type','count','stotal','sampleCount','sampleFreq'].collectEntries { [it, cnv.getProperty(it)] } +
                       [ genes : cnv.genes ? cnv.genes.split(",") : [] ] +
                       cnv_callers.collect { caller -> 
                           if(cnv[caller])
@@ -188,7 +188,7 @@
                     <table id='cnvTable' class='stripe'>
                         <thead>
                             <%
-                             List tableHeaders = ['','Index','Genes','Region','Size','Type','True?','Callers','Sample','No.Callers','Samples']
+                             List tableHeaders = ['','Index','Genes','Region','Size','Targets','Type','True?','Callers','Sample','No.Callers','Samples']
                              if(hasVariants)
                                 tableHeaders.addAll(['Het Count', 'Hom Count', 'Balance'])
                              if(hasDGV)
@@ -214,6 +214,7 @@
                                 <td>${genes.join(",")}</td>
                                 <td>${cnv.chr}:${cnv.from}-${cnv.to}</td>
                                 <td>${cnv.to - cnv.from}</td>
+                                <td>${cnv.targets}</td>
                                 <td>${cnv.type}</td>
                                 <%if(cnv_callers.contains("truth")) {%>
                                     <td><%=cnv["truth"]!=null?"Yes":"No"%></td>
