@@ -2,6 +2,7 @@
 import org.codehaus.groovy.runtime.StackTraceUtils;
 
 import gngs.*
+import groovy.json.JsonOutput
 import groovy.text.SimpleTemplateEngine
 import groovy.util.logging.Log;
 
@@ -100,6 +101,7 @@ class SummarizeCNVs {
             name 'Name for report (displayed in header)', args:1
             refgene 'Path to RefGene file downloaded from UCSC to annotate genes (optional)', args:1
             tsv 'Write consolidated CNV report in tab separated format to <file>', args:1
+            json 'Write consolidated CNV report in json separated format to <file>', args:1
             imgpath 'Additional path to add for images', args:1
             genome 'Genome build to use when annotating CNVs', args:1
             idmask 'Mask to apply to sample ids for presentation in report', args:1
@@ -209,6 +211,10 @@ class SummarizeCNVs {
                 summarizer.writeTSV(cnvs, opts.tsv)
             }
             
+            if(opts.json) {
+                summarizer.writeJSON(cnvs, opts.json)
+            }
+             
             // If there is a truth set available, for each CNV set,
             // set the true CNVs on the set
             if(results.truth) {
@@ -354,6 +360,61 @@ class SummarizeCNVs {
             }
         }
     }
+    
+    void writeJSON(Regions cnvs, String fileName) {
+        
+        log.info "Writing TSV report to $fileName"
+        
+        List<String> cnvCallers = results.keySet() as List
+        Map<String,String> anno_types = [ "DEL" : "LOSS", "DUP" : "GAIN" ]
+        
+        List annotations = null
+        if(cnvAnnotator) {
+             annotations = cnvs.collect { cnv -> 
+                cnvAnnotator.annotate(new Region(cnv.chr, cnv.from..cnv.to), anno_types[cnv.type]) 
+             }
+        }
+        
+        new File(fileName).withWriter { w ->
+            
+            List<String> columnNames = 
+                       ["chr","start","end","sample","genes", "type","count","stotal","sampleCount","sampleFreq"] + 
+                       (cnvAnnotator ? ["spanning","spanningFreq"] : []) +
+                       cnvCallers + 
+                       cnvCallers.collect { it+"_qual" }
+            
+            w.println('[')
+            
+            cnvs.eachWithIndex { cnv, i ->
+                
+                if(i>0)
+                    w.println(',')
+                    
+                List line = [
+                    cnv.chr, 
+                    cnv.from,
+                    cnv.to, 
+                    cnv.sample,
+                    cnv.genes,
+                    cnv.type, 
+                    cnv.count, 
+                    cnv.stotal, 
+                    cnv.sampleCount,
+                    cnv.sampleFreq
+                ] + (cnvAnnotator ? [annotations[i].spanning.size(), annotations[i].spanningFreq] : []) +
+                cnvCallers.collect { caller ->
+                    cnv[caller] ? "TRUE" : "FALSE"
+                }  + cnvCallers.collect { caller ->
+                    cnv[caller] ? cnv[caller].quality : 0
+                } 
+                
+                Map data = [columnNames,line].transpose().collectEntries()
+                
+                w.print(JsonOutput.toJson(data))
+            }
+            w.println(']')
+        }
+    } 
     
     void writeReport(Regions cnvs, 
                      String name, 

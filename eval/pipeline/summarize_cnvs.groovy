@@ -122,7 +122,7 @@ create_cnv_report = {
     def geneFilterOpts = gene_filter ? " -genefilter $gene_filter " : ''
     def excludeGenesOpts = exclude_genes ? " -exgenes $exclude_genes " : ''
         
-    produce("${file_name_prefix}cnv_report.html", "${file_name_prefix}cnv_report.tsv") {
+    produce("${file_name_prefix}cnv_report.html", "${file_name_prefix}cnv_report.tsv", "${file_name_prefix}combined_cnvs.json") {
 
         def true_cnvs = ""
         if(simulation) 
@@ -134,7 +134,7 @@ create_cnv_report = {
             JAVA_OPTS="-Xmx12g -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC:$XIMMER_SRC/../resources:$XIMMER_SRC/../js $XIMMER_SRC/SummarizeCNVs.groovy
                 -target $target_bed ${caller_opts.join(" ")} $refGeneOpts
                 ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} -bampath "$bam_file_path"
-                -tsv $output.tsv ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""}
+                -tsv $output.tsv -json $output.json ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""}
                 -idmask '$sample_id_mask' $geneFilterOpts $excludeGenesOpts
                 -dgv $DGV_CNVS $true_cnvs
                 ${batch_quality_params.join(" ")} -o $output.html 
