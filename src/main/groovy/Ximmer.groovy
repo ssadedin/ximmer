@@ -291,7 +291,9 @@ class Ximmer {
         
         this.bamFiles = this.runs.collect { it.value.bamFiles }.sum()
         
-        this.resolvePedigrees()
+        if(this.enableSimulation && cfg.simulation_type == "replace") {
+            this.resolvePedigrees()
+        }
         
         for(SimulationRun run in  runs*.value) {
             processRun(run)
