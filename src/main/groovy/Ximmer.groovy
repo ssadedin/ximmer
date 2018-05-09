@@ -189,8 +189,6 @@ class Ximmer {
         
         this.targetRegion = new BED(cfg.target_regions).load().reduce()
 
-        this.resolvePedigrees()
-       
         this.simulate()
         
         if(analyse) {
@@ -292,6 +290,8 @@ class Ximmer {
         this.enableTruePositives = this.enableSimulation ||  this.runs.every { it.value.knownCnvs != null  }
         
         this.bamFiles = this.runs.collect { it.value.bamFiles }.sum()
+        
+        this.resolvePedigrees()
         
         for(SimulationRun run in  runs*.value) {
             processRun(run)
@@ -647,10 +647,10 @@ class Ximmer {
             log.info "Checking sex of ${sam.samples[0]} ..."
             SexKaryotyper typer = new SexKaryotyper(sam, this.targetRegion)
             typer.run()
-            if(typer.sex == Sex.FEMALE)
+            if(typer.sex == gngs.Sex.FEMALE)
                 cfg.samples.females << sam.samples[0]
             else
-            if(typer.sex == Sex.MALE)
+            if(typer.sex == gngs.Sex.MALE)
                 cfg.samples.males << sam.samples[0]
             else
                 unknownResults << typer
