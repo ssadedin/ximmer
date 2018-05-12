@@ -9,7 +9,7 @@ RUN apt-get update && \
 RUN apt-get install -y libcurl4-openssl-dev && apt-get install -y libxml2-dev && apt-get install -y r-base
 RUN curl -s "https://get.sdkman.io" | bash && \
     sed -i -e 's/sdkman_auto_answer=false/sdkman_auto_answer=true/g' /root/.sdkman/etc/config && \
-    bash -c 'source "/root/.sdkman/bin/sdkman-init.sh"; sdk install java 7u141-zulu;' 
+    bash -c 'source "/root/.sdkman/bin/sdkman-init.sh"; sdk install java `sdk list java | grep 8.0.*zulu`;' 
 RUN apt-get install -y git
 RUN cd /usr/local && \
     git clone https://github.com/ssadedin/ximmer.git && cd ximmer && ./bin/install -q && \

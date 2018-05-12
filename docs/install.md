@@ -88,7 +88,9 @@ cd ximmer/docker
 docker build --build-arg http_proxy='http://proxy.host.com:proxy-port' -t ximmer . 
 ```
 
-See [Running inside Docker](docker.md) for tips on how to run inside Docker.
+Although running inside docker is essentially the same as running outside,
+ there are a few special considerations to take care of.  See 
+ [Running inside Docker](docker.md) for tips on how to run inside Docker.
 
 ## Running Ximmer
 

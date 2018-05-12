@@ -64,7 +64,7 @@ docker run
         ximmer ximmer \ # run the ximmer executable in the ximmer image
      -c /data/config.groovy \
      -v \
-     -o /data/output.docker # send output to the /data
+     -o /data/output.docker # send output to the /data/output.docker directory
 ```
 
 Also important is that the `config.groovy` file you pass will contain file paths itself.
