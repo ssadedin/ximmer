@@ -4,8 +4,11 @@ This tutorial shows setting up Ximmer on a bare Ubuntu install in Google Cloud,
 and then downloading running some example data through it.
 
 We will start with a plain vanilla Ubuntu image and install all the needed
-dependencies as well as Ximmer itself. Then we will download the example data
-and run the analysis and look at the results.
+dependencies as well as Ximmer itself, including 4 CNV callers. Then we will
+download the example data and run the analysis and look at the results.
+
+_Note_: in this walkthrough we do not run Conifer because it depends on some
+outdated libraries that make it a bit more tricky to install.
 
 ## Start an Ubuntu Image
 
