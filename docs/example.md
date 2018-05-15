@@ -133,6 +133,22 @@ unzip *.zip
 
 ## Create an Example Ximmer Configuration
 
+Edit a file in the Ximmer directory called `example.groovy` and add the 
+following contents which are our basic Ximmer configuration:
+
+```
+target_regions="/home/ssadedin/data/example-data/target_regions.bed"
+bam_files="/home/ssadedin/data/example-data/*.bam"
+regions=1..10
+
+simulation_type='downsample'
+deletionsPerSample=2
+
+callers { 
+    xhmm {}; exomedepth {}; cnmops {}; codex {}
+}
+```
+
 
 ## Run Ximmer
 
@@ -165,3 +181,14 @@ gcloud compute scp --zone us-east1-c ssadedin@ximmer-demo:/home/ssadedin/ximmer/
 tar -xzf example.tar.gz 
 open example/analysis.html # on mac
 ```
+
+The example results from this session can be found at:
+
+https://storage.googleapis.com/ximmer-example-data/example_results.zip
+
+Here is a screenshot of how the ROC curve looks:
+
+![Ximmer Demo Data ROC Curve](demo_data_roc.png)
+
+
+
