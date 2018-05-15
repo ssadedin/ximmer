@@ -59,7 +59,7 @@ Ximmer includes an installer script to help set up and configure
 it for basic operation. To get started:
 
 ```
-git clone git@github.com:ssadedin/ximmer.git
+git clone https://github.com/ssadedin/ximmer.git
 cd ximmer
 ./bin/install
 ```
@@ -75,7 +75,7 @@ the analysis pipeline to run successfully.
 To build the Docker image use:
 
 ```bash
-git clone git@github.com:ssadedin/ximmer.git
+git clone https://github.com/ssadedin/ximmer.git
 cd ximmer/docker
 docker build -t ximmer . 
 ```
@@ -83,7 +83,7 @@ docker build -t ximmer .
 Note: if your machine is behind a proxy, you can provide it ike this:
 
 ```bash
-git clone git@github.com:ssadedin/ximmer.git
+git clone https://github.com/ssadedin/ximmer.git
 cd ximmer/docker
 docker build --build-arg http_proxy='http://proxy.host.com:proxy-port' -t ximmer . 
 ```
