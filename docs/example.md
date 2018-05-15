@@ -152,6 +152,9 @@ callers {
 }
 ```
 
+**Note**: you'll need to replace the paths above with correct paths
+based on the directory you are using.
+
 
 ## Run Ximmer
 
