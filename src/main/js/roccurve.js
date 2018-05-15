@@ -94,11 +94,21 @@ define(["vue","nv.d3","N3Components.min"], function(Vue, nvd3, N3Components) {
             let targetsMin = this.targetRange[0];
             let targetsMax = this.targetRange[1];
             
+            // Note: heuristic here: if none of the true positives are on chrX then assume it was excluded
+            // X chr might be excluded if a mix of males and females was used, since this would cause
+            // an inflation of false positives 
+            let includeChrX = (simulationType == 'replace') || 
+                              !this.rawCnvs.truth.every(cnv => (cnv.chr != 'chrX') && (cnv.chr != 'X')) // no tp on chrX
+            
+            console.log("Include chrX? " + includeChrX)
+            
             let filteredTruth = 
                 this.rawCnvs.truth.filter((cnv) => (cnv.targets >= targetsMin) && (cnv.targets<=targetsMax) && 
                                                    (cnv.end - cnv.start > sizeMin) && (cnv.end - cnv.start < sizeMax) &&
-                                                   ((simulationType == 'replace') || (cnv.chr != 'chrX' && cnv.chr != 'X')))
-                                                   ;
+                                                   (includeChrX || (cnv.chr != 'chrX'))
+                                         )
+            
+            console.log(`There are ${filteredTruth.length} true cnv calls after filtering by size ${targetsMin}-${targetsMax} and simulation type chr (${simulationType})`);
             
             let cnvCount = Object.values(this.filteredCnvs).reduce((n,caller) => n+caller.length, 0);
             console.log(`There are ${cnvCount} cnv calls after filtering by spanningFreq<${this.maxFreq}`);

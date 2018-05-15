@@ -306,9 +306,14 @@ window.model = {
         }
         
         if(simulationRegionsOnly) {
-            let simRegionFilter = (cnv) => (cnv.chr != 'chrX' && cnv.chr != 'X')
+            var simRegionFilter 
             if(simulationType == 'replace') {
                 simRegionFilter = (cnv) => (cnv.chr == 'chrX' || cnv.chr == 'X')
+            }
+            else {
+                let includeChrX = !rawCnvs.truth.every(cnv => (cnv.chr != 'chrX') && (cnv.chr != 'X')) // no tp on chrX
+                
+                 simRegionFilter = (cnv) => { return includeChrX || (cnv.chr != 'chrX' && cnv.chr != 'X') }
             }
             filters.push(simRegionFilter)
         }
