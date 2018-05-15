@@ -54,9 +54,13 @@ This should get all the operating system level dependencies installled.
 
 ## Setup VirtualEnv
 
+This is somewhat optional in a cloud instance, but good hygiene in case you want to 
+undo or reinstall anything to do with the python environment later:
+
 ```
 pip install virtualenv
-virtualenv ximmer
+virtualenv ximmer-python
+source ximmer-python/bin/activate
 ```
 
 ## Download Reference
