@@ -28,7 +28,10 @@ gcloud compute instances create instance-2 \
         --boot-disk-device-name=instance-2
 ```
 
-(This image cost me $0.08c per hour).
+Note: this image cost me $0.08c per hour to run. The rest of this example should work
+on any plain Ubuntu 16.04 image, so you can use a different cloud provider, docker or
+other Ubuntu 16.04 system that you have available (other Linux versions should also work
+with only minor modifications to the steps).
 
 ## Install Dependencies
 
@@ -41,7 +44,10 @@ echo 'deb http://cran.rstudio.com/bin/linux/ubuntu xenial/' >> /etc/apt/sources.
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
 apt update
 apt-get install python-pip r-base openjdk-8-jdk libxml2-dev libcurl4-openssl-dev libblas-dev liblapack-dev libhdf5-dev libssl-dev libmariadb-client-lgpl-dev
+exit
 ```
+
+This should get all the operating system level dependencies installled.
 
 ## Setup VirtualEnv
 
@@ -61,12 +67,15 @@ wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg19/ucsc.hg19.dict
 gunzip *.gz
 ```
 
+Note: the choice of reference is arbitrary as long as you provide the appropriate fasta, 
+.fai and .dict files.
+
 ## Install a library in R to Initialize the Personal R Directory
 
-This is a quirk of the fact we are installing the first ever libraries: 
-the first library installed will prompt the creation and initialisation
-of the personal R library folder. Without doing this step manually, 
-the later Ximmer install will fail unless you run it as root.
+This step is a quirk of the fact we are installing the first ever R 
+libraries on the system: the first library installed will prompt the 
+creation and initialisation of the personal R library folder. Without doing 
+this step manually, the later Ximmer install will fail unless you run it as root.
 
 ```
 ssadedin@ximmer-demo:~/ximmer$ R
