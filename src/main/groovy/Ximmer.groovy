@@ -113,6 +113,8 @@ class Ximmer {
     
     String ximmerBase
     
+    SampleIdAllocator sampleIdAllocator = SampleIdAllocator.instance
+    
     Ximmer(ConfigObject cfg, String outputDirectory, boolean simulate) {
         this.outputDirectory = new File(outputDirectory)
         this.cfg = cfg
@@ -148,6 +150,10 @@ class Ximmer {
         ximmerBase=System.properties['ximmer.base']
         
         this.maxDGVFreq = (cfg.get('dgv')?:[:]).get('max_freq')?:0.05f
+        
+        if(('anonymise' in this.cfg) && this.cfg.anonymise) {
+            sampleIdAllocator.anonymise = true
+        }
         
         validateConfiguration()
     }
@@ -779,7 +785,7 @@ class Ximmer {
             }
                           
             cnvs = simulateSampleCNVs(bamDir, targetSAM)
-            cnvs.each { it.sample = sample }
+            cnvs.each { it.sample = sampleIdAllocator.newSampleId(sample) }
             return cnvs
         }
         catch(Exception e) {
@@ -853,16 +859,19 @@ class Ximmer {
         if('groovy.lang.IntRange' != cfg.get('regions')?.class?.name)
             throw new IllegalArgumentException("The configured value for 'regions' is either missing or of incorrect type. Please set it to a range, for example: 1..5")
         
+        String simulatedSampleId = sampleIdAllocator.newSampleId(sampleId)
+            
         Regions deletions = selectSampleCNVRegions(targetSample, sourceSample, exclusions)
         
-        File bedFile = new File(outputDir, sampleId + ".cnvs.bed")
+        File bedFile = new File(outputDir, simulatedSampleId + ".cnvs.bed")
         Region r = deletions[0]
-        deletions.each { it.sample = sampleId }
+        deletions.each { it.sample = simulatedSampleId }
         deletions.save(bedFile.absolutePath + ".tmp")
         
-        File outputFile = new File(outputDir, sampleId + "_${r.chr}_${r.from}-${r.to}.bam" )
+        File outputFile = new File(outputDir, simulatedSampleId + "_${r.chr}_${r.from}-${r.to}.bam" )
         
         CNVSimulator simulator = new CNVSimulator(targetSample, sourceSample) 
+        simulator.simulatedSampleId = simulatedSampleId
         if(cfg.simulation_type == "downsample") {
            simulator.simulationMode = "downsample"
         }

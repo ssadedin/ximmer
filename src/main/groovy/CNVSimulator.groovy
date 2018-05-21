@@ -72,6 +72,12 @@ class CNVSimulator {
      */
     String simulationMode="replace"
     
+    /**
+     * If desired the sample id in the simulated target can be different to that
+     * in the source files
+     */
+    String simulatedSampleId
+    
     DGV dgv = null
     
     float maxDGVFreq = 0.01
@@ -87,6 +93,7 @@ class CNVSimulator {
      * If targetCoverage is specified, the regions over which it is calculated
      */
     private Regions targetRegions = null
+    
     
     /**
      * Random number generator to use for downsampling. The user can set it to
@@ -331,8 +338,12 @@ class CNVSimulator {
                 }
             }
         }
+        
+        Map options = [:]
+        if(this.simulatedSampleId != null)
+            options.sampleId = this.simulatedSampleId
             
-        femaleBam.filterOrderedPairs(outputFileName, end: flushReads, spoolSize:8000) { SAMRecordPair pair ->
+        femaleBam.filterOrderedPairs(options, outputFileName, end: flushReads, spoolSize:8000) { SAMRecordPair pair ->
                 
             List<SAMRecordPair> result = []
                  
@@ -464,8 +475,12 @@ class CNVSimulator {
         //                 in terms of coverage when using 'both'.
         double deletionDownSampleRate = 0.5d * femaleDownSampleRate
         
+        Map options = [:]
+        if(this.simulatedSampleId != null)
+            options.sampleId = this.simulatedSampleId
+            
         // Read each BAM 
-        femaleBam.filterOrderedPairs(outputFileName) { SAMRecordPair pair ->
+        femaleBam.filterOrderedPairs(options, outputFileName) { SAMRecordPair pair ->
                
             SAMRecord r1 = pair.r1
             SAMRecord r2 = pair.r2
