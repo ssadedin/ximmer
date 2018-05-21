@@ -78,11 +78,12 @@ will run the analysis directly on the source BAM files.
 
 ## Disabling Simulation
 
-If you have data that already has simulated CNVs then you still want Ximmer to run
-in "simulation mode", but you may not want Ximmer to put more CNVs into the data.
-In this case, the correct configuration is to set `simulation_type` to the the
-correct kind of simulation (eg: `downsample`), but to then set an explicit flag
-that disables simulation, `simulation_enabled=false`. For example:
+If you have data that already has simulated (or real!) CNVs then you can still
+have Ximmer to run in "simulation mode", but without generating new data with
+more CNVs.  In this case, the correct configuration is to set `simulation_type`
+to the the correct kind of simulation (eg: `downsample`), but to then set an
+explicit flag that disables simulation, `simulation_enabled=false`. For
+example:
 
 ```
 simulation_type="replace"
@@ -162,6 +163,22 @@ as input files.
 a subset of the samples provided in the BAM files you specify. This can be useful
 if you have a single large directory of BAM files but you want to analyse or simulate
 from only a portion of them.
+
+## Anonymising Samples
+
+In some situations you may want to obfuscate the relationship between the input
+samples and the output samples. For example, if the sample identifiers in your 
+BAM files would potentially compromise privacy or lead to risk of incidential 
+findings. Ximmer has an option to 'anonymise' samples by generating artificial sample
+ids in the simulated data:
+
+```
+anonymise=true
+```
+
+_Note_: as with all anonymisation of genetic data, sample id masking is only surface
+level anonymisation and will not prevent reidentification through other features of
+the data.
 
 
 ## Specifying Number of Runs
