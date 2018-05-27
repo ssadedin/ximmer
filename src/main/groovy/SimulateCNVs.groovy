@@ -122,8 +122,9 @@ for(female in females) {
         
     // Select a region - this is rather simple
     BED bed = new BED(opts.r).load()
+    Regions coveredRegions = new BED(opts.abed).load().reduce()
         
-    CNVSimulator simulator = new CNVSimulator(bamFiles[female], bamFiles[males[selectedMale]])
+    CNVSimulator simulator = new CNVSimulator(coveredRegions, bamFiles[female], bamFiles[males[selectedMale]])
     simulator.random = random
     if(opts.mode)
         simulator.simulationMode = opts.mode
@@ -137,8 +138,7 @@ for(female in females) {
     }
     
     if(opts.cov) {
-        Regions coveredRegions = new BED(opts.abed).load().reduce()
-        simulator.setTargetCoverage(coveredRegions, opts.cov.toDouble())
+        simulator.setTargetCoverage(opts.cov.toDouble())
     }
         
 	if(opts.threads)

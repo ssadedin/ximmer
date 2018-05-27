@@ -8,6 +8,7 @@ import groovyx.gpars.GParsPool;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMTagUtil;
+import ximmer.Exclusions
 
 class RegionSelectionException extends Exception {
     public RegionSelectionException(String message) {
@@ -38,7 +39,7 @@ class CNVSimulator {
      */
     public static List<String> NON_AUTOSOMES = ["chrX",  "chrY", "chrM"]
 
-    private static final int MAX_REGION_SELECTION_TRIES = 10
+    private static final int MAX_REGION_SELECTION_TRIES = 7i
     
     SAM maleBam 
     
@@ -101,19 +102,19 @@ class CNVSimulator {
      */
     Random random = null
     
-    public CNVSimulator(String femaleBam, String maleBam) {
-        this(new SAM(femaleBam), maleBam != null ? new SAM(maleBam) : null)
+    public CNVSimulator(Regions targetRegions, String femaleBam, String maleBam) {
+        this(targetRegions, new SAM(femaleBam), maleBam != null ? new SAM(maleBam) : null)
     }
     
-    public CNVSimulator(SAM femaleBam, SAM maleBam) {
+    public CNVSimulator(Regions targetRegions, SAM femaleBam, SAM maleBam) {
+        this.targetRegions = targetRegions
         this.maleBam = maleBam
         this.femaleBam = femaleBam
         if(random == null)
             this.random = new Random()
     }
     
-    void setTargetCoverage(Regions targetRegions, double value) {
-        this.targetRegions = targetRegions
+    void setTargetCoverage(double value) {
         this.targetCoverage = value
         if(random == null)
             this.random = new Random()
@@ -582,7 +583,9 @@ class CNVSimulator {
         // We will start from the end points of this range
         Region result = new Region(chromosome, overlaps*.from.min()..overlaps*.to.max())
         
-        log.info "Original region $seedRegion expanded to $result [female=" + this.femaleBam.samples[0] + ", male=" + this.maleBam?.samples?.getAt(0) + "]"
+        int numTargetOverlaps = this.targetRegions.getOverlaps(result).size()
+        
+        log.info "Original region $seedRegion expanded to $result, spanning $numTargetOverlaps targets [female=" + this.femaleBam.samples[0] + ", male=" + this.maleBam?.samples?.getAt(0) + "]"
         return result
     }
     
@@ -595,7 +598,8 @@ class CNVSimulator {
      * @param excludRegions regions to exclude from consideration as targets
      * @return
      */
-    Region selectRegion(Regions fromRegions, int numRanges, Regions excludeRegions=null) {
+    Region selectRegion(Regions fromRegions, int numRanges, Exclusions excludeRegions=null) {
+        
         Region cleanRegion  = null
         int attemptCount = 0
         
@@ -631,18 +635,16 @@ class CNVSimulator {
             // The problem is, many capture technologies will capture reads to either side of the
             // target region. This means we need to expand the region either side until we observe 
             // no reads, so that a "clean" swap can be made of reads without causing any artefacts.
-            cleanRegion = this.findCleanRegion(fromRegions, seedRegion)
-            
-            if(cleanRegion == null) {
-                ++attemptCount
-                if(attemptCount > MAX_REGION_SELECTION_TRIES)
-                    throw new RegionSelectionException("Failed to identify a viable seed region of $numRanges regions for deletion in ${this.femaleBam.samples[0]} after $attemptCount tries")
-                continue
+            cleanRegion = excludeRegions.tryReserve(seedRegion) { 
+                Region candidateCleanRegion = findCleanRegion(fromRegions, seedRegion)
+                if(isOverlappingPopulationCNV(candidateCleanRegion))
+                    return null
+                else
+                    return candidateCleanRegion
             }
             
-            boolean isExcluded = isExcludedRegion(excludeRegions, cleanRegion)
-            if(!isExcluded)
-                break
+            if(cleanRegion != null)
+                return cleanRegion
             
             ++attemptCount
             if(attemptCount > MAX_REGION_SELECTION_TRIES)
@@ -650,7 +652,8 @@ class CNVSimulator {
                 
             log.info "Selected range $r.from-$r.to failed one or more exclusion criteria: trying again"
         }
-        return cleanRegion
+        
+        assert false
     }
     
     /**
@@ -665,28 +668,20 @@ class CNVSimulator {
      * @param cleanRegion
      * @return  true if the given region should be excluded
      */
-    boolean isExcludedRegion(Regions excludeRegions, Region regionToCheck) {
+    boolean isOverlappingPopulationCNV(Region regionToCheck) {
         
-        // Check if the cleaned up region overlaps any excluded regions
-        if(!excludeRegions || !excludeRegions.overlaps(regionToCheck)) {
-            // Check if the cleaned up region overlaps region excluded by DGV spanning freq
-            if(dgv != null) {
-                float regionCNVFreq = dgv.maxFreq(regionToCheck)
-                if(regionCNVFreq < this.maxDGVFreq) {
-                    return false
-                }
-                else {
-                    log.info "Region $regionToCheck overlaps a region in DGV with CNV frequency $regionCNVFreq > $maxDGVFreq"
-                }
-            }
-            else {
-                return false
-            }
+        if(dgv == null)
+            return false
+
+        float regionCNVFreq = dgv.maxFreq(regionToCheck)
+        if(regionCNVFreq < this.maxDGVFreq) {
+            return false
         }
         else {
-            log.info "Region $regionToCheck overlaps excluded regions"
+            log.info "Region $regionToCheck overlaps a region in DGV with CNV frequency $regionCNVFreq > $maxDGVFreq"
+            return true
         }
-            
-        return true
+        
+        assert false
     }
 }

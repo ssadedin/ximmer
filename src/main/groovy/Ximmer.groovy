@@ -3,6 +3,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.regex.Matcher;
+import ximmer.Exclusions
 import gngs.*
 import graxxia.Matrix
 import groovy.text.SimpleTemplateEngine
@@ -51,7 +52,7 @@ class Ximmer {
      * The number of times a new region size will be tried if a deletion
      * cannot be simulated at a given size.
      */
-    static final int REGION_SIZE_SELECTION_RETRIES = 3
+    static final int REGION_SIZE_SELECTION_RETRIES = 5
     
     /**
      * Convert the expanded form of the configuration id into the simplified
@@ -725,8 +726,14 @@ class Ximmer {
         List<SAM> targetSamples = computeTargetSamples()
         List<Region> simulatedCNVs = []
         Ximmer me = this
+        
+        Regions initialExclusions = this.excludeRegions ? this.excludeRegions.collect { it } as Regions : new Regions()
+        
+        // All the exclusions are shared for a given simulation run, but not between them
+        Exclusions exclusions = new Exclusions(this.targetRegion, initialExclusions)
+        
         GParsPool.withPool(concurrency) {
-            simulatedCNVs = targetSamples.collectParallel(me.&simulateSampleCNVs.curry(bamDir,existingSamples,existingBams))
+            simulatedCNVs = targetSamples.collectParallel(me.&simulateSampleCNVs.curry(exclusions, bamDir,existingSamples,existingBams))
         }
             
         writeCNVFile(trueCnvsFile, simulatedCNVs, runId)
@@ -775,7 +782,7 @@ class Ximmer {
         w.println knownCnvs.join("\n")
     }
     
-    Regions simulateSampleCNVs(File bamDir, List<String> existingSamples, List<SAM> existingBams, SAM targetSAM) {
+    Regions simulateSampleCNVs(Exclusions exclusions, File bamDir, List<String> existingSamples, List<SAM> existingBams, SAM targetSAM) {
         try {
             String sample = targetSAM.samples[0]
             Regions cnvs = checkExistingSimulatedSample(bamDir, existingSamples, existingBams, sample)
@@ -784,7 +791,7 @@ class Ximmer {
                 return cnvs
             }
                           
-            cnvs = simulateSampleCNVs(bamDir, targetSAM)
+            cnvs = simulateSampleCNVs(exclusions, bamDir, targetSAM)
             cnvs.each { it.sample = sampleIdAllocator.newSampleId(sample) }
             return cnvs
         }
@@ -842,10 +849,9 @@ class Ximmer {
      * @param targetSample
      * @return
      */
-    Regions simulateSampleCNVs(File outputDir, SAM targetSample) {
+    Regions simulateSampleCNVs(Exclusions exclusions, File outputDir, SAM targetSample) {
         
         String sampleId = targetSample.samples[0]
-        Regions exclusions = this.excludeRegions ? this.excludeRegions.collect { it } as Regions : new Regions()
         
         // If simulation mode is replacement, we need to select a male to simulate from
         SAM sourceSample = null
@@ -861,7 +867,7 @@ class Ximmer {
         
         String simulatedSampleId = sampleIdAllocator.newSampleId(sampleId)
             
-        Regions deletions = selectSampleCNVRegions(targetSample, sourceSample, exclusions)
+        Regions deletions = selectSampleCNVRegions(exclusions, targetSample, sourceSample)
         
         File bedFile = new File(outputDir, simulatedSampleId + ".cnvs.bed")
         Region r = deletions[0]
@@ -870,7 +876,7 @@ class Ximmer {
         
         File outputFile = new File(outputDir, simulatedSampleId + "_${r.chr}_${r.from}-${r.to}.bam" )
         
-        CNVSimulator simulator = new CNVSimulator(targetSample, sourceSample) 
+        CNVSimulator simulator = new CNVSimulator(targetRegion, targetSample, sourceSample) 
         simulator.simulatedSampleId = simulatedSampleId
         if(cfg.simulation_type == "downsample") {
            simulator.simulationMode = "downsample"
@@ -898,7 +904,7 @@ class Ximmer {
      *                      
      * @return  deletion regions to be simulated
      */
-    Regions selectSampleCNVRegions(SAM targetSample, SAM sourceSample, Regions exclusions) {
+    Regions selectSampleCNVRegions(Exclusions exclusions, SAM targetSample, SAM sourceSample) {
         
         log.info "Selecting CNV regions for ${targetSample.samples[0]}"
         
@@ -909,8 +915,7 @@ class Ximmer {
         
         Regions deletions = new Regions()
         for(int cnvIndex = 0; cnvIndex < this.deletionsPerSample; ++cnvIndex) {
-            Region r = selectSampleCNVRegion(cnvIndex, simulationRegions, exclusions, targetSample, sourceSample)
-            exclusions.addRegion(r)
+            Region r = selectSampleCNVRegion(exclusions, cnvIndex, simulationRegions, targetSample, sourceSample)
             deletions.addRegion(r)
         }
         
@@ -919,9 +924,9 @@ class Ximmer {
         return deletions
     }
     
-    Region selectSampleCNVRegion(int cnvId, Regions simulationRegions, Regions exclusions, SAM targetSample, SAM sourceSample) {
+    Region selectSampleCNVRegion(Exclusions exclusions, int cnvId, Regions simulationRegions, SAM targetSample, SAM sourceSample) {
         String sampleId = targetSample.samples[0]
-        CNVSimulator simulator = new CNVSimulator(targetSample, sourceSample)
+        CNVSimulator simulator = new CNVSimulator(simulationRegions, targetSample, sourceSample)
         if(dgv) {
             simulator.dgv = this.dgv
             simulator.maxDGVFreq = this.maxDGVFreq
@@ -932,9 +937,9 @@ class Ximmer {
   
         // Choose number of regions randomly in the range the user has given
         int maxRegions = cfg.regions.to
-        Region selectedRegion = Utils.withRetries(REGION_SIZE_SELECTION_RETRIES, message: 'Select deletion region') {
+        Region selectedRegion = Utils.withRetries(REGION_SIZE_SELECTION_RETRIES, message: "Select deletion region for $sampleId") {
             
-            log.info "Selectiong deletion size from range $cfg.regions.from - $maxRegions"
+            log.info "Selecting deletion size from range $cfg.regions.from - $maxRegions"
             
             int numRegions = cfg.regions.from + random.nextInt(maxRegions - cfg.regions.from) 
             
@@ -944,8 +949,10 @@ class Ximmer {
             // if selection fails because the range is to big, we won't waste retrying 
             // an even bigger selection
             maxRegions = Math.max(cfg.regions.from+1,numRegions)
-            
             Region r = simulator.selectRegion(simulationRegions, numRegions, exclusions)
+            if(r == null)
+                throw new RegionSelectionException("Region of $numRegions could not be resolved to non-excluded viable simulation region")
+            
             log.info "Seed region for ${sampleId} is $r" 
             return r
         }
