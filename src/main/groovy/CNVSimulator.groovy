@@ -8,13 +8,7 @@ import groovyx.gpars.GParsPool;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMTagUtil;
-import ximmer.Exclusions
-
-class RegionSelectionException extends Exception {
-    public RegionSelectionException(String message) {
-        super(message);
-    }
-}
+import ximmer.*
 
 /**
  * Produce a BAM file that simulates the presence of a heterozygous deletion in
