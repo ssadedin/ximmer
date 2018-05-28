@@ -7,7 +7,8 @@
 codex_call_cnvs = {
 
     var batch_name : false,
-        codex_k : 0
+        k_offset : 0,
+        max_k : 9
 
     def chr = branch.name
     
@@ -69,14 +70,14 @@ codex_call_cnvs = {
             
             mapp_qc <- qcObj$mapp_qc; ref_qc <- qcObj$ref_qc; qcmat <- qcObj$qcmat
             
-            normObj <- normalize(Y_qc, gc_qc, K = 1:9)
+            normObj <- normalize(Y_qc, gc_qc, K = 1:$max_k)
             
             Yhat <- normObj$Yhat; AIC <- normObj$AIC; BIC <- normObj$BIC
 
             RSS <- normObj$RSS; 
             K <- normObj$K 
             
-            optK = min(9,max(1,K[which.max(BIC)] + $codex_k))
+            optK = min(9,max(1,K[which.max(BIC)] + $k_offset))
             
             finalcall <- segment(Y_qc, Yhat, optK = optK, K = K, sampname_qc,
                                  ref_qc, chr, lmax = 200, mode = "integer")
