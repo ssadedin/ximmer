@@ -2,6 +2,7 @@
 import org.codehaus.groovy.runtime.StackTraceUtils;
 
 import gngs.*
+import graxxia.Stats
 import groovy.json.JsonOutput
 import groovy.text.SimpleTemplateEngine
 import groovy.util.logging.Log;
