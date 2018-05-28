@@ -147,9 +147,7 @@ analyses {
 This example configuration only runs XHMM. The name for the analysis is `xhmmtune`. The use of XHMM 
 is *inferred* from the prefix `xhmm_` for the label of each individual block 
 within the analyses. The configuration parameters themselves are specified within each 
-block and are specific to each caller (see table TODO).
-
-TODO:
+block and are specific to each caller (see table).
 
 | Caller     | Parameter              | Description                                   | Example / Default |
 |------------|------------------------|-----------------------------------------------|-------------------|
@@ -167,8 +165,8 @@ TODO:
 |            | lower_threshold        | Affects threshold on coverage for CNV calling | -0.8              |
 |            | panel_type             | Sets a range of parameters for panel vs exome | exome (or blank)  |
 |            |                        |                                               |                   |
-| CODEX      |                        |                                               |                   |
-
+| CODEX      | k_offset               | Adjusts CODEX's preferred k by given amount   | 0                 |
+|            | max_k                  | Sets the maximum value of k to be tried       |                   |
 
 ## Filtering by quality
 
