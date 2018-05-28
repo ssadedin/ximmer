@@ -517,8 +517,8 @@ var cnv = {
             start: targetRegion.from,
             end: targetRegion.to,
             sampleCov: coverage.sample.collect { round2Digits(it) },
-            otherCov: coverage.others,
-            coverageSd: coverage.sd
+            otherCov: coverage.others.collect { Math.round(it) },
+            coverageSd: coverage.sd.collect { round2Digits(it) }
         ]
         json.println("      " + JsonOutput.toJson(targetJson)+ ",")
     }
