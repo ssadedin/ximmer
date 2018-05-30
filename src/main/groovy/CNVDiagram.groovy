@@ -17,13 +17,12 @@ import groovy.transform.CompileStatic;
 import groovy.util.logging.Log;
 import groovy.xml.Namespace;
 import groovyx.gpars.GParsPool;
-import htsjdk.samtools.SAMFileReader
+import htsjdk.samtools.SamReader
 
 /**
  * Draws a diagram of the region of each CNV in a provided CNV summary report
  * 
  * @author simon
- *
  */
 @Log
 class CNVDiagram {
@@ -760,7 +759,7 @@ var cnv = {
         return normCovs
     }
     
-    ThreadLocal<Map<String, SAMFileReader>> readers = new ThreadLocal()
+    ThreadLocal<Map<String, SamReader>> readers = new ThreadLocal()
 
     @CompileStatic
     Matrix getCoverageMatrix(Region region) {
@@ -771,7 +770,7 @@ var cnv = {
             if(readers.get() == null)
                 readers.set([:])
                 
-            SAMFileReader reader = readers.get().get(s)
+            SamReader reader = readers.get().get(s)
             if(reader == null) {
                 reader = bams[s].newReader()
                 readers.get().put(s, reader)
