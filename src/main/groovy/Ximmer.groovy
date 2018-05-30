@@ -1,18 +1,10 @@
-import java.nio.file.FileSystems;
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
-import java.util.regex.Matcher;
-import ximmer.*
+
 import gngs.*
-import graxxia.Matrix
-import groovy.text.SimpleTemplateEngine
-import groovy.transform.CompileStatic;
 import groovy.util.logging.Log
 import groovyx.gpars.GParsPool;
-import htsjdk.samtools.BAMIndexer;
-import htsjdk.samtools.SamReader
-import htsjdk.samtools.SAMRecord;
+import ximmer.*
 
 /**
  * The main entry point for the Ximmer CNV Framework
@@ -909,7 +901,7 @@ class Ximmer {
         
         simulator.createBam(outputFile.absolutePath, deletions)
         
-        indexBAM(outputFile)
+        SAM.index(bamFile)
         
         deletions.save(bedFile.absolutePath)
         new File(bedFile.absolutePath + ".tmp").delete()
@@ -984,22 +976,6 @@ class Ximmer {
         }
         
         return selectedRegion
-    }
-    
-    void indexBAM(File bamFile) {
-            
-        SamReader reader = new SamReader(bamFile)
-        File outputFile = new File(bamFile.path + ".bai")
-        BAMIndexer indexer = new BAMIndexer(outputFile, reader.getFileHeader());
-            
-        reader.enableFileSource(true);
-        int totalRecords = 0;
-            
-        // create and write the content
-        for (SAMRecord rec : reader) {
-            indexer.processAlignment(rec);
-        }
-        indexer.finish();
     }
     
     /**
