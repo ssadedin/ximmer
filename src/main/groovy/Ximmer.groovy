@@ -11,7 +11,7 @@ import groovy.transform.CompileStatic;
 import groovy.util.logging.Log
 import groovyx.gpars.GParsPool;
 import htsjdk.samtools.BAMIndexer;
-import htsjdk.samtools.SAMFileReader
+import htsjdk.samtools.SamReader
 import htsjdk.samtools.SAMRecord;
 
 /**
@@ -988,7 +988,7 @@ class Ximmer {
     
     void indexBAM(File bamFile) {
             
-        SAMFileReader reader = new SAMFileReader(bamFile)
+        SamReader reader = new SamReader(bamFile)
         File outputFile = new File(bamFile.path + ".bai")
         BAMIndexer indexer = new BAMIndexer(outputFile, reader.getFileHeader());
             
