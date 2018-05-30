@@ -206,18 +206,18 @@ class CNVSimulator {
                 ProgressCounter counter = new ProgressCounter()
                 femaleStats = autosomalRegions.collectParallel { counter.count(); femaleBam.coverageStatistics(it.chr, it.from, it.to); }
                 
-                log.info "Determining coverage of male autosomal regions ..."
-                maleStats = autosomalRegions.collectParallel { counter.count(); maleBam.coverageStatistics(it.chr, it.from, it.to); }
-                
                 double femaleSum = (femaleStats.sum { it.mean * it.n })
                 double femaleMean = femaleSum / femaleStats.sum { it.n }
-                double maleMean = maleStats.sum { it.mean * it.n } / maleStats.sum { it.n }
-                
                 this.femaleDownSampleRate = this.targetCoverage / femaleMean
-                this.maleDownSampleRate = this.targetCoverage / maleMean
+                log.info "Female coverage = $femaleMean: downsampling reads by $femaleDownSampleRate"
                 
-                println "Female coverage = $femaleMean: downsampling reads by $femaleDownSampleRate"
-                println "Male coverage = $maleMean: downsampling reads by $maleDownSampleRate"
+                log.info "Determining coverage of male autosomal regions ..."
+                if(maleBam != null) {
+                    maleStats = autosomalRegions.collectParallel { counter.count(); maleBam.coverageStatistics(it.chr, it.from, it.to); }
+                    double maleMean = maleStats.sum { it.mean * it.n } / maleStats.sum { it.n }
+                    this.maleDownSampleRate = this.targetCoverage / maleMean
+                    log.info "Male coverage = $maleMean: downsampling reads by $maleDownSampleRate"
+                }
             }
             else {
                 

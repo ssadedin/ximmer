@@ -896,6 +896,10 @@ class Ximmer {
         
         CNVSimulator simulator = new CNVSimulator(targetRegion, targetSample, sourceSample) 
         simulator.simulatedSampleId = simulatedSampleId
+        if('target_coverage' in cfg) {
+            simulator.setTargetCoverage(cfg.target_coverage.toDouble())
+        }
+ 
         if(cfg.simulation_type == "downsample") {
            simulator.simulationMode = "downsample"
         }
@@ -948,6 +952,10 @@ class Ximmer {
         if(dgv) {
             simulator.dgv = this.dgv
             simulator.maxDGVFreq = this.maxDGVFreq
+        }
+        
+        if('target_coverage' in cfg) {
+            simulator.setTargetCoverage(cfg.target_coverage.toDouble())
         }
             
         if(this.seed != null) 
