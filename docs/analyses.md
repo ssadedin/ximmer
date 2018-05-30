@@ -304,11 +304,23 @@ by symbol which should be a short sequence of upper case letters, which should b
 to a path to a file that defines the gene symbols and priorities (also called "categories"),
 separated by tab characters.
 
+Example configuration:
+
 ```
 genelists {
    CARDIAC='/home/simon/genelists/cardiac_genes.txt'
 }
 ```
+
+An example gene list would look like:
+
+```
+DVL1    3
+SCN5A   5
+```
+
+**NOTE**: the gene list is applied to all genes overlapped by a CNV, and the whole 
+CNV is considered to have the rank of its highest ranked gene.
 
 ## Filtering Results Based on Genelists
 
