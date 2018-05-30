@@ -59,6 +59,32 @@ class SummarizeCNVs {
     Set<String> excludeGenes = null
     
     /**
+     * Global gene categories (applied to all samples without a gene list)
+     */
+    Map<String, Integer> geneCategories = [:]
+    
+    /**
+     * Per gene list gene categories (applied when a sample has been assigned specifically 
+     * to a gene list)
+     */
+    Map<String, Map<String, Integer>> genelistCategories
+    
+    /**
+     * If genelists have been assigned per sample, they are mapped here
+     */
+    Map<String, String> sampleToGenelist
+    
+    Map<String,String> genelists
+    
+    /**
+     * The gene category below which results will be filtered out. If zero is set,
+     * genes with no category will be included. Otherwise, a CNV must be both assigned
+     * a category and that category must also exceed or equal the minimum category
+     * to avoid being filtered out.
+     */
+    int minimumCategory = 0
+    
+    /**
      * Parse an option specifying a CNV caller
      * 
      * @param caller    the caller to parse the config for
@@ -96,6 +122,7 @@ class SummarizeCNVs {
             report 'Template to use for creating HTML report', args: 1
             dgv 'Path to file containing CNVs from database of genomic variants (DGV)', args: 1
             samples 'Samples to export', args:1
+            samplemap 'Map samples to gene lists in a two column, tab separated file', args:1
             quality 'Filtering by quality score, in form caller:quality...', args:Cli.UNLIMITED
             bam 'BAM file for a sample (if provided, used to customize IGV access)', args:Cli.UNLIMITED
             bampath 'Path to BAM files to enable access using IGV (can be URL)', args:1
@@ -108,6 +135,8 @@ class SummarizeCNVs {
             idmask 'Mask to apply to sample ids for presentation in report', args:1
             genefilter 'Optional file of genes to filter CNVs to', args:1
             exgenes 'Optional file of genes to exclude from output', args:1
+            genelist 'Define a named gene list, to be passed through to report', args:Cli.UNLIMITED
+            mincat 'Set a category below which CNVs will be excluded from results' , args: 1
             o 'Output file name', args:1
         }
         
@@ -153,7 +182,7 @@ class SummarizeCNVs {
         String reportName
         if(opts.name)
             reportName = opts.name
-            
+
         Map qualityFilters = [:]
         if(opts.qualitys) {
             qualityFilters = opts.qualitys.collectEntries { qs ->
@@ -169,6 +198,9 @@ class SummarizeCNVs {
         List<VCF> vcfList = parseVCFs(opts, results)
         
         Regions target = new BED(opts.target, withExtra:true).load()
+        
+        log.info "Loaded ${Utils.humanBp(target.size())} target regions"
+        
         try {
             
             RefGenes refGenes = (!opts.refgene || "download" == opts.refgene) ? RefGenes.download(opts.genome?:"hg19") : new RefGenes(opts.refgene)  
@@ -207,7 +239,19 @@ class SummarizeCNVs {
                 summarizer.idMask = opts.idmask
             }
             
+            if(opts.genelist) 
+                summarizer.genelists = parseGenelistDefinitions(opts)
+                
+            if(opts.mincat) 
+                summarizer.minimumCategory = opts.mincat.toInteger()
+            
+            if(opts.samplemap) {
+                summarizer.sampleToGenelist = new File(opts.samplemap).readLines()*.tokenize('\t').collectEntries()
+                log.info "Read ${summarizer.sampleToGenelist} sample-genelist assignments from $opts.samplemap"
+            }
+            
             Regions cnvs = summarizer.run(exportSamples)
+            
             if(opts.tsv) {
                 summarizer.writeTSV(cnvs, opts.tsv)
             }
@@ -247,6 +291,14 @@ class SummarizeCNVs {
         }
     }
     
+    static Map<String,File> parseGenelistDefinitions(OptionAccessor opts) {
+        def result = opts.genelists.collectEntries { genelistDefinition -> // name:file
+                    genelistDefinition.tokenize('=')
+        }
+        log.info "Gene lists: " + result
+        return result
+    }
+    
     static List<VCF> parseVCFs(OptionAccessor opts, Map<String,RangedData> results) {
         Regions mergedCalls = results*.value.inject(new Regions()) { Regions regions, RangedData calls  ->
             calls.each { regions.addRegion(it) }
@@ -276,6 +328,9 @@ class SummarizeCNVs {
     
     Regions run(List exportSamples) {
         
+        if(this.genelists)
+            this.parseGenelists()
+        
         if(this.dgvFile)
             this.cnvAnnotator = new TargetedCNVAnnotator(targetRegions, dgvFile)
         
@@ -294,17 +349,35 @@ class SummarizeCNVs {
             Regions sampleCnvs = extractSampleCnvs(s)
             for(cnv in sampleCnvs) {
                 log.info "Merging CNV $cnv for sample '$s' type = $cnv.type"
-
                 results.addRegion(cnv)
             }
         }
         
         // Second phase annotation (annotations that depend on the annotations 
         // created in 1st phase
-        
         metaAnnotate(results)
         
         return results
+    }
+    
+    /**
+     * Parse files that list gene symbols with optional tab separated priority
+     */
+    void parseGenelists() {
+        
+        // Global categories
+        this.geneCategories = [:]
+        
+        // Per gene-list categories
+        this.genelistCategories = [:]
+        this.genelists.each { name, file -> 
+            Map glCats = genelistCategories[name] = [:]
+            new File(file).readLines()*.tokenize('\t').collect { [it[0], it[1]?.toInteger()?:1]}.each { gene, cat ->
+               geneCategories[gene] = Math.max(cat, geneCategories.get(gene,cat))
+               glCats[gene] = cat
+            }
+            log.info "Read ${glCats.size()} genes from $file"
+        }
     }
     
     void metaAnnotate(Regions results) {
@@ -365,7 +438,7 @@ class SummarizeCNVs {
     
     void writeJSON(Regions cnvs, String fileName) {
         
-        log.info "Writing TSV report to $fileName"
+        log.info "Writing JSON report to $fileName"
         
         List<String> cnvCallers = results.keySet() as List
         Map<String,String> anno_types = [ "DEL" : "LOSS", "DUP" : "GAIN" ]
@@ -380,7 +453,7 @@ class SummarizeCNVs {
         new File(fileName).withWriter { w ->
             
             List<String> columnNames = 
-                       ["chr","start","end","targets","sample","genes", "type","count","stotal","sampleCount","sampleFreq"] + 
+                       ["chr","start","end","targets","sample","genes","category", "type","count","stotal","sampleCount","sampleFreq"] + 
                        (cnvAnnotator ? ["spanning","spanningFreq"] : []) +
                        cnvCallers + 
                        cnvCallers.collect { it+"_qual" }
@@ -399,6 +472,7 @@ class SummarizeCNVs {
                     cnv.targets,
                     cnv.sample,
                     cnv.genes,
+                    cnv.category,
                     cnv.type, 
                     cnv.count, 
                     cnv.stotal, 
@@ -482,7 +556,8 @@ class SummarizeCNVs {
                     js : renderedAssets,
                     bam_files : bamFiles,
                     bam_file_path : bamFilePath,
-                    idMask: idMask
+                    idMask: idMask,
+                    geneCategories: geneCategories
                 ).writeTo(w)
             }
         }
@@ -568,6 +643,13 @@ class SummarizeCNVs {
             }
         }
         
+        if(this.minimumCategory > 0) {
+            if(!cnv.category)
+                return true
+            if(cnv.category<this.minimumCategory)
+                return true
+        }
+        
         return false
     }
     
@@ -624,15 +706,23 @@ class SummarizeCNVs {
         cnv.sample = sample
             
         cnv.count = callers.grep { it != "truth" }.count { cnv[it] != null } 
-            
+        
+        List<String> genes
         if(refGenes != null) {
             log.info "Annotating $cnv using RefGene database"
-            cnv.genes = refGenes.getGenes(cnv).join(",")
+            genes = refGenes.getGenes(cnv)
         }
         else {
-            cnv.genes = targetRegions.getOverlaps(cnv)*.extra.unique().join(",")
+            genes = targetRegions.getOverlaps(cnv)*.extra.unique()
         }
         
+        cnv.genes=genes.join(",")
+        
+        if(genelists) {
+            Map<String,Integer> categories = this.genelistCategories.get(sample, this.geneCategories /* global */)
+            cnv.category = genes.collect { categories[it] }.grep { it != null }.max()
+        }
+            
         // Annotate the variants if we have a VCF for this sample
         if(variants[sample]) {
             int sampleIndex = variants[sample][0].extra.header.samples.indexOf(sample)

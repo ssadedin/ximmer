@@ -416,6 +416,12 @@ class Ximmer {
         String toolsPath = new File("$ximmerBase/eval/pipeline/tools").absolutePath
         String ximmerSrc = new File("$ximmerBase/src/main/groovy").absolutePath
         
+        List minCatOpt = []
+        def minimumCategory = cfg.genelists.filter.get('minimum_category',false)
+        if(minimumCategory) {
+            minCatOpt = ["-p", "minimum_category=$minimumCategory"]
+        }
+        
         List<String> bpipeCommand = [
                 "bash",
                 bpipe.absolutePath,
@@ -431,7 +437,7 @@ class Ximmer {
                 "-p", "target_bed=$targetRegionsPath", 
                 "-p", /sample_id_mask="$sampleIdMask"/, 
                 "-p", "imgpath=${runDir.name}/#batch#/report/", 
-            ] + excludeRegionsParam + geneFilterParam + excludeGenesParam + drawCnvsParam + [
+            ] + this.geneListParameters + minCatOpt + excludeRegionsParam + geneFilterParam + excludeGenesParam + drawCnvsParam + [
                 "$ximmerBase/eval/pipeline/exome_cnv_pipeline.groovy"
             ]  + bamFiles + vcfFiles + (enableTruePositives ? ["true_cnvs.bed"] : [])
             
@@ -463,6 +469,18 @@ class Ximmer {
         } 
         
         return batches
+    }
+    
+    List<String> getGeneListParameters() {
+        return cfg.genelists.collect { name, filePath ->
+            if(name == 'filter')
+                return null
+            File file = new File(filePath)
+            if(!file.exists())
+                throw new IllegalArgumentException("The file given for gene list $name could not be found")
+                
+            ["-p", "genelist:$name=${file.absolutePath}"]
+        }.grep { it != null }.sum()
     }
     
     /**

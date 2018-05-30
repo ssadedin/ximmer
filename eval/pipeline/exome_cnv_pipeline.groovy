@@ -45,6 +45,8 @@ else {
 }
 */
 
+
+
 println "=" * bpipe.Config.config.columns 
 
 println """
@@ -61,6 +63,17 @@ println "=" * bpipe.Config.config.columns
 // println "Parsing samples from " + args
 
 sample_info = SampleInfo.fromFiles(args)
+
+genelist_ids = this.binding.parameters.grep { it.startsWith('genelist:') }.collect { it.replaceAll('^genelist:','') }
+genelists = [:]
+for(gl in genelist_ids) {
+    genelists[gl] = this['genelist:'+gl]
+    if(!file(genelists[gl]).exists())
+        throw new IllegalArgumentException("File provided for gene list $gl does not exist: ${genelists[gl]}")
+}
+
+if(!genelists.isEmpty())
+    println "The following genelists were provided: $genelist_ids"
 
 // Can be overridden from command line
 target_samples = sample_info.keySet()

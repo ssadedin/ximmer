@@ -293,6 +293,39 @@ Example:
 gene_filter="/home/ximmer/genes/gene_list.txt
 ```
 
+## Gene Lists
+
+More advanced filtering and ranking of genes can be set up using gene lists. A gene 
+list is a list of gene symbols, with each symbol accompanied by a number indicating 
+its priority, which is typically in the range 1 - 4. 
+
+You can assign multiple gene lists in a `genelists` section. Each gene list is identified
+by symbol which should be a short sequence of upper case letters, which should be assigned 
+to a path to a file that defines the gene symbols and priorities (also called "categories"),
+separated by tab characters.
+
+```
+genelists {
+   CARDIAC='/home/simon/genelists/cardiac_genes.txt'
+}
+```
+
+## Filtering Results Based on Genelists
+
+By default, setting a gene list only causes genes to be highlighted and searchable 
+by category in the user interface. However you can also completely exclude genes that 
+are not of interest from appearing in your results. To do this, set a minimum category
+by adding a `filter` section to your genelists:
+
+```
+genelists {
+   CARDIAC='/home/simon/genelists/cardiac_genes.txt'
+   filter {
+     miminum_category=1
+   }
+}
+```
+
 
 ## Minimal Complete Configuration Example
 

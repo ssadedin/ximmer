@@ -143,7 +143,7 @@
                   };
                 
                   return [ chr : cnv.chr, start: cnv.from, end: cnv.to ] + 
-                      ['targets','sample','type','count','stotal','sampleCount','sampleFreq'].collectEntries { [it, cnv.getProperty(it)] } +
+                      ['targets','sample','type','count','stotal','category','sampleCount','sampleFreq'].collectEntries { [it, cnv.getProperty(it)] } +
                       [ genes : cnv.genes ? cnv.genes.split(",") : [] ] +
                       cnv_callers.collect { caller -> 
                           if(cnv[caller])
@@ -168,6 +168,8 @@
             var bams = <%=groovy.json.JsonOutput.toJson(sample_bams)%>;            
             
             var imgpath = "$imgpath";
+            
+            var defaultGeneList = <%=groovy.json.JsonOutput.toJson(geneCategories)%>;            
         </script>
         <%=js%>
     </head>

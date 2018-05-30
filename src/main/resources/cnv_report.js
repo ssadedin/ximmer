@@ -125,7 +125,7 @@ var cnvLayout = null;
 var cnvIndex = -1;
 
 
-var geneList = {};
+var geneList = defaultGeneList;
 
 var allTags = [];
 var userAnnotations = { 
@@ -313,6 +313,14 @@ $(document).ready(function() {
             $('#dialog').jqm();
             $('#dialog').jqmShow();
         });
+        $button('Reset Lists').click(function() {
+            if(!confirm('Reset gene lists to defaults?'))
+                return
+            geneList = defaultGeneList
+            updateGeneList()
+            saveSettings()
+            filterTable()
+        })
 
         $button('Save As').click(function() {
             var saveName = prompt('Please enter a name to save your filters and tags with: ','');
@@ -481,9 +489,13 @@ function loadSettings(oldSettings) {
     filterTable();
 }
 
+function getGeneCategory(gene) {
+    return geneList[gene] ? geneList[gene] : 0;  
+}
+
 function updateGeneList() {
-    for(var i=0; i<cnvs.length; ++i) {
-        cnvs[i].category = Math.max.apply(Math, cnvs[i].genes.map(function(gene) { return geneList[gene] ? geneList[gene] : 0; } ) )
+    for(var cnv of cnvs) {
+        cnv.category = Math.max.apply(null, cnv.genes.map(getGeneCategory))
     }
 }
 

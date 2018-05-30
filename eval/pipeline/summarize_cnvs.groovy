@@ -93,6 +93,7 @@ create_cnv_report = {
         sample_id_mask : false,
         gene_filter: '',
         exclude_genes: '',
+        minimum_category: false,
         file_name_prefix : "" ] + 
             batch_cnv_results*.key.collectEntries {  caller_label ->
                 [ caller_label + '_quality_filter', false ]
@@ -121,6 +122,11 @@ create_cnv_report = {
     
     def geneFilterOpts = gene_filter ? " -genefilter $gene_filter " : ''
     def excludeGenesOpts = exclude_genes ? " -exgenes $exclude_genes " : ''
+    def geneListOpts = genelists.collect { name, f -> 
+        "-genelist $name=${file(f).absolutePath}"
+    }.join(' ')
+    
+    def minCatOpt = minimum_category ? "-mincat $minimum_category " : ""
         
     produce("${file_name_prefix}cnv_report.html", "${file_name_prefix}cnv_report.tsv", "${file_name_prefix}combined_cnvs.json") {
 
@@ -135,7 +141,7 @@ create_cnv_report = {
                 -target $target_bed ${caller_opts.join(" ")} $refGeneOpts
                 ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} -bampath "$bam_file_path"
                 -tsv $output.tsv -json $output.json ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""}
-                -idmask '$sample_id_mask' $geneFilterOpts $excludeGenesOpts
+                -idmask '$sample_id_mask' $geneFilterOpts $excludeGenesOpts $geneListOpts $minCatOpt
                 -dgv $DGV_CNVS $true_cnvs
                 ${batch_quality_params.join(" ")} -o $output.html 
                 ${batch_name ? "-name $batch_name" : ""} ${inputs.bam.withFlag('-bam')}
