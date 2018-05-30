@@ -480,7 +480,7 @@ class Ximmer {
                 throw new IllegalArgumentException("The file given for gene list $name could not be found")
                 
             ["-p", "genelist:$name=${file.absolutePath}"]
-        }.grep { it != null }.sum()
+        }.grep { it != null }.sum()?:[]
     }
     
     /**
