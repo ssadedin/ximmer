@@ -167,6 +167,8 @@ xhmm_normalize = {
 
 xhmm_filter_normalized = {
     doc "Filters and z-score centers (by sample) the PCA-normalized data"
+    
+    var max_sd_target_rd : 30
 
     transform("zscored","excluded.targets","excluded.samples") {
         exec """
@@ -174,7 +176,7 @@ xhmm_filter_normalized = {
                 -o $output.zscored                
                 --outputExcludedTargets $output.targets
                 --outputExcludedSamples $output.samples
-                --maxSdTargetRD 30
+                --maxSdTargetRD $max_sd_target_rd
         """
     }
 }

@@ -149,24 +149,25 @@ is *inferred* from the prefix `xhmm_` for the label of each individual block
 within the analyses. The configuration parameters themselves are specified within each 
 block and are specific to each caller (see table).
 
-| Caller     | Parameter              | Description                                   | Example / Default |
-|------------|------------------------|-----------------------------------------------|-------------------|
-| ExomeDepth | transition_probability |                                               | 10e-4             |
-|            | expected_cnv_length    |                                               | 50000             |
-|            |                        |                                               |                   |
-| XHMM       | exome_wide_cnv_rate    |                                               | 10e-8             |
-|            | xhmm_pve_mean_factor   |                                               | 0.7               |
-|            |                        |                                               |                   |
-| Conifer    | conifer_svd_num        |                                               |                   |
-|            | conifer_call_threshold |                                               |                   |
-|            |                        |                                               |                   |
-| cn.MOPs    | prior_impact           | Weighting of prior probability of CNV         | 10                |
-|            | min_width              | Min target regions to call a CNV              | 5                 |
-|            | lower_threshold        | Affects threshold on coverage for CNV calling | -0.8              |
-|            | panel_type             | Sets a range of parameters for panel vs exome | exome (or blank)  |
-|            |                        |                                               |                   |
-| CODEX      | k_offset               | Adjusts CODEX's preferred k by given amount   | 0                 |
-|            | max_k                  | Sets the maximum value of k to be tried       |                   |
+| Caller     | Parameter              | Description                                                                              | Example / Default |
+|------------|------------------------|------------------------------------------------------------------------------------------|-------------------|
+| ExomeDepth | transition_probability |                                                                                          | 10e-4             |
+|            | expected_cnv_length    |                                                                                          | 50000             |
+|            |                        |                                                                                          |                   |
+| XHMM       | exome_wide_cnv_rate    | prior probability of CNV in genome                                                       | 10e-8             |
+|            | xhmm_pve_mean_factor   | fraction of variation to remove by normalisation                                         | 0.7               |
+|            | max_sd_target_rd       | maximum cov standard deviation for target                                                | 30                |
+|            |                        |                                                                                          |                   |
+| Conifer    | conifer_svd_num        |                                                                                          |                   |
+|            | conifer_call_threshold |                                                                                          |                   |
+|            |                        |                                                                                          |                   |
+| cn.MOPs    | prior_impact           | Weighting of prior probability of CNV                                                    | 10                |
+|            | min_width              | Min target regions to call a CNV                                                         | 5                 |
+|            | lower_threshold        | Affects threshold on coverage for CNV calling                                            | -0.8              |
+|            | panel_type             | Sets a range of parameters for panel vs exome                                            | exome (or blank)  |
+|            |                        |                                                                                          |                   |
+| CODEX      | k_offset               | Adjusts CODEX's preferred k by given amount                                              | 0                 |
+|            | max_k                  | Sets the maximum value of k to be tried. For small panels or sample nubmers, adjust down |                   |
 
 ## Filtering by quality
 
