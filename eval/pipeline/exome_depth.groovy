@@ -10,7 +10,14 @@ run_exome_depth = {
             sample_names : "List of sample names to process (comma separated, or List object)"
 
     var transition_probability : "0.0001",
-        expected_cnv_length: 50000
+        expected_cnv_length: 50000,
+        filter_target_bed : true
+        
+        
+    def target_region_to_use = analysable_target
+    if(!filter_target_bed) {
+        target_region_to_use = target_bed
+    }
 
     def chr = branch.name
     
@@ -32,8 +39,8 @@ run_exome_depth = {
             hg19.fasta = "$HGFA"
 
             # Read the target / covered region
-            print(sprintf("Reading target regions for $chr from $analysable_target"))
-            dsd.covered = read.bed(pipe("grep '^$chr[^0-9]' $analysable_target"))
+            print(sprintf("Reading target regions for $chr from $target_region_to_use"))
+            dsd.covered = read.bed(pipe("grep '^$chr[^0-9]' $target_region_to_use"))
 
             # ExomeDepth wants the columns named differently
             dsd.covered = data.frame(
