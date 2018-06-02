@@ -158,8 +158,8 @@ block and are specific to each caller (see table).
 |            | xhmm_pve_mean_factor   | fraction of variation to remove by normalisation                                         | 0.7               |
 |            | max_sd_target_rd       | maximum cov standard deviation for target                                                | 30                |
 |            |                        |                                                                                          |                   |
-| Conifer    | conifer_svd_num        |                                                                                          |                   |
-|            | conifer_call_threshold |                                                                                          |                   |
+| Conifer    | conifer_svd_num        | Number of SVG / PCA components to remove in normalisation                                | 2                 |
+|            | conifer_call_threshold | Z-score threshold at which CNVs are called                                               |                   |
 |            |                        |                                                                                          |                   |
 | cn.MOPs    | prior_impact           | Weighting of prior probability of CNV                                                    | 10                |
 |            | min_width              | Min target regions to call a CNV                                                         | 5                 |
