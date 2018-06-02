@@ -464,15 +464,25 @@ class Ximmer {
     }
     
     List<String> getGeneListParameters() {
-        return cfg.genelists.collect { name, filePath ->
+        List glParams = cfg.genelists.collect { name, filePath ->
             if(name == 'filter')
                 return null
+                
+            if(name == 'sample_map')
+                return null                
+                
             File file = new File(filePath)
             if(!file.exists())
                 throw new IllegalArgumentException("The file given for gene list $name could not be found")
                 
             ["-p", "genelist:$name=${file.absolutePath}"]
         }.grep { it != null }.sum()?:[]
+        
+        List sampleMapParams = []
+        if('sample_map' in cfg.genelists) {
+            sampleMapParams = ["-p", "sample_map=$cfg.genelists.sample_map"]
+        }
+        return glParams + sampleMapParams
     }
     
     /**

@@ -72,7 +72,7 @@ class SummarizeCNVs {
     /**
      * If genelists have been assigned per sample, they are mapped here
      */
-    Map<String, String> sampleToGenelist
+    Map<String, String> sampleToGenelist = [:]
     
     Map<String,String> genelists
     
@@ -718,9 +718,18 @@ class SummarizeCNVs {
         
         cnv.genes=genes.join(",")
         
+        log.info "Gene lists are: $genelists"
         if(genelists) {
-            Map<String,Integer> categories = this.genelistCategories.get(sample, this.geneCategories /* global */)
+            String sampleGenelist = this.sampleToGenelist[sample]
+            
+            Map<String,Integer> categories = sampleGenelist ? 
+                this.genelistCategories.get(sampleGenelist, this.geneCategories /* global */)
+            :
+                this.geneCategories 
+            
             cnv.category = genes.collect { categories[it] }.grep { it != null }.max()
+            
+            log.info "CNV $cnv assigned category $cnv.category based on $genes"
         }
             
         // Annotate the variants if we have a VCF for this sample

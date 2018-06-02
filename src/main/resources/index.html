@@ -24,11 +24,12 @@
             var analysisConfig = <%=groovy.json.JsonOutput.toJson(analysisConfig)%>;
             var config = <%=groovy.json.JsonOutput.toJson(config.toProperties())%>;
             var callerIdMap = <%=groovy.json.JsonOutput.toJson(callerIdMap)%>;
+            var defaultGeneList = {};
         </script>
         
         ${assets}
         
-        <script type='text/javascript' src="http://cdn.datatables.net/1.10.0/js/jquery.dataTables.js"></script>
+        <script type='text/javascript' src="jquery.dataTables.min.js"></script>
         
         <script>
         var require = { 
