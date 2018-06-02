@@ -282,8 +282,7 @@ h3.qualCalTitle {
  
  .filterSettings {
      margin-left: 100px;
-     padding: 0 5px 5px 5px 5px;
-     width: 540px;
+     width: 620px;
      border: 1px solid #aaa;
  }
  
@@ -296,12 +295,18 @@ h3.qualCalTitle {
  
  .filterSettings h4 {
     font-size: 12px;
+    padding-left: 0;
  }
  
  .filterSettings .header {
     background-color: #f0f0f0;
     padding-bottom: 2px;
  }
+ 
+ .filterSettings .context {
+    padding-left: 10px;
+ }
+  
  
  .sliderLabel {
     font-size: 10px;
@@ -313,6 +318,15 @@ h3.qualCalTitle {
  
  #downloadROCExport {
     display: none;
+ }
+ 
+ .combx_checkbox {
+    display: block;
+    margin: 0 0 1em 0;
+ }
+ 
+ .subCheckList {
+    margin-left: 2em;
  }
  
  

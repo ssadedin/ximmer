@@ -14,6 +14,8 @@ define(["vue","nv.d3","N3Components.min"], function(Vue, nvd3, N3Components) {
              * cnvs - a map keyed on caller id with values being the calls
              */
             this.rawCnvs = props.cnvs;
+            if(!this.rawCnvs)
+                return
             this.maxFreq = props.maxFreq ? props.maxFreq : MAX_RARE_CNV_FREQ;
             this.sizeRange = props.sizeRange;
             this.targetRange = props.targetRange;
@@ -30,6 +32,119 @@ define(["vue","nv.d3","N3Components.min"], function(Vue, nvd3, N3Components) {
             
             if(!this.rawCnvs.truth) 
                 throw new Error("ROC Curve requires true positives specified in CNV calls as 'truth' property")
+        }
+        
+        /**
+         * Calculate a set of CNVs that includes all the CNVs from all the callers.
+         * The calls are ranked according to the highest rank given by any caller
+         */
+        calculateCombinations(cnvs) {
+            let union = []
+            let intersect = []
+            
+//            let callerMap = this.computeCallerLabelMap()
+            
+            let intersectCallerWeights = window.model.analysisConfig.callerIds.reduce((acc,c) => { 
+                acc[callerIdMap[c]] = model.rocIntersectCallers.indexOf(c)>=0?1:0
+                return acc;
+             }, {})
+                
+            let unionCallerWeights = window.model.analysisConfig.callerIds.reduce((acc,c) => {
+                acc[callerIdMap[c]] = model.rocUnionCallers.indexOf(c)>=0?1:0
+                return acc;
+            }, {})
+             
+            let callers = Object.keys(cnvs)
+            let maxCallIndex = Math.max.apply(null, 
+                    Object.values(cnvs).map(callerCnvs => callerCnvs.length))
+            
+            // Ensure any previous flags indicating  CNV was included in unioning are removed
+            let cnvLists = Object.values(cnvs)
+            cnvLists.forEach(callerCnvList => {
+                callerCnvList.forEach(cnv =>  { cnv.unioned = false; cnv.intersected=false })
+            })
+            
+            for(var rank=0; rank<maxCallIndex; ++rank) {
+                // cnvLists.map(callerCnvs => callerCnvs[rank] || null).filter(cnv => cnv != null)
+                callers.forEach(caller => {
+                    let cnv = cnvs[caller][rank]
+                    if(!cnv)
+                        return
+                        
+                    if(!cnv.unioned) {
+                        if(unionCallerWeights[caller]) {
+                            cnv.unioned = true
+                            union.push(Object.assign({},cnv))
+                        }
+                    }
+                    
+                    
+                    // Make a new object, since the existing one belongs to its original
+                    // caller and will be used for its own ROC
+                    
+                   
+                    
+//                    else {
+//                        if(caller == 'xhmm')
+//                            console.log(cnv)
+//                    }
+                        
+                    // Mark any overlapping CNVs as already counted,
+                    // and count how many intersect
+                    let intersectCallerCount = 0
+                    
+//                    let unionCallerCounts = 0
+                    
+                    callers.forEach(otherCaller => {
+                        if(otherCaller == caller)
+                            return
+                        if(rank >= cnvs[caller].length)
+                            return
+                            
+                        let otherCnvs = cnvs[otherCaller]
+                        let otherCnvsLength = otherCnvs.length
+                        for(var otherRank=rank; otherRank<otherCnvsLength; ++otherRank) {
+                            let otherCall = otherCnvs[otherRank]
+                            if(otherCall.sample != cnv.sample)
+                                continue
+                                
+                            if(otherCall.range.overlaps(cnv.range)) {
+                                
+                                if(unionCallerWeights[caller] && unionCallerWeights[otherCaller]) {
+                                    otherCall.unioned = true
+//                                    unionCallerCounts += unionCallerWeights[otherCaller] // 0 or 1 depending if user selected it
+                                }
+                                    
+                                if(!otherCall.intersected && intersectCallerWeights[otherCaller]) {
+                                    if(intersectCallerWeights[caller])
+                                        otherCall.intersected = true
+                                    intersectCallerCount += intersectCallerWeights[otherCaller] // 0 or 1 depending if user selected it
+                                }
+                            }
+                        }
+                    })
+                    
+                    if(!cnv.intersected) {
+                        if(intersectCallerWeights[caller] && (intersectCallerWeights[caller]  + intersectCallerCount == model.rocIntersectCallers.length)) {
+                            intersect.push(Object.assign({},cnv))
+                        }
+                    }
+                })
+            }
+            
+            return { union: union, intersect: intersect };
+        }
+        
+        calculateIntersection(cnvs) {
+            let intersect = []
+            let callers = Object.keys(cnvs)
+            let maxCallIndex = Math.max.apply(null, Object.values(cnvs).map(callerCnvs => callerCnvs.length))
+            
+            // Ensure any previous flags indicating  CNV was included in unioning are removed
+            let cnvLists = Object.values(cnvs)
+            cnvLists.forEach(callerCnvList => {
+                callerCnvList.forEach(cnv => cnv.intersected = false)
+            })            
         }
         
         computeROCStats(cnvs,truthSet) {
@@ -86,6 +201,9 @@ define(["vue","nv.d3","N3Components.min"], function(Vue, nvd3, N3Components) {
         
         render(id) {
             
+            if(!this.rawCnvs)
+                return
+            
             this.filteredCnvs = model.filterCNVs(true)
             
             let rawCnvs = this.rawCnvs;
@@ -117,6 +235,22 @@ define(["vue","nv.d3","N3Components.min"], function(Vue, nvd3, N3Components) {
                 
             // Now iterate through each caller's CNVs and compute the number of true and false positives
             Object.values(this.filteredCnvs).forEach((cnvs) => this.computeROCStats(cnvs,filteredTruth));
+            
+            if(model.rocComboOptions.length>0) {
+                console.log('Calculating combinations')
+                let combos = 
+                       this.calculateCombinations(this.filteredCnvs)
+                       
+                if(model.rocComboOptions.indexOf('union')>=0) {
+                    this.filteredCnvs.union = combos.union
+                    this.computeROCStats(this.filteredCnvs.union,filteredTruth)
+                }
+                if(model.rocComboOptions.indexOf('intersection')>=0) {
+                    this.filteredCnvs.intersect = combos.intersect
+                    this.computeROCStats(this.filteredCnvs.intersect,filteredTruth)
+                }
+                    
+            }
             
             let callerLabels = this.computeCallerLabelMap()
            
@@ -229,6 +363,18 @@ define(["vue","nv.d3","N3Components.min"], function(Vue, nvd3, N3Components) {
             
             callSizeRange: _.debounce(function() {
                 this.renderPlot()
+            },1000),
+            
+            rocComboOptions: _.debounce(function() {
+                this.renderPlot()
+            },1000),
+            
+            rocIntersectCallers: _.debounce(function() {
+                this.renderPlot()
+            },1000) ,
+            
+            rocUnionCallers: _.debounce(function() {
+                this.renderPlot()
             },1000)  
         },
         
@@ -259,6 +405,7 @@ define(["vue","nv.d3","N3Components.min"], function(Vue, nvd3, N3Components) {
             
             formatTargetsTooltip: function(x) {
                 return this.targetStops(x[0]) + " - " + this.targetStops(x[1])
+            
             },
             
             renderPlot: function() {
@@ -315,15 +462,18 @@ define(["vue","nv.d3","N3Components.min"], function(Vue, nvd3, N3Components) {
                      </n3-row>
                      
                      <n3-row>
-                          <n3-column :col="6" class="context">
+                          <n3-column :col="4" class="context">
                               <h4>True Positives</h4>
                          </n3-column>
-                          <n3-column :col="6" class="context">
+                          <n3-column :col="4" class="context">
                               <h4>CNV Calls</h4>
                          </n3-column>
+                         <n3-column :col="4" class="context">
+                              <h4>Combinations</h4>
+                         </n3-column> 
                      </n3-row> 
                      <n3-row>
-                          <n3-column :col="6" class="context">
+                          <n3-column :col="4" class="context">
                               <div id=newsizerange>
                                   <div id=size_slider_label2 class='sliderLabel'>
                                      Size Range: {{sizeValue(sizeRange[0])}} - {{sizeValue(sizeRange[1])}} 
@@ -339,7 +489,7 @@ define(["vue","nv.d3","N3Components.min"], function(Vue, nvd3, N3Components) {
                                              :range="true" :min=0 :max=7 :width='sliderwidth'></n3-slider>
                               </div>
                           </n3-column>
-                          <n3-column :col="6">
+                          <n3-column :col="4">
                               <div id=newsizerange>
                                   <div id=size_slider_label2 class='sliderLabel'>
                                      Size Range: {{sizeValue(callSizeRange[0])}} - {{sizeValue(callSizeRange[1])}} 
@@ -355,9 +505,31 @@ define(["vue","nv.d3","N3Components.min"], function(Vue, nvd3, N3Components) {
                                         :range="true" :min=0 :max=7 :width='sliderwidth'></n3-slider>
                               </div>                          
                           </n3-column>                
+                          <n3-column :col="4">
+                              <n3-checkbox-group v-model="rocComboOptions">
+                                <div>
+                                    <n3-checkbox class='combx_checkbox' label="union">Union</n3-checkbox>
+                                    <n3-checkbox-group v-model="rocUnionCallers" v-if='rocComboOptions.indexOf("union")>=0'>
+                                    <div class='subCheckList'>
+                                        <n3-checkbox v-for='caller in analysisConfig.callerIds' class='combx_checkbox' :label="caller">{{caller}}</n3-checkbox>
+                                    </div>
+                                  </n3-checkbox-group>  
+                                    
+                                    <n3-checkbox class='combx_checkbox' label="intersection">Intersection</n3-checkbox>
+                                    
+                                    <n3-checkbox-group v-model="rocIntersectCallers" v-if='rocComboOptions.indexOf("intersection")>=0'>
+                                    <div class='subCheckList'>
+                                        <n3-checkbox v-for='caller in analysisConfig.callerIds' class='combx_checkbox' :label="caller">{{caller}}</n3-checkbox>
+                                    </div>
+                                  </n3-checkbox-group> 
+                                </div>
+                              </n3-checkbox-group>
+                         </n3-column>  
                       </n3-row>            
                 </n3-container>
+                
             </div>
+        
           </div>
         `
     })

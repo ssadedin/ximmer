@@ -259,13 +259,16 @@ function activatePanel(panelId) {
 }
 
 window.model = {
-   analysisconfig: analysisConfig,
+   analysisConfig: analysisConfig,
    cnv_calls: {},
    targetRange: [0,7],
    sizeRange: [0,7],
    callSizeRange: [0,7],
    callTargetRange: [0,7],
    maxFreq : MAX_RARE_CNV_FREQ,
+   rocComboOptions: [],
+   rocIntersectCallers: analysisConfig.callerIds.slice(0),
+   rocUnionCallers: analysisConfig.callerIds.slice(0),
    
    /**
     * Lists of excluded samples, keyed by caller id
