@@ -911,7 +911,7 @@ class Ximmer {
         
         simulator.createBam(outputFile.absolutePath, deletions)
         
-        SAM.index(bamFile)
+        SAM.index(outputFile)
         
         deletions.save(bedFile.absolutePath)
         new File(bedFile.absolutePath + ".tmp").delete()
