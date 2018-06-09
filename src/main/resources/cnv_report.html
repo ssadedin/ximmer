@@ -129,7 +129,7 @@
         
         <script type='text/javascript'>
             <% log.println "Writing cnv json" %>
-            var idMask = <%=idMask != null ? ("'" + idMask + "'") : null%>;
+            var idMask = <%=idMask ? ("'" + idMask + "'") : null%>;
             var cnvs = <%=groovy.json.JsonOutput.toJson(
                 cnvs.collect { cnv ->
                   def variantInfo = [:];

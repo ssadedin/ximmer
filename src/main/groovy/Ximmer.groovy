@@ -66,6 +66,9 @@ class Ximmer {
     
     File outputDirectory = null
     
+    /**
+     * Map of the input BAM files, keyed by sample id 
+     */
     Map<String, SAM> bamFiles = [:]
     
     Pedigrees pedigrees = null
@@ -187,6 +190,8 @@ class Ximmer {
         this.cacheReferenceData()
         
         this.targetRegion = new BED(cfg.target_regions).load().reduce()
+        
+        this.initialiseRuns()
 
         this.simulate()
         
@@ -284,12 +289,6 @@ class Ximmer {
      */
     void simulate() {
         
-        this.runs = SimulationRun.configureRuns(this.outputDirectory, this.runDirectoryPrefix, cfg)
-        
-        this.enableTruePositives = this.enableSimulation ||  this.runs.every { it.value.knownCnvs != null  }
-        
-        this.bamFiles = this.runs.collect { it.value.bamFiles }.sum()
-        
         if(this.enableSimulation && cfg.simulation_type == "replace") {
             this.resolvePedigrees()
         }
@@ -298,6 +297,15 @@ class Ximmer {
             processRun(run)
         }
     }
+    
+    void initialiseRuns() {
+        this.runs = SimulationRun.configureRuns(this.outputDirectory, this.runDirectoryPrefix, cfg)
+        
+        this.enableTruePositives = this.enableSimulation ||  this.runs.every { it.value.knownCnvs != null  }
+        
+        this.bamFiles = this.runs.collect { it.value.bamFiles }.sum()
+    }
+    
     
     void processRun(SimulationRun run) {
         File runDir = run.runDirectory

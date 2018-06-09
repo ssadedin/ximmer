@@ -5,15 +5,6 @@ init_chr = {
    branch.chromosome = branch.name
 }
 
-extract_sample_files = {
-    requires sample_info : "Sample meta data object"
-    var sample : branch.name
-    branch.sample = sample
-    branch.sample_info = sample_info
-    println "Processing files for sample $sample : " + branch.sample_info[sample].files.all
-    forward branch.sample_info[sample].files.all
-}
-
 extract_cnv_regions = {
     doc """"
         Extracts regions where CNVs were called from a BAM file, based on the 
@@ -61,8 +52,9 @@ plot_cnv_coverage = {
             caller_opts << "-$caller $caller_label:$resultsEntry.value"
         }
               
-        if(simulation) 
+        if(simulation)  {
             caller_opts << "-generic truth:$input.true_cnvs.bed"
+        }
                  
         exec """
             unset GROOVY_HOME 
@@ -82,6 +74,9 @@ plot_cnv_coverage = {
 }
 
 create_cnv_report = {
+    
+    requires refgene : 'Path to RefGene database',
+             DGV_CNVS : 'Path to dgvMerged file downloaded from UCSC'
 
     var ([ angel_quality_threshold : 8.0f,
         batch_name : false,
@@ -130,12 +125,15 @@ create_cnv_report = {
     def sampleMapParam = sample_map ? "-samplemap $sample_map" : "" 
     
     def minCatOpt = minimum_category ? "-mincat $minimum_category " : ""
+    
+    def idMaskOpt = sample_id_mask ? "-idmask '$sample_id_mask'" : ""
         
     produce("${file_name_prefix}cnv_report.html", "${file_name_prefix}cnv_report.tsv", "${file_name_prefix}combined_cnvs.json") {
 
         def true_cnvs = ""
-        if(simulation) 
+        if(simulation) {
             true_cnvs = "-truth $input.true_cnvs.bed"
+        }
         
         exec """
             unset GROOVY_HOME
@@ -144,8 +142,7 @@ create_cnv_report = {
                 -target $target_bed ${caller_opts.join(" ")} $refGeneOpts
                 ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} -bampath "$bam_file_path"
                 -tsv $output.tsv -json $output.json ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""}
-                -idmask '$sample_id_mask' $geneFilterOpts $excludeGenesOpts $geneListOpts $minCatOpt $sampleMapParam
-                -dgv $DGV_CNVS $true_cnvs
+                -dgv $DGV_CNVS $true_cnvs $idMaskOpt $geneFilterOpts $excludeGenesOpts $geneListOpts $minCatOpt $sampleMapParam
                 ${batch_quality_params.join(" ")} -o $output.html 
                 ${batch_name ? "-name $batch_name" : ""} ${inputs.bam.withFlag('-bam')}
         """, "create_cnv_report"
