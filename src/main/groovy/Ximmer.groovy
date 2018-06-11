@@ -562,7 +562,8 @@ class Ximmer {
         
        
         List<String> callerCfgs = []
-        for(String key in analysisConfig.keySet()) {
+        List configKeys = analysisConfig.keySet() as List
+        for(String key in configKeys) {
             
             if(!(analysisConfig[key] instanceof ConfigObject)) {
                 throw new RuntimeException(
