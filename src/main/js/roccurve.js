@@ -54,7 +54,7 @@ define(["vue","nv.d3","N3Components.min","genomicranges"], function(Vue, nvd3, N
             
             const callerIdMap = [
                 [/^conifer_/, 'cfr_'],
-                [/^exomedepth_/,'cfr_'],
+                [/^exomedepth_/,'ed_'],
             ]
             
             let cnvLists = Object.values(cnvs)
