@@ -40,6 +40,7 @@ class SummaryReport {
         'summary_report.js',
         'N3Components.min.js',
         'roccurve.js',
+        'genomicranges.js',
         'require.js',
     ]
     

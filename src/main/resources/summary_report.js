@@ -267,8 +267,8 @@ window.model = {
    callTargetRange: [0,7],
    maxFreq : MAX_RARE_CNV_FREQ,
    rocComboOptions: [],
-   rocIntersectCallers: analysisConfig.callerIds.slice(0),
-   rocUnionCallers: analysisConfig.callerIds.slice(0),
+   rocIntersectCallers: analysisConfig.callerCfgs.slice(0),
+   rocUnionCallers: analysisConfig.callerCfgs.slice(0),
    
    /**
     * Lists of excluded samples, keyed by caller id
@@ -381,50 +381,51 @@ function createTabs() {
 }
 
 require(['jquery.layout.min', 'N3Components.min','vue','lodash.min', 'd3', 'nv.d3','roccurve','ximmer_qc'], 
-        function(jquery_layout, N3Components, Vue, lodash, d3js, nvd3, roccurve, ximmer_qc) {
-    
-    window.Vue = Vue;
-    
-    window.showSizeBreakdown = ximmer_qc.showSizeBreakdown
-    window.showQscores = ximmer_qc.showQscores
-    
-    $(document).ready(function() {
+    function(jquery_layout, N3Components, Vue, lodash, d3js, nvd3, roccurve, ximmer_qc) {
         
-       $('body').layout({ applyDefaultStyles: true });
-       layout = $('#innerLayout').layout({ applyDefaultStyles: true });
-       layout.sizePane("north",50); 
+        window.Vue = Vue;
         
-       console.log('Summary report init');
-       
-       console.log('Creating main vue: ' + Vue.hey)
-       vue = new Vue({
-           el: '#cnvsummarytabs',
+        window.showSizeBreakdown = ximmer_qc.showSizeBreakdown
+        window.showQscores = ximmer_qc.showQscores
+        
+        $(document).ready(function() {
+            
+           $('body').layout({ applyDefaultStyles: true });
+           layout = $('#innerLayout').layout({ applyDefaultStyles: true });
+           layout.sizePane("north",50); 
+            
+           console.log('Summary report init');
            
-           template: main_template,
-           
-           mounted: function() {
-               console.log('main template rendered')
+           console.log('Creating main vue: ' + Vue.hey)
+           vue = new Vue({
+               el: '#cnvsummarytabs',
                
-                // Calling tabs() directly doesn't seem to work
-                setTimeout(createTabs, 0);
-           },
-           
-           data: {
-               model: model
+               template: main_template,
+               
+               mounted: function() {
+                   console.log('main template rendered')
+                   
+                    // Calling tabs() directly doesn't seem to work
+                    setTimeout(createTabs, 0);
+               },
+               
+               data: {
+                   model: model
+               }
+           }) 
+        
+           if((window.location.hash != '') && (window.location.hash != '#')) {
+               let panelId = window.location.hash.replace(/^#/,'')
+               console.log('Loading panel ' + panelId + ' from hash')
+               activatePanel(panelId)
            }
-       }) 
-    
-       if((window.location.hash != '') && (window.location.hash != '#')) {
-           let panelId = window.location.hash.replace(/^#/,'')
-           console.log('Loading panel ' + panelId + ' from hash')
-           activatePanel(panelId)
-       }
-       
-       $(events).on("activate", (event,ui) => {
            
-           console.log("Activated in summary");
-           var panelId = ui.newPanel[0].id;
-           activatePanel(panelId)
-       }); 
-    })
- })
+           $(events).on("activate", (event,ui) => {
+               
+               console.log("Activated in summary");
+               var panelId = ui.newPanel[0].id;
+               activatePanel(panelId)
+           }); 
+        })
+    }
+)

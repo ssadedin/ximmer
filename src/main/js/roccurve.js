@@ -1,7 +1,7 @@
 
 // ----------------------------- ROC Curve Functions  ----------------------------------
 
-define(["vue","nv.d3","N3Components.min"], function(Vue, nvd3, N3Components) {
+define(["vue","nv.d3","N3Components.min","genomicranges"], function(Vue, nvd3, N3Components,genomicranges) {
     
     console.log("Register N3:")
     console.log(N3Components)
@@ -34,118 +34,96 @@ define(["vue","nv.d3","N3Components.min"], function(Vue, nvd3, N3Components) {
                 throw new Error("ROC Curve requires true positives specified in CNV calls as 'truth' property")
         }
         
-        /**
-         * Calculate a set of CNVs that includes all the CNVs from all the callers.
-         * The calls are ranked according to the highest rank given by any caller
-         */
         calculateCombinations(cnvs) {
+            
             let union = []
             let intersect = []
             
-//            let callerMap = this.computeCallerLabelMap()
-            
-            let intersectCallerWeights = window.model.analysisConfig.callerIds.reduce((acc,c) => { 
-                acc[callerIdMap[c]] = model.rocIntersectCallers.indexOf(c)>=0?1:0
+            let cfgLabels = window.model.analysisConfig.callerCfgs
+            let intersectCallerWeights = cfgLabels.reduce((acc,c) => { 
+                acc[c] = model.rocIntersectCallers.indexOf(c)>=0?1:0
                 return acc;
              }, {})
                 
-            let unionCallerWeights = window.model.analysisConfig.callerIds.reduce((acc,c) => {
-                acc[callerIdMap[c]] = model.rocUnionCallers.indexOf(c)>=0?1:0
+            let unionCallerWeights = cfgLabels.reduce((acc,c) => {
+                acc[c] = model.rocUnionCallers.indexOf(c)>=0?1:0
                 return acc;
-            }, {})
-             
-            let callers = Object.keys(cnvs)
-            let maxCallIndex = Math.max.apply(null, 
-                    Object.values(cnvs).map(callerCnvs => callerCnvs.length))
+            }, {})            
             
-            // Ensure any previous flags indicating  CNV was included in unioning are removed
+            // Clear any previous flags, and set ranks and caller ids
+            
+            const callerIdMap = [
+                [/^conifer_/, 'cfr_'],
+                [/^exomedepth_/,'cfr_'],
+            ]
+            
             let cnvLists = Object.values(cnvs)
-            cnvLists.forEach(callerCnvList => {
-                callerCnvList.forEach(cnv =>  { cnv.unioned = false; cnv.intersected=false })
+            let callerIds = Object.keys(cnvs)
+            
+            const unionCallers = model.rocUnionCallers.map(callerId => {
+                for(const mapping of callerIdMap) {
+                    callerId = callerId.replace(mapping[0],mapping[1])
+                }
+                return callerId
             })
             
-            for(var rank=0; rank<maxCallIndex; ++rank) {
-                // cnvLists.map(callerCnvs => callerCnvs[rank] || null).filter(cnv => cnv != null)
-                callers.forEach(caller => {
-                    let cnv = cnvs[caller][rank]
-                    if(!cnv)
-                        return
-                        
-                    if(!cnv.unioned) {
-                        if(unionCallerWeights[caller]) {
-                            cnv.unioned = true
-                            union.push(Object.assign({},cnv))
-                        }
-                    }
-                    
-                    
-                    // Make a new object, since the existing one belongs to its original
-                    // caller and will be used for its own ROC
-                    
-                   
-                    
-//                    else {
-//                        if(caller == 'xhmm')
-//                            console.log(cnv)
-//                    }
-                        
-                    // Mark any overlapping CNVs as already counted,
-                    // and count how many intersect
-                    let intersectCallerCount = 0
-                    
-//                    let unionCallerCounts = 0
-                    
-                    callers.forEach(otherCaller => {
-                        if(otherCaller == caller)
-                            return
-                        if(rank >= cnvs[caller].length)
-                            return
-                            
-                        let otherCnvs = cnvs[otherCaller]
-                        let otherCnvsLength = otherCnvs.length
-                        for(var otherRank=rank; otherRank<otherCnvsLength; ++otherRank) {
-                            let otherCall = otherCnvs[otherRank]
-                            if(otherCall.sample != cnv.sample)
-                                continue
-                                
-                            if(otherCall.range.overlaps(cnv.range)) {
-                                
-                                if(unionCallerWeights[caller] && unionCallerWeights[otherCaller]) {
-                                    otherCall.unioned = true
-//                                    unionCallerCounts += unionCallerWeights[otherCaller] // 0 or 1 depending if user selected it
-                                }
-                                    
-                                if(!otherCall.intersected && intersectCallerWeights[otherCaller]) {
-                                    if(intersectCallerWeights[caller])
-                                        otherCall.intersected = true
-                                    intersectCallerCount += intersectCallerWeights[otherCaller] // 0 or 1 depending if user selected it
-                                }
-                            }
-                        }
-                    })
-                    
-                    if(!cnv.intersected) {
-                        if(intersectCallerWeights[caller] && (intersectCallerWeights[caller]  + intersectCallerCount == model.rocIntersectCallers.length)) {
-                            intersect.push(Object.assign({},cnv))
-                        }
-                    }
+            const intersectCallers = model.rocIntersectCallers.map(callerId => {
+                for(const mapping of callerIdMap) {
+                    callerId = callerId.replace(mapping[0],mapping[1])
+                }
+                return callerId
+            }) 
+            
+            cnvLists.forEach((callerCnvList, callerIndex) => {
+                const callerId = callerIds[callerIndex]
+                callerCnvList.forEach((cnv,rank) =>  { 
+                    cnv.unioned = false; 
+                    cnv.intersected=false 
+                    cnv.rank = rank
+                    cnv.caller = callerId
                 })
+            })
+  
+            // Create combined list of all callers,
+            let allCnvs = [].concat.apply([], cnvLists)
+            
+            // Index the regions
+            const cnvRegions = new Regions(allCnvs)
+            
+            // Sort by rank
+            allCnvs.sort((cnv1, cnv2) => cnv1.rank - cnv2.rank)
+            
+            // Now iterate the whole list
+            for(const cnv of allCnvs) {
+                
+                if(cnv.unioned && cnv.intersected)
+                    continue
+                    
+                const overlaps = cnvRegions.getOverlaps(cnv).filter(otherCnv => cnv.sample == otherCnv.sample)
+                
+                if(!cnv.unioned && unionCallers.indexOf(cnv.caller)>=0) {
+                    
+                    // At least one of the union callers must have called it 
+                    if(unionCallers.find(caller => overlaps.find(o => o.caller == caller))) {
+                        overlaps.forEach(o => o.unioned = true)
+                        // todo: expand range of what is pushed to min / max boundaries
+                        union.push(Object.assign({},cnv))
+                    }
+                }
+                
+                if(!cnv.intersected && intersectCallers.indexOf(cnv.caller)>=0) {
+                    if(intersectCallers.every(c => overlaps.find(o => o.caller == c))) {
+                        overlaps.forEach(o => o.intersected = true)
+                        intersect.push(Object.assign({},cnv))
+                    }
+                }
             }
             
-            return { union: union, intersect: intersect };
-        }
-        
-        calculateIntersection(cnvs) {
-            let intersect = []
-            let callers = Object.keys(cnvs)
-            let maxCallIndex = Math.max.apply(null, Object.values(cnvs).map(callerCnvs => callerCnvs.length))
-            
-            // Ensure any previous flags indicating  CNV was included in unioning are removed
-            let cnvLists = Object.values(cnvs)
-            cnvLists.forEach(callerCnvList => {
-                callerCnvList.forEach(cnv => cnv.intersected = false)
-            })            
-        }
+            return {
+                union: union,
+                intersect: intersect
+            }
+        } 
         
         computeROCStats(cnvs,truthSet) {
             
@@ -188,6 +166,9 @@ define(["vue","nv.d3","N3Components.min"], function(Vue, nvd3, N3Components) {
             });
         }
         
+        /**
+         * Return a map of id to label
+         */
         computeCallerLabelMap() {
             // Ximmer replaces the original configs with short versions ... but here we have to convert them
             // back to look up the labels
@@ -508,19 +489,20 @@ define(["vue","nv.d3","N3Components.min"], function(Vue, nvd3, N3Components) {
                           <n3-column :col="4">
                               <n3-checkbox-group v-model="rocComboOptions">
                                 <div>
+                                    <!-- union -->
                                     <n3-checkbox class='combx_checkbox' label="union">Union</n3-checkbox>
                                     <n3-checkbox-group v-model="rocUnionCallers" v-if='rocComboOptions.indexOf("union")>=0'>
-                                    <div class='subCheckList'>
-                                        <n3-checkbox v-for='caller in analysisConfig.callerIds' class='combx_checkbox' :label="caller">{{caller}}</n3-checkbox>
-                                    </div>
-                                  </n3-checkbox-group>  
+                                        <div class='subCheckList'>
+                                            <n3-checkbox v-for='(caller,index) in analysisConfig.callerLabels' class='combx_checkbox' :label="analysisConfig.callerCfgs[index]">{{caller}}</n3-checkbox>
+                                        </div>
+                                    </n3-checkbox-group>  
                                     
+                                    <!-- intersect -->
                                     <n3-checkbox class='combx_checkbox' label="intersection">Intersection</n3-checkbox>
-                                    
                                     <n3-checkbox-group v-model="rocIntersectCallers" v-if='rocComboOptions.indexOf("intersection")>=0'>
-                                    <div class='subCheckList'>
-                                        <n3-checkbox v-for='caller in analysisConfig.callerIds' class='combx_checkbox' :label="caller">{{caller}}</n3-checkbox>
-                                    </div>
+                                        <div class='subCheckList'>
+                                            <n3-checkbox v-for='(caller,index) in analysisConfig.callerLabels' class='combx_checkbox' :label="analysisConfig.callerCfgs[index]">{{caller}}</n3-checkbox>
+                                        </div>
                                   </n3-checkbox-group> 
                                 </div>
                               </n3-checkbox-group>
