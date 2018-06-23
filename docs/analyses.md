@@ -339,6 +339,32 @@ genelists {
 }
 ```
 
+## Using Different Genelists for Different Samples
+
+If you want to analyse a bunch of samples together but they need different gene lists 
+applied, you can do this by specifying a `sample_map` entry in the gene lists configuration.
+The sample map file is a two column, tab separated format that has a sample id in the first
+column and the corresponding gene list to apply in the second column.
+
+Example of configuration:
+
+```
+genelists {
+   CARDIAC='/home/simon/genelists/cardiac_genes.txt'
+   CMT='/home/simon/genelists/cmt_genes.txt'
+
+   sample_map='/home/simon/samples/sample_genelists.txt'
+}
+```
+
+The sample map could look like:
+
+```
+SAMPLE1	CARDIAC
+SAMPLE2	CMT
+SAMPLE3 CARDIAC
+...
+```
 
 ## Minimal Complete Configuration Example
 
