@@ -195,9 +195,11 @@ calc_qc_stats = {
 
             echo "GH=$GROOVY_HOME"
 
+            GROOVY_ALL=`ls $GROOVY_HOME/embeddable/groovy-all-2.4.[0-9].jar`
+
             set -o pipefail
 
-            $JAVA -Xmx4g -cp $GROOVY_HOME/embeddable/groovy-all-2.4.6.jar:$GNGS_JAR gngs.tools.MultiCov
+            $JAVA -Xmx4g -cp $GROOVY_ALL:$GNGS_JAR gngs.tools.MultiCov
                     -cvj $output.js
                     -stats 
                     -cv  
