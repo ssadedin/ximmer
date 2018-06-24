@@ -22,21 +22,10 @@ class CNVDiagram {
   }
   
   loadCnvData(callback) {
-      
-      var oldScriptElement = document.getElementById('cnv_load_script');
-      if(oldScriptElement)
-          oldScriptElement.parentNode.removeChild(oldScriptElement);
-      
-      const script = document.createElement("script");
-      script.id = 'cnv_load_script';
-//      script.src = process.env.PUBLIC_URL + "cnvs/cnv_chr1_1634904_1636473_UZG45_S46.js";
-//      script.src = process.env.PUBLIC_URL + "cnvs/cnv_chr1_38095229_40230498_UZG45_S46.js";
-//      script.src = process.env.PUBLIC_URL + "cnvs/cnv_chr19_53552485_53553607_170113_K00164_0104_ML170025_16W000437_clinex042_SSQXTCRE.js";
-//      script.src = process.env.PUBLIC_URL + "cnvs/cnv_chr18_15005845_21894329_170113_K00164_0104_ML170026_16W000419_clinex042_SSQXTCRE.js";
-      script.src = this.state.cnv_data_js;
-      script.async = true;
-      script.onload = () => { this.setState({cnv:window.cnv}); if(callback) callback(window.cnv); };
-      document.body.appendChild(script);
+      require([this.state.cnv_data_js.replace('.js','')], () => {
+          console.log('CNV data loaded')
+          this.setState({cnv:window.cnv}); if(callback) callback(window.cnv); 
+      })
   }    
   
   componentDidMount() {

@@ -249,7 +249,7 @@ class CNVDiagram {
             return
         }
         
-        println "Call $cnv.chr:$cnv.from-$cnv.to for sample $cnv.sample"
+        log.info "Call $cnv.chr:$cnv.from-$cnv.to for sample $cnv.sample"
 
         String imageFileName = outputFileBase.replaceAll('.png$','') + "_${cnv.chr}_${cnv.from}_${cnv.to}_${cnv.sample}.png"
         String jsonFileName = outputFileBase.replaceAll('.png$','') + "_${cnv.chr}_${cnv.from}_${cnv.to}_${cnv.sample}.js"
@@ -273,13 +273,10 @@ class CNVDiagram {
         if(jsonFile)
             json = jsonFile.newWriter() 
         
-        json.println("""
-var cnv = {
-
+        json.println("""cnv = //NOJSON\n{ 
      "start" : ${cnv.from},
      "end" : ${cnv.to},
-     "targets" : [
-""")
+     "targets" : [""")
         
         SAM bam = bams[cnv.sample]
 
@@ -307,8 +304,13 @@ var cnv = {
         double minX = targets[0].from
         double maxX = targets[-1].to
 
+        boolean first = true
         for(target in targets) {
             
+            if(!first)
+                json.println(",")
+                
+            first = false
             Region targetRegion = new Region(cnv.chr, target)
             Matrix coverage = getNormalisedCoverage(targetRegion, cnv.sample)
 
@@ -325,14 +327,21 @@ var cnv = {
             }
         }
         
-        json.println("    ],")
+        json.println("\n    ],")
         json.println("""  "genes" : [""")
 
         if(d)
             d.color("black")
             
         // For each genes overlapping the CNV
+        first = true
         for(gene in genes) {
+            
+            if(!first)
+                json.println(',')
+            
+            first = false
+            
             def geneExons = geneDb.getExons(gene).reduce().grep { it.chr == cnv.chr }
 
             int geneFrom = Math.max(geneExons*.from.min(), displayRegion.from)
@@ -379,13 +388,14 @@ var cnv = {
                 d.barHeightDown = 5
             }
             
-            json.println("      " + JsonOutput.toJson(jsonGene) + ",")
+            json.print("      " + JsonOutput.toJson(jsonGene))
         }
         
-        json.println("    ],")
-        json.println("""  "callers" : [""")
+        json.println("\n    ],")
+        json.println("""   "callers" : [""")
 
         double offset = 0d
+        first = true
         for(caller in callers) {
             
             def callerCnvs = cnvCalls[caller].getOverlaps(cnv).grep { it.extra.sample == cnv.sample }
@@ -393,11 +403,16 @@ var cnv = {
                 println "No overlapping calls for $caller"
                 continue
             }
+            
+            if(!first)
+                json.print(',')
+            
+            first = false
 
             if(d) 
                 d.color(colors[caller])
 
-            println "Caller $caller cnvs are: " + callerCnvs.collect { it.from + " - " + it.to + " (qual=" + it.extra.quality + ")" }
+            log.info "Caller $caller cnvs are: " + callerCnvs.collect { it.from + " - " + it.to + " (qual=" + it.extra.quality + ")" }
             
             List labels = callerCnvs.collect { (it.extra.quality != null) ? "$caller [" + numberFormat.format(it.extra.quality.toFloat()) + "]" : caller  }
             
@@ -413,11 +428,11 @@ var cnv = {
             if(d)
                 d.bars(callerCnvs*.from, callerCnvs*.to, [1.8 - offset]*callerCnvs.size(), labels)
             offset += 0.08
-            json.println("      " +  JsonOutput.toJson(callerJson) + ",")
+            json.print("      " +  JsonOutput.toJson(callerJson))
         }
         
-        json.println("    ],")
-        json.println("""  "variants" : [""")
+        json.println("\n    ],")
+        json.println("""   "variants" : [""")
         if(vcfs[cnv.sample]) {
             drawVariants(json, d, cnv, targets)
         }
@@ -519,7 +534,7 @@ var cnv = {
             otherCov: coverage.others.collect { Math.round(it) },
             coverageSd: coverage.sd.collect { round2Digits(it) }
         ]
-        json.println("      " + JsonOutput.toJson(targetJson)+ ",")
+        json.print("      " + JsonOutput.toJson(targetJson))
     }
     
     graxxia.Drawing createDiagramFrame(String imageFileName, Region displayRegion, List<IntRange> targets, int width, int height) {
