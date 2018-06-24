@@ -199,7 +199,7 @@ calc_qc_stats = {
                     -stats 
                     -cv  
                     -bed $target_bed $inputs.bam | gzip -c > $output.tsv.gz; 
-        """
+        """, "calc_qc_stats"
     }
 }
 
