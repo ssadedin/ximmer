@@ -539,7 +539,11 @@ class SummarizeCNVs {
                     source: 'cnv_report.css'
                 ) << new HTMLAsset(
                     source: 'vue.js'
-                ) ;
+                ) << new HTMLAsset(
+                    source: 'require.js'
+                ) 
+                
+                ;
                                 
         String renderedAssets = assets.render()
         
