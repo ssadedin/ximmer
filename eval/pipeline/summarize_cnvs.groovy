@@ -190,16 +190,11 @@ calc_qc_stats = {
     
     produce('per_base_coverage.tsv.gz', 'coeffv.js') {
         exec """
-
-            GROOVY_HOME=\$(dirname `dirname $GROOVY`)
-
-            echo "GH=$GROOVY_HOME"
-
-            GROOVY_ALL=`ls $GROOVY_HOME/embeddable/groovy-all-2.4.[0-9].jar`
-
             set -o pipefail
 
-            $JAVA -Xmx4g -cp $GROOVY_ALL:$GNGS_JAR gngs.tools.MultiCov
+            unset GROOVY_HOME
+
+            $JAVA -Xmx4g -cp $GROOVY_ALL_JAR:$GNGS_JAR gngs.tools.MultiCov
                     -cvj $output.js
                     -stats 
                     -cv  
