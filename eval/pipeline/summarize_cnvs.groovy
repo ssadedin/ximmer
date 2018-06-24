@@ -184,3 +184,25 @@ cnv_report = {
     }
 }
 
+calc_qc_stats = {
+    
+    output.dir = "common/qc"
+    
+    produce('per_base_coverage.tsv.gz', 'coeffv.js') {
+        exec """
+
+            GROOVY_HOME=\$(dirname `dirname $GROOVY`)
+
+            echo "GH=$GROOVY_HOME"
+
+            set -o pipefail
+
+            $JAVA -Xmx4g -cp $GROOVY_HOME/embeddable/groovy-all-2.4.6.jar:$GNGS_JAR gngs.tools.MultiCov
+                    -cvj $output.js
+                    -stats 
+                    -cv  
+                    -bed $target_bed $inputs.bam | gzip -c > $output.tsv.gz; 
+        """
+    }
+}
+
