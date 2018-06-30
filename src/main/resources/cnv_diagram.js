@@ -22,7 +22,9 @@ class CNVDiagram {
   }
   
   loadCnvData(callback) {
-      require([this.state.cnv_data_js.replace('.js','')], () => {
+      let moduleName = this.state.cnv_data_js.replace('.js','')
+      requirejs.undef(moduleName)
+      require([moduleName], () => {
           console.log('CNV data loaded')
           this.setState({cnv:window.cnv}); if(callback) callback(window.cnv); 
       })
@@ -301,7 +303,6 @@ class CNVDiagram {
               for(var i=0; i<target.sampleCov.length;++i) {
                   var newState = categorize(i);
                   if(newState != state) {
-                      console.log("New block: " + newState + " (old="+state+")");
                       yield { start: pos, end: i, state: newState }; 
                       state = newState;
                       pos = i;
