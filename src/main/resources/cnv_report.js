@@ -483,6 +483,11 @@ function loadSettings(oldSettings) {
             }
         }
     }
+    
+    if((Object.keys(geneList).length==0) && (Object.keys(defaultGeneList).length>0)) {
+        geneList = defaultGeneList;                                                    
+    }
+    
     console.log("User annotations are: " + userAnnotations);
     renderFilters();
     updateGeneList();
