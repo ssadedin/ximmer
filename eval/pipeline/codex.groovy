@@ -79,8 +79,6 @@ codex_call_cnvs = {
             while(typeof(normObj) == 'logical') { 
                 try(normObj <- normalize(Y_qc, gc_qc, K = 1:max_k)); max_k=max_k-1; 
             }
-
-            normObj <- normalize(Y_qc, gc_qc, K = 1:$max_k)
             
             Yhat <- normObj$Yhat; AIC <- normObj$AIC; BIC <- normObj$BIC
 
