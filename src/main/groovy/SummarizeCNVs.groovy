@@ -121,6 +121,7 @@ class SummarizeCNVs {
             chr 'Process CNVs only for given chromosome', args:1
             report 'Template to use for creating HTML report', args: 1
             dgv 'Path to file containing CNVs from database of genomic variants (DGV)', args: 1
+            ddd 'Path to file containing CNVs from Decipher (DDD)', args: 1
             samples 'Samples to export', args:1
             samplemap 'Map samples to gene lists in a two column, tab separated file', args:1
             quality 'Filtering by quality score, in form caller:quality...', args:Cli.UNLIMITED
@@ -204,6 +205,7 @@ class SummarizeCNVs {
         try {
             
             RefGenes refGenes = (!opts.refgene || "download" == opts.refgene) ? RefGenes.download(opts.genome?:"hg19") : new RefGenes(opts.refgene)  
+            log.info "Initialised RefGene annotations"
             Set<String> filterToGenes = null
             if(opts.genefilter) {
                filterToGenes = new File(opts.genefilter).readLines()*.trim() as Set
@@ -223,9 +225,7 @@ class SummarizeCNVs {
                 filterToGenes: filterToGenes
             )
             
-            if(opts.dgv) {
-                summarizer.cnvAnnotator = new TargetedCNVAnnotator(target, opts.dgv)
-            }
+            initFrequencyAnnotator(opts, target, summarizer)
             
             if(opts.refgene == "download") {
                 summarizer.refGenes = refGenes
@@ -290,6 +290,24 @@ class SummarizeCNVs {
             System.exit(1)
         }
     }
+
+    private static initFrequencyAnnotator(OptionAccessor opts, Regions target, SummarizeCNVs summarizer) {
+        if(opts.dgv || opts.ddd) {
+
+            Map databases = [:]
+            if(opts.ddd) {
+                log.info "Loading Decipher annotations from $opts.ddd ..."
+                databases["DDD"] = new DecipherCNVs(opts.ddd).parse()
+            }
+
+            if(opts.dgv) {
+                log.info "Loading DGV annotations from $opts.dgv ..."
+                databases["DGV"] = new DGV(opts.dgv).parse()
+            }
+
+            summarizer.cnvAnnotator = new TargetedCNVAnnotator(databases, target)
+        }
+    }
     
     static Map<String,File> parseGenelistDefinitions(OptionAccessor opts) {
         def result = opts.genelists.collectEntries { genelistDefinition -> // name:file
@@ -331,7 +349,7 @@ class SummarizeCNVs {
         if(this.genelists)
             this.parseGenelists()
         
-        if(this.dgvFile)
+        if(this.dgvFile && !this.cnvAnnotator)
             this.cnvAnnotator = new TargetedCNVAnnotator(targetRegions, dgvFile)
         
         extractSamples()
@@ -407,12 +425,17 @@ class SummarizeCNVs {
         
         new File(fileName).withWriter { w ->
             
+            List<String> dbIds = cnvAnnotator ? cnvAnnotator.cnvDatabases*.key : []
+            
             w.println((["chr","start","end","sample","genes", "type","count","stotal","sampleCount","sampleFreq"] + 
-                       (cnvAnnotator ? ["spanning","spanningFreq"] : []) +
+                       dbIds.collect{ dbId -> [dbId,dbId+"Freq"]}.sum() +
                        cnvCallers + 
                        cnvCallers.collect { it+"_qual" }).join("\t"))
             
             cnvs.eachWithIndex { cnv, i ->
+                
+                List frequencyInfo = dbIds.collect { dbId -> CNVFrequency freqInfo = annotations[i][dbId];  [freqInfo.spanning.size(), freqInfo.spanningFreq] }.sum() 
+                
                 List line = [
                     cnv.chr, 
                     cnv.from,
@@ -424,7 +447,7 @@ class SummarizeCNVs {
                     cnv.stotal, 
                     cnv.sampleCount,
                     cnv.sampleFreq
-                ] + (cnvAnnotator ? [annotations[i].spanning.size(), annotations[i].spanningFreq] : []) +
+                ] + frequencyInfo +
                 cnvCallers.collect { caller ->
                     cnv[caller] ? "TRUE" : "FALSE"
                 }  + cnvCallers.collect { caller ->
@@ -450,11 +473,13 @@ class SummarizeCNVs {
              }
         }
         
+        List<String> dbIds = cnvAnnotator ? cnvAnnotator.cnvDatabases*.key : []
+        
         new File(fileName).withWriter { w ->
             
             List<String> columnNames = 
                        ["chr","start","end","targets","sample","genes","category", "type","count","stotal","sampleCount","sampleFreq"] + 
-                       (cnvAnnotator ? ["spanning","spanningFreq"] : []) +
+                       dbIds.collect { String dbId -> [dbId, dbId + 'Freq'] }.sum() +
                        cnvCallers + 
                        cnvCallers.collect { it+"_qual" }
             
@@ -465,6 +490,8 @@ class SummarizeCNVs {
                 if(i>0)
                     w.println(',')
                     
+                List frequencyInfo = dbIds.collect { dbId -> CNVFrequency freqInfo = annotations[i][dbId];  [freqInfo.spanning.size(), freqInfo.spanningFreq] }.sum() 
+                
                 List line = [
                     cnv.chr, 
                     cnv.from,
@@ -478,7 +505,7 @@ class SummarizeCNVs {
                     cnv.stotal, 
                     cnv.sampleCount,
                     cnv.sampleFreq
-                ] + (cnvAnnotator ? [annotations[i].spanning.size(), annotations[i].spanningFreq] : []) +
+                ] + frequencyInfo +
                 cnvCallers.collect { caller ->
                     cnv[caller] ? "TRUE" : "FALSE"
                 }  + cnvCallers.collect { caller ->

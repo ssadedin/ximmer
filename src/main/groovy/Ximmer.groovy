@@ -360,6 +360,7 @@ class Ximmer {
         List excludeRegionsParam = []
         List excludeGenesParam = []
         List geneFilterParam = []
+        List dddParam = []
         
         synchronized(analysisLock) { // Avoid any potential multi-threading issues since all the below
                                      // are reading from non-threadsafe maps, config objects, etc.
@@ -407,6 +408,10 @@ class Ximmer {
             if(cfg.containsKey('exclude_genes')) {
                excludeGenesParam = ["-p", "exclude_genes=" + cfg.exclude_genes]
             }
+            
+            if(cfg.containsKey('decipher')) {
+               dddParam = ["-p", "DDD_CNVS=$cfg.decipher"]
+            }
         }
         
         
@@ -437,7 +442,7 @@ class Ximmer {
                 "-p", "target_bed=$targetRegionsPath", 
                 "-p", /sample_id_mask="$sampleIdMask"/, 
                 "-p", "imgpath=${runDir.name}/#batch#/report/", 
-            ] + this.geneListParameters + minCatOpt + excludeRegionsParam + geneFilterParam + excludeGenesParam + drawCnvsParam + [
+            ] + dddParam + this.geneListParameters + minCatOpt + excludeRegionsParam + geneFilterParam + excludeGenesParam + drawCnvsParam + [
                 "$ximmerBase/eval/pipeline/exome_cnv_pipeline.groovy"
             ]  + bamFiles + vcfFiles + (enableTruePositives ? ["true_cnvs.bed"] : [])
             
