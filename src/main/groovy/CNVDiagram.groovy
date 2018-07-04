@@ -590,7 +590,14 @@ class CNVDiagram {
         
         List<Range> cnvTargetIntersect = this.targetRegions.intersect(rawCNV)
         
-        Region cnv = new Region(rawCNV.chr, cnvTargetIntersect[0].from, cnvTargetIntersect[-1].to)
+        Region cnv 
+        if(cnvTargetIntersect.isEmpty()) {
+            cnv = rawCNV
+            log.warning "Error: CNV $rawCNV does not intersect any target regions!"
+        }
+        else {
+            cnv = new Region(rawCNV.chr, cnvTargetIntersect[0].from, cnvTargetIntersect[-1].to)
+        }
         
         // If one or more genes is overlapped, display the whole gene(s)
         if(!genes.empty) {
