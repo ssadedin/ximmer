@@ -70,6 +70,16 @@ codex_call_cnvs = {
             
             mapp_qc <- qcObj$mapp_qc; ref_qc <- qcObj$ref_qc; qcmat <- qcObj$qcmat
             
+            # Rarely normalisation fails if k is too high
+            # Here we loop while reducing max_k until it works
+            # If this is happening consistently then better to reduce the configured initial max_k
+            # via the parameter.
+            max_k=$max_k; 
+            normObj = F;  
+            while(typeof(normObj) == 'logical') { 
+                try(normObj <- normalize(Y_qc, gc_qc, K = 1:max_k)); max_k=max_k-1; 
+            }
+
             normObj <- normalize(Y_qc, gc_qc, K = 1:$max_k)
             
             Yhat <- normObj$Yhat; AIC <- normObj$AIC; BIC <- normObj$BIC
