@@ -42,7 +42,7 @@ plot_cnv_coverage = {
         return
     }
     
-    from("cnv_report.tsv") { produce("cnv_${chr}_*.js") {
+    from("cnv_report.tsv", target_bed) { produce("cnv_${chr}_*.js") {
 
         def caller_opts = []
 
