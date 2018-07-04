@@ -1,4 +1,6 @@
-import gngs.RangedData
+
+import gngs.*
+
 import groovy.json.JsonOutput
 
 /**
@@ -41,7 +43,9 @@ abstract class CNVResults extends RangedData {
                         // CNV callers get confused and call a differentn type in a region where there is 
                         // a CNV,  I now think it's more accurate to return the frequency of ALL cnvs
                         // overlapping
-                        row.spanningFreq = annotator.annotate(cnv, "ANY" /* cnv.type */).spanningFreq
+                        annotator.annotate(cnv, "ANY" /* cnv.type */).each { String dbId, CNVFrequency freq ->
+                            row[dbId+'Freq'] = freq.spanningFreq
+                        }
                         row += annotator.annotateSize(cnv)
                     }
                     

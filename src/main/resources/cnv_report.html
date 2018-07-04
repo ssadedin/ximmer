@@ -158,9 +158,12 @@
             <% log.println "Writing callers json" %>
             var callers = <%=groovy.json.JsonOutput.toJson(cnv_callers)%>;
             <% log.println "Writing annotations json" %>
-            <% def annotations = cnvs.collect { cnv -> 
-                   cnvAnnotator ? cnvAnnotator.annotate(new Region(cnv.chr, cnv.from..cnv.to), "ANY") : [spanning: 0f, spanningFreq: 0f] }; 
-             %>
+            <% 
+              List<String> dbIds = cnvAnnotator ? cnvAnnotator.cnvDatabases*.key : []
+              List annotations = cnvs.collect { cnv -> 
+                   cnvAnnotator ? cnvAnnotator.annotate(new Region(cnv.chr, cnv.from..cnv.to), "ANY") : [:] 
+              };%>
+              
             var annotations = <%=groovy.json.JsonOutput.toJson(annotations)%>;
             
             var bam_file_path = <%=groovy.json.JsonOutput.toJson(bam_file_path)%>;
@@ -193,8 +196,8 @@
                              List tableHeaders = ['','Index','Genes','Region','Size','Targets','Type','True?','Callers','Sample','No.Callers','Samples']
                              if(hasVariants)
                                 tableHeaders.addAll(['Het Count', 'Hom Count', 'Balance'])
-                             if(hasDGV)
-                                tableHeaders.addAll(['DGV Match', 'DGV Span', 'Freq'])
+                                
+                                tableHeaders.addAll(dbIds.collect { dbId -> [dbId, dbId + 'Freq'] }.sum())
                                 
                              if(!cnv_callers.contains("truth")) {
                                 tableHeaders.remove("True?")
@@ -230,10 +233,9 @@
                                     <td>${cnv.hom == null ? '' : cnv.hom}</td>
                                     <td>${!(cnv.bal == null || cnv.bal.isNaN()) ? String.format("%2.3f",cnv.bal.toFloat()) : ''}</td>
                                 <%}%>
-                                <%if(hasDGV) {%>
-                                    <td>${annotations[index].matching?.size()?:""}</td>
-                                    <td>${annotations[index].spanning.size()}</td>
-                                    <td>${String.format("%.4f",annotations[index].spanningFreq)}</td> 
+                                <%for(dbId in dbIds) {%>
+                                    <td>${annotations[index][dbId].spanning.size()}</td>
+                                    <td>${String.format("%.4f",annotations[index][dbId].spanningFreq)}</td> 
                                 <%}%>
                             </tr>
                         <% } %>
