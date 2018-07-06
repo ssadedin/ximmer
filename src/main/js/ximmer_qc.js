@@ -55,7 +55,7 @@ define(['vue','nv.d3'], function(Vue, nvd3) {
         cnvs.forEach(cnv => { 
             
           // Skip CNVs that are in DGV
-          if(cnv.spanningFreq > MAX_RARE_CNV_FREQ) 
+          if(cnv.DGVFreq > MAX_RARE_CNV_FREQ) 
               return
               
           if((simulationType == 'replace') && (cnv.chr != 'X') && (cnv.chr != 'chrX'))
