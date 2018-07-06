@@ -153,7 +153,7 @@ function loadCnvs(callback, runsToLoad, results) {
             // A number of different outputs are based on CNVs absent from the population,
             // so 
             Object.keys(cnv_calls).filter(caller => caller != 'truth').forEach((caller) => {
-                window.rare_calls[caller] = cnv_calls[caller].filter(cnv => cnv.spanningFreq < MAX_RARE_CNV_FREQ)
+                window.rare_calls[caller] = cnv_calls[caller].filter(cnv => cnv.DGVFreq < MAX_RARE_CNV_FREQ)
             });
             
             $('.loading').remove()  

@@ -158,7 +158,7 @@ define(["vue","nv.d3","N3Components.min","genomicranges"], function(Vue, nvd3, N
                     }
                 }
                 else {
-                    if(cnv.spanningFreq < MAX_RARE_CNV_FREQ)
+                    if(cnv.DGVFreq < MAX_RARE_CNV_FREQ)
                         ++fpCount;
                 }
                 cnv.tp = tpCount;
