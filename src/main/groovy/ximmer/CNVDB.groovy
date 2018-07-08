@@ -77,16 +77,15 @@ class CNVDB extends ToolBase {
     Sql createDb(String fileName) {
         Class.forName("org.sqlite.JDBC")
         Sql db = Sql.newInstance("jdbc:sqlite:$fileName")
+        checkSchema(db)
+        db.close()
         
+        db = Sql.newInstance("jdbc:sqlite:$fileName")
         db.cacheConnection = true
-        
         // For performance
         db.execute("PRAGMA synchronous = 0;")
         db.execute("PRAGMA journal_mode = WAL;") 
         db.connection.autoCommit = false
-        
-        checkSchema(db)
-        
         return db
     }
     
