@@ -189,9 +189,11 @@ cnv_report = {
 
 calc_qc_stats = {
     
+    var batch: 'ximmer'
+    
     output.dir = "common/qc"
     
-    produce('per_base_coverage.tsv.gz', 'coeffv.js') {
+    produce(["${batch}_per_base.coverage.tsv.gz", "${batch}.coeffv.js", "${batch}.correlations.js","${batch}.correlations.tsv", "${batch}.cov.js"]) {
         exec """
             set -o pipefail
 
@@ -201,8 +203,12 @@ calc_qc_stats = {
                     -cvj $output.js
                     -stats 
                     -cv  
-                    -bed $target_bed $inputs.bam | gzip -c > $output.tsv.gz; 
+                    -corr .
+                    -2pass
+                    -covo $output.cov.js
+                    -co $output.tsv
+                    -co $output.correlations.js
+                    -bed $target_bed $inputs.bam | gzip -c > $output.gz; 
         """, "calc_qc_stats"
     }
 }
-
