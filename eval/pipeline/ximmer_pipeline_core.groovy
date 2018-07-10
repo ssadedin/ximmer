@@ -98,7 +98,7 @@ ximmer_core = segment {
     
     cnv_reports << create_cnv_report.using(file_name_prefix:"local_", imgpath: "") 
     
-    common_stages = [ init_common, "%.bam" * [ gatk_depth_of_coverage  ], calc_qc_stats ]
+    common_stages = [ init_common, "%.bam" * [ gatk_depth_of_coverage  ] ]
        
     caller_pipelines = [
        ex  :  (init_excavator + excavator_pipeline),
@@ -112,16 +112,18 @@ ximmer_core = segment {
        cfr:  (init_conifer + run_conifer),
        
        cdx : codex_pipeline
-    ]    
+    ]  
 
     caller_stages = cnv_callers.collect { caller ->
         (caller + '.%.params.txt') * [ init_caller_params.using(caller:caller) + caller_pipelines[caller] + register_caller_result ]
     }
     
-    init + create_analysable_target + common_stages + 
+    init + create_analysable_target + common_stages + [
+        calc_qc_stats,
         batch_dirs * [
             init_batch + caller_stages + reset_bams +
                  cnv_reports +
                  INCLUDE_CHROMOSOMES * [ plot_cnv_coverage ]  
          ]
+     ]
 } 

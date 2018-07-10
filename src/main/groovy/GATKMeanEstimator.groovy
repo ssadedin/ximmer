@@ -1,3 +1,4 @@
+import gngs.GATKIntervalSummary
 import groovy.util.logging.Log;
 
 /**
