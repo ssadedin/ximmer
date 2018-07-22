@@ -28,7 +28,7 @@ run_exome_depth = {
 
     println "Using Exome Depth transition probability = $transition_probability"
 
-    produce(batch_name + '.' + chr + '.exome_depth.tsv') {
+    produce(batch_name + '.' + chr + '.exome_depth.tsv', batch_name + '.' + chr + '.exome_depth.warnings.tsv') {
         R({"""
 
             source("$TOOLS/r-utils/cnv_utils.R")
@@ -75,7 +75,7 @@ run_exome_depth = {
             # which is actually the GC percentage
             dsd.samples = colnames(dsd.counts)[-1]
 
-            write(paste("start.p","end.p","type","nexons","start","end","chromosome","id","BF","reads.expected","reads.observed","reads.ratio","sample",sep="\\t"), "$output.tsv")
+            write(paste("start.p","end.p","type","nexons","start","end","chromosome","id","BF","reads.expected","reads.observed","reads.ratio","sample",sep="\\t"), "$output.exome_depth.tsv")
 
             for(dsd.test.sample in dsd.samples) {
 
@@ -83,17 +83,24 @@ run_exome_depth = {
 
                 dsd.reference.samples = dsd.samples[-match(dsd.test.sample, dsd.samples)]
 
-                dsd.counts.df = as.data.frame(dsd.counts[,dsd.reference.samples])[,-1:-6]
+                dsd.counts.df = as.data.frame(dsd.counts[,dsd.reference.samples])[,-1:-5]
 
                 dsd.test.sample.counts = dsd.counts[,dsd.test.sample][[1]]
+
+                assign("last.warning", NULL, envir = baseenv())
 
                 print(sprintf("Selecting reference set for %s ...", dsd.test.sample ))
                 dsd.reference = select.reference.set(
                                          test.counts = dsd.counts[,dsd.test.sample][[1]],
-                                         reference.counts = as.matrix(as.data.frame(dsd.counts[,dsd.reference.samples])[,-1:-6]),
+                                         reference.counts = as.matrix(as.data.frame(dsd.counts[,dsd.reference.samples])[,-1:-5]),
                                          bin.length = dsd.covered$end - dsd.covered$start
                                         )
 
+                all_warnings = data.frame(sample=c(), warning=c())
+                if(length(warnings()) > 0) {
+                    all_warnings = rbind(all_warnings, data.frame(sample=dsd.test.sample, warning=paste0(warnings(), ',', collapse = '')))
+                }
+ 
                 # Get counts just for the reference set
                 dsd.reference.counts = apply(dsd.counts.df[,dsd.reference\$reference.choice,drop=F],1,sum)
 
@@ -119,13 +126,24 @@ run_exome_depth = {
 
                 print(sprintf("Writing results ..."))
                 if(nrow(dsd.results)>0) {
-                    write.table(file="$output.tsv", 
+                    write.table(file="$output.exome_depth.tsv", 
                                 x=dsd.results,
                                 row.names=F,
                                 col.names=F,
                                 sep="\\t",
                                 append=T)
                 } 
+
+                if(nrow(all_warnings)>0) {
+                    message(sprintf("Writing %d warnings to warnings file", nrow(all_warnings)))
+                }
+
+                write.table(file="$output.warnings.tsv", 
+                            x=all_warnings,
+                            row.names=F,
+                            col.names=F,
+                            sep="\t",
+                            append=T)    
             }
 
             print(sprintf("Finished"))
