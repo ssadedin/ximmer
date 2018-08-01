@@ -64,6 +64,9 @@ class CNVDiagram {
     
     Matrix normCounts = null
     
+    /**
+     * Global mean coverage for each sample
+     */
     Map<String,Double> means = null
     
     RefGenes geneDb = null
@@ -242,7 +245,7 @@ class CNVDiagram {
 
     void drawCNV(Region cnv, String outputFileBase, int width, int height, List callers, Map colors) {
         
-        log.info "Drawing cnv $cnv"
+        log.info "Drawing cnv $cnv in sample $cnv.sample"
         
         if(this.samples && !(cnv.sample in this.samples)) {
             println "Skip CNV $cnv.chr:$cnv.from-$cnv.to for sample $cnv.sample"
@@ -311,20 +314,8 @@ class CNVDiagram {
                 json.println(",")
                 
             first = false
-            Region targetRegion = new Region(cnv.chr, target)
-            Matrix coverage = getNormalisedCoverage(targetRegion, cnv.sample)
-
-            double [] targetRange = target as double[]
             
-            outputTargetJSONCoverage(json, targetRegion, coverage)
-            
-            // Can't plot a curve through too few points (exception from loess interpolator)
-            if(targetRange.length < 8)
-                continue
-
-            if(drawPNG) {
-                drawInterpolatedCoverage(d, coverage, target, targetRange)
-            }
+            outputTargetCoverage(cnv, target, json, d)
         }
         
         json.println("\n    ],")
@@ -453,6 +444,33 @@ class CNVDiagram {
         if(json) {
             json.println("    ]\n}")
             json.close()
+        }
+    }
+
+    void outputTargetCoverage(Region cnv, IntRange target, Writer json, graxxia.Drawing d) {
+        
+        boolean drawPNG = 'png' in writeTypes 
+        
+        Region targetRegion = new Region(cnv.chr, target)
+        
+        // Exclude all other samples that have a CNV call in this region
+        // UNLESS that leaves less than 3 samples?
+        List<Region> otherCnvs = cnvs.getOverlaps(cnv)*.extra.grep { it.sample != cnv.sample }
+        
+        List<String> excludeSamples = otherCnvs*.sample
+        
+        Matrix coverage = getStandardisedCoverage(targetRegion, cnv.sample, excludeSamples)
+
+        double [] targetRange = target as double[]
+
+        outputTargetJSONCoverage(json, targetRegion, coverage)
+
+        // Can't plot a curve through too few points (exception from loess interpolator)
+        if(targetRange.length < 8)
+            return 
+
+        if(drawPNG) {
+            drawInterpolatedCoverage(d, coverage, target, targetRange)
         }
     }
     
@@ -747,19 +765,41 @@ class CNVDiagram {
         }
     }
     
-    Matrix getNormalisedCoverage(Region region, String sample) {
+    final int minDiagramSamples = 5
+    
+    /**
+     * Compute coverage for the given sample standardised to the distribution
+     * of other samples over the specified region.
+     * 
+     * @param region
+     * @param sample
+     * @return  Matrix with sample, others and sd columns, and a row for each base
+     *          within the given region, containing the standardised coverage
+     */
+    @CompileStatic
+    Matrix getStandardisedCoverage(Region region, String sample, List excludeSamples) {
         
+        if(allSamples.size() - excludeSamples.size() < minDiagramSamples)  {
+            log.info "Cannot exclude ${excludeSamples.size()}/${allSamples.size()} samples from CNV diagram because it woudl leave < $minDiagramSamples remaining samples"
+            excludeSamples = []
+        }
+        else {
+            if(excludeSamples.size()>0)
+                log.info "Excluding ${excludeSamples.size()}/${allSamples.size()} samples from standardised coverage of $sample due to overlapping CNV calls: " + excludeSamples.join(',')
+        }
+            
         Matrix normCovs = normaliseCoverage(region)
         
         int sampleIndex = allSamples.indexOf(sample)
         
+        int [] excludeSampleIndices = (excludeSamples + [sample]).collect { allSamples.indexOf(it) } as int[]
+        
         // Get sample relative to mean of other samples
-        Matrix rel = normCovs.transformRows { row ->
-            
+        Matrix rel = normCovs.transformRows { double[] row ->
             // Note: we want the coverage for all samples EXCEPT the one that the CNV was called in
-            Stats stats = Stats.from(row) { x, index -> index != sampleIndex }
+            Stats stats = Stats.from(row) { double x, int index -> !excludeSampleIndices.contains(index) }
             double effectiveMean = stats.mean > 0.0d?stats.mean : 1
-            [row[sampleIndex] / effectiveMean, effectiveMean, stats.standardDeviation / effectiveMean]
+            return [row[sampleIndex] / effectiveMean, effectiveMean, stats.standardDeviation / effectiveMean]
         }
         
         rel.@names = ["sample", "others", "sd"]
@@ -767,22 +807,42 @@ class CNVDiagram {
         return rel
     }
 
-    def Matrix normaliseCoverage(Region region) {
+    /**
+     * Compute a matrix of coverage values relative to each sample's mean
+     * for each base of the given region
+     * 
+     * @param region
+     * @return  Matrix with a column for each sample and a row for each base within the specified region
+     *          containing the coverage at that position relative to the sample's overall mean coverage
+     */
+    @CompileStatic
+    Matrix normaliseCoverage(Region region) {
         
-        double [] sampleMeans = allSamples.collect { means[it]?:1 } as double[]
+        double [] sampleWideMeans = allSamples.collect { means[it]?:1 } as double[]
         
-        Matrix sampleCovs = getCoverageMatrix(region)
+        Matrix regionCovs = getCoverageMatrix(region)
 
-        double meanOfMeans = Stats.mean(sampleMeans)
+        double meanOfMeans = Stats.mean(sampleWideMeans)
 
-        Matrix normCovs = sampleCovs.transform { x, row, col ->
-            (x / sampleMeans[col]) * meanOfMeans
+        // Divide each value in the region coverage by the corresponding
+        // sample's global mean coverage to produce coverage values 
+        // that are normalised for the number of reads in the sample
+        Matrix normCovs = regionCovs.transform { double x, int row, int col ->
+            (x / sampleWideMeans[col]) * meanOfMeans
         }
         return normCovs
     }
     
     ThreadLocal<Map<String, SamReader>> readers = new ThreadLocal()
 
+    /**
+     * Returns a matrix containing raw absolute coverage depth for each sample over the 
+     * specified region
+     * 
+     * @param region
+     * @return  Matrix with one column per sample, and a row per base position within the
+     *          given matrix
+     */
     @CompileStatic
     Matrix getCoverageMatrix(Region region) {
         
