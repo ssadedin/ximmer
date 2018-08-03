@@ -165,6 +165,10 @@ run_exome_depth = {
 
         """},'exome_depth')
     }
+    
+    if(!exome_depth_split_chrs) {
+        branch.caller_result = output.exome_depth.tsv
+    }
 }
 
 merge_ed = {
