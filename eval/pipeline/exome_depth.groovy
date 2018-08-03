@@ -55,7 +55,7 @@ run_exome_depth = {
 
             # Read the target / covered region
             print(sprintf("Reading target regions for $chr from $target_region_to_use"))
-            dsd.covered = read.bed(pipe(${exome_depth_split_chrs?"grep '^$chr[^0-9]' $target_region_to_use" : "cat $target_region_to_use"}))
+            dsd.covered = read.bed(pipe("${exome_depth_split_chrs?"grep '^$chr[^0-9]' $target_region_to_use" : "cat $target_region_to_use"}"))
 
             # ExomeDepth wants the columns named differently
             dsd.covered = data.frame(
