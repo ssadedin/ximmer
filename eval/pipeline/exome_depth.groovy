@@ -40,7 +40,7 @@ run_exome_depth = {
        outputFiles = [batch_name + '.' + chr + '.exome_depth.tsv', batch_name + '.' + chr + '.exome_depth.warnings.tsv']
     }
     else {
-       outputFiles = [batch_name + '.' + exome_depth.tsv, batch_name + '.exome_depth.warnings.tsv']
+       outputFiles = [batch_name + '.exome_depth.tsv', batch_name + '.exome_depth.warnings.tsv']
     }
     
     produce(outputFiles) {
