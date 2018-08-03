@@ -126,6 +126,8 @@ callers = "xhmm,ed,cnmops,truth"
 
 cnv_callers = callers.split(",") as List
 
+exome_depth_split_chrs = true
+
 bpipe.Config.userConfig.autoFilter = "false"
 
 tmpFile = new File("tmpdata")
