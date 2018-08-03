@@ -9,7 +9,7 @@
 // This prevents any issues with single-ploidy X chromosomes in males
 // but means that chromosomes with small numbers of targets and large events
 // could be missed
-exome_depth_split_chrs = true
+
 
 run_exome_depth = {
 

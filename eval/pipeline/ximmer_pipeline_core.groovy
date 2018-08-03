@@ -41,6 +41,8 @@ init_caller_params = {
     
     println "Using parameters " + params + " for $caller with output to " + branch.dir
     
+    branch.exome_depth_split_chrs = true
+    
     def paramsPath = "$batch_name/${caller}.${params}.params.txt"
     load(paramsPath)
     
