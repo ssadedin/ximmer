@@ -4,6 +4,13 @@
 // ExomeDepth Support Routines
 //
 //////////////////////////////////////////////////////////////////
+
+// By default, run ExomeDepth on each chromosome separately
+// This prevents any issues with single-ploidy X chromosomes in males
+// but means that chromosomes with small numbers of targets and large events
+// could be missed
+exome_depth_split_chrs = true
+
 run_exome_depth = {
 
     requires target_bed : "BED file containing regions to analyse",
@@ -11,8 +18,8 @@ run_exome_depth = {
 
     var transition_probability : "0.0001",
         expected_cnv_length: 50000,
-        filter_target_bed : true
-        
+        filter_target_bed : true,
+        exome_depth_split_chrs : true
         
     def target_region_to_use = analysable_target
     if(!filter_target_bed) {
@@ -28,7 +35,15 @@ run_exome_depth = {
 
     println "Using Exome Depth transition probability = $transition_probability"
 
-    produce(batch_name + '.' + chr + '.exome_depth.tsv', batch_name + '.' + chr + '.exome_depth.warnings.tsv') {
+    List outputFiles
+    if(exome_depth_split_chrs) {
+       outputFiles = [batch_name + '.' + chr + '.exome_depth.tsv', batch_name + '.' + chr + '.exome_depth.warnings.tsv']
+    }
+    else {
+       outputFiles = [batch_name + '.' + exome_depth.tsv, batch_name + '.exome_depth.warnings.tsv']
+    }
+    
+    produce(outputFiles) {
         R({"""
 
             source("$TOOLS/r-utils/cnv_utils.R")
@@ -40,7 +55,7 @@ run_exome_depth = {
 
             # Read the target / covered region
             print(sprintf("Reading target regions for $chr from $target_region_to_use"))
-            dsd.covered = read.bed(pipe("grep '^$chr[^0-9]' $target_region_to_use"))
+            dsd.covered = read.bed(pipe(${exome_depth_split_chrs?"grep '^$chr[^0-9]' $target_region_to_use" : "cat $target_region_to_use"}))
 
             # ExomeDepth wants the columns named differently
             dsd.covered = data.frame(
@@ -161,6 +176,6 @@ merge_ed = {
 }
 
 exome_depth_pipeline = segment {
-    chromosomes * [ run_exome_depth ] + merge_ed
+    exome_depth_split_chrs ? (chromosomes * [ run_exome_depth ] + merge_ed) : run_exome_depth
 }
 
