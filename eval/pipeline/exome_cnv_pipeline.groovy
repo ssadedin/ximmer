@@ -113,6 +113,8 @@ analysable_chromosomes = chromosomes.clone()
     
 println "Chromosomes for analysis are: $chromosomes"
 
+exome_depth_split_chrs = true
+
 load 'excavator.groovy'
 load 'xhmm.groovy'
 load 'exome_depth.groovy'
@@ -126,7 +128,6 @@ callers = "xhmm,ed,cnmops,truth"
 
 cnv_callers = callers.split(",") as List
 
-exome_depth_split_chrs = true
 
 bpipe.Config.userConfig.autoFilter = "false"
 
