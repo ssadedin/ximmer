@@ -62,6 +62,7 @@ plot_cnv_coverage = {
             JAVA_OPTS="-Xmx8g -Djava.awt.headless=true -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/CNVDiagram.groovy
                 -chr $chromosome
                 -cnvs $input.tsv
+                -ref $HGFA
                 -gatkcov common/xhmm
                 -targets $input.bed
                 -json -nopng

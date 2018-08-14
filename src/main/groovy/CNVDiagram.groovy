@@ -73,6 +73,8 @@ class CNVDiagram {
     
     Regions targetRegions = null
     
+    FASTA reference = null
+    
     Map<String,Regions> vcfs = Collections.synchronizedMap([:])
     
     /**
@@ -552,6 +554,11 @@ class CNVDiagram {
             otherCov: coverage.others.collect { Math.round(it) },
             coverageSd: coverage.sd.collect { round2Digits(it) }
         ]
+        
+        if(this.reference) {
+            targetJson.gc = this.reference.gc(targetRegion)
+        }
+        
         json.print("      " + JsonOutput.toJson(targetJson))
     }
     
@@ -933,6 +940,7 @@ class CNVDiagram {
             ampliconcounts 'BED file containing read counts for amplicons (for HaloPlex data)', args:1
             sample 'Sample to export for (specify multiple times or omit for all)', args:Cli.UNLIMITED
             refseq 'RefSeq Genes file from UCSC for annotating genes', args: 1
+            ref 'Reference sequence. If provided, GC content will be annotated', args:1
             t 'Number of threads to use (1)', args:1
             o 'Output file (png format)', args:1, required:true
             w 'Width of output file (pixels)', args:1
@@ -1048,6 +1056,9 @@ class CNVDiagram {
         else
         if(opts.litemean)
             diagram.liteMeanEstimator = true
+            
+        if(opts.ref)
+            diagram.reference = new FASTA(opts.ref)
             
         if(!diagram.validate(opts.ignoremissing)) {
             diagram.err.println "ERROR: one or more arguments was missing or invalid"
