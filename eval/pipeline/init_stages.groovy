@@ -56,4 +56,39 @@ create_analysable_target = {
    branch.analysable_target = output.bed
 }
 
+select_controls = {
+    
+    doc "Selects a subset of controls to use from the supplied controls based on correlation with test samples"
+    
+    var control_correlation_threshold : 0.9,
+        control_samples : false
+    
+    if(!control_samples) {
+        println "No control samples are specified: skipping control selection"
+        return
+    }
+    
+    produce('filtered_controls.txt') {
+        exec """
+            JAVA_OPTS="-Xmx8g -Djava.awt.headless=true -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/ximmer/FilterControls.groovy
+                -corr $input.correlations.js
+                -thresh $control_correlation_threshold ${control_samples.collect { '-control ' + it}.join(' ')}
+                > $output.txt
+        ""","local"
+    }
+        
+    
+    List control_samples = file(output.txt).readLines()*.trim()
+    
+    filtered_bams = all_bams.grep {
+        new gngs.SAM(it).samples[0] in control_samples
+    }
+    
+    sample_info = sample_info.grep { it.key in control_samples }.collectEntries()
+    
+    sample_names = sample_names.grep { it in control_samples }
+    
+    forward(filtered_bams)
+}
+
 
