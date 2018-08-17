@@ -122,10 +122,12 @@ ximmer_core = segment {
         (caller + '.%.params.txt') * [ init_caller_params.using(caller:caller) + caller_pipelines[caller] + register_caller_result ]
     }
     
-    init + create_analysable_target + calc_qc_stats +  select_controls + common_stages + 
+    init + create_analysable_target + calc_qc_stats.using(type:'rawqc') +  select_controls + common_stages + [
+        calc_qc_stats.using(type:'qc'),
         batch_dirs * [
             init_batch + caller_stages + reset_bams +
                  cnv_reports +
                  INCLUDE_CHROMOSOMES * [ plot_cnv_coverage ]  
          ]
+     ]
 } 

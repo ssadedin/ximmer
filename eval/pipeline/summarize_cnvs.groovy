@@ -190,9 +190,10 @@ cnv_report = {
 
 calc_qc_stats = {
     
-    var batch: 'ximmer'
+    var batch: 'ximmer',
+        type: 'qc'
     
-    output.dir = "common/qc"
+    output.dir = "common/$type"
     
     produce(["${batch}_per_base.coverage.tsv.gz", "${batch}.coeffv.js", "${batch}.correlations.js","${batch}.correlations.tsv", "${batch}.cov.js"]) {
         exec """
