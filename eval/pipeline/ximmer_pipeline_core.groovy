@@ -83,12 +83,47 @@ init_common = {
 
 all_bams = []
 
+filtered_bams = []
+
 init = {
     all_bams = inputs.bam.collect { it } // clone
 }
 
 reset_bams = {
-    forward(all_bams)
+    forward(filtered_bams)
+}
+
+select_controls = {
+    
+    var control_correlation_threshold : 0.9,
+        control_samples : false
+    
+    if(!control_samples) {
+        println "No control samples are specified: skipping control selection"
+        return
+    }
+    
+    produce('filtered_controls.txt') {
+        exec """
+            JAVA_OPTS="-Xmx8g -Djava.awt.headless=true -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/ximmer/FilterControls.groovy
+                -corr $input.correlations.js
+                -thresh $control_correlation_threshold ${control_samples.collect { '-control ' + it}.join(' ')}
+                > $output.txt
+        ""","local"
+    }
+        
+    
+    List control_samples = file(output.txt).readLines()*.trim()
+    
+    filtered_bams = all_bams.grep {
+        new gngs.SAM(it).samples[0] in control_samples
+    }
+    
+    sample_info = sample_info.grep { it.key in control_samples }.collectEntries()
+    
+    sample_names = sample_names.grep { it in control_samples }
+    
+    forward(filtered_bams)
 }
 
 ximmer_core = segment {
@@ -120,12 +155,10 @@ ximmer_core = segment {
         (caller + '.%.params.txt') * [ init_caller_params.using(caller:caller) + caller_pipelines[caller] + register_caller_result ]
     }
     
-    init + create_analysable_target + common_stages + [
-        calc_qc_stats,
+    init + create_analysable_target + calc_qc_stats +  select_controls + common_stages + 
         batch_dirs * [
             init_batch + caller_stages + reset_bams +
                  cnv_reports +
                  INCLUDE_CHROMOSOMES * [ plot_cnv_coverage ]  
          ]
-     ]
 } 
