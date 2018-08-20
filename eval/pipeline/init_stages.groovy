@@ -19,41 +19,52 @@ create_analysable_target = {
              
              
     var min_target_size : 30,
-        exclude_regions : ''
+        exclude_regions : '',
+        filter_target_regions : true
 
-    def numSamples = sample_names.size()
-
-    from(target_bed) filter('analysable') {
-
-        groovy """
-           import gngs.*
-
-           INCLUDE_CHROMOSOMES = "${chromosomes.join(/,/)}".split(",")
-
-           targetRegion = new BED("$input.bed", withExtra:true).load()
-
-           excludeRegions = "$exclude_regions" ? new BED("$exclude_regions").load() : null
-
-           chrs = targetRegion*.chr.unique()
-
-           chrCounts = targetRegion.countBy { it.chr }
-
-           filteredTargets = targetRegion.grep { 
-               (it.chr in INCLUDE_CHROMOSOMES) && 
-               (chrCounts[it.chr] > $numSamples) && 
-               (it.to - it.from > $min_target_size) && 
-               ((excludeRegions == null) || !it.overlaps(excludeRegions))
-           } as Regions
-
-           
-           filteredTargets.save("$output.bed", sorted:true)
-        """,config:"small"
-   }
-   
+        
+    if(!filter_target_regions) {
+        println "Filtering of target regions is disabled: CNV callers will be passed the raw BED file"
+        from(target_bed) {
+            branch.analysable_target = input.bed
+        }
+    }
+    else {
+            
+        def numSamples = sample_names.size()
+    
+        from(target_bed) filter('analysable') {
+    
+            groovy """
+               import gngs.*
+    
+               INCLUDE_CHROMOSOMES = "${chromosomes.join(/,/)}".split(",")
+    
+               targetRegion = new BED("$input.bed", withExtra:true).load()
+    
+               excludeRegions = "$exclude_regions" ? new BED("$exclude_regions").load() : null
+    
+               chrs = targetRegion*.chr.unique()
+    
+               chrCounts = targetRegion.countBy { it.chr }
+    
+               filteredTargets = targetRegion.grep { 
+                   (it.chr in INCLUDE_CHROMOSOMES) && 
+                   (chrCounts[it.chr] > $numSamples) && 
+                   (it.to - it.from > $min_target_size) && 
+                   ((excludeRegions == null) || !it.overlaps(excludeRegions))
+               } as Regions
+    
+               
+               filteredTargets.save("$output.bed", sorted:true)
+            """,config:"small"
+       }
+       branch.analysable_target = output.bed
+    }
+       
    // Overwrite global variable
-   analysable_chromosomes = new BED(output.bed.toString()).load()*.chr.unique().grep { it in INCLUDE_CHROMOSOMES }
+   analysable_chromosomes = new BED(branch.analysable_target.toString()).load()*.chr.unique().grep { it in INCLUDE_CHROMOSOMES }
    
-   branch.analysable_target = output.bed
 }
 
 select_controls = {
