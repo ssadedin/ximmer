@@ -4,6 +4,143 @@
 // Pipeline stage to run CODEX on exome data
 //
 //////////////////////////////////////////////////////////////////
+
+codex_call_cnvs_combined = {
+    
+    var batch_name : false,
+        k_offset : 0,
+        max_k : 9
+
+    def outputFile = batch_name ? batch_name + '.cnvs.tsv' : input.bam + '.codex.cnvs.tsv'
+
+    produce(outputFile) {
+        
+        def bamDir = file(input.bam).parentFile.absoluteFile.absolutePath
+    
+        R({"""
+
+            source("$TOOLS/r-utils/cnv_utils.R")
+
+            library(CODEX)
+
+            bam.files = c('${inputs.bam.join("','")}')
+
+            bam.samples = as.matrix(data.frame(sample=sapply(bam.files, function(file.name) {
+                # Scan the bam header and parse out the sample name from the first read group
+                read.group.info = strsplit(scanBamHeader(file.name)[[1]]$text[["@RG"]],":")
+                names(read.group.info) = sapply(read.group.info, function(field) field[[1]]) 
+                return(read.group.info$SM[[2]])
+            })))
+
+            bedFile <- "$input.bed"
+
+            targ.chr <- unique(as.matrix(read.table(bedFile, sep = "\t")[,1]))
+            chr=targ.chr[[1]]
+
+            bambedObj <- getbambed(bamdir = bam.files, bedFile = bedFile,
+                                   sampname = bam.samples, 
+                                   projectname = "ximmer", chr)
+            
+            bamdir <- bambedObj$bamdir; sampname <- bambedObj$sampname
+            
+            
+            ref <- bambedObj$ref; 
+            projectname <- bambedObj$projectname; 
+            
+            bambedObj <- getbambed(bamdir = bam.files, bedFile = bedFile,
+                                   sampname = bam.samples, 
+                                   projectname = "ximmer", chr)
+            
+            bamdir=bambedObj$bamdir; sampname=bambedObj$sampname; ref=bambedObj$ref; projectname=bambedObj$projectname;chr=bambedObj$chr
+            # get raw depth of coverage
+            coverageObj=getcoverage(bambedObj,mapqthres=20)
+            Y=coverageObj$Y; readlength=coverageObj$readlength
+            # get gc content
+            gc=getgc(chr,ref)
+            # get mappability
+            mapp=getmapp(chr,ref)
+            
+            ref.all=bambedObj$ref
+            Y.all=coverageObj$Y
+            gc.all=gc
+            mapp.all=mapp
+            chr.all=rep(chr,length=length(mapp))
+            
+            for(chr in targ.chr[2:length(targ.chr)]) {
+              print(chr)
+              if(!is.element(chr,targ.chr)) next
+              # get bam directories, read in bed file, get sample names
+              bambedObj <- getbambed(bamdir = bam.files, bedFile = bedFile,
+                                     sampname = bam.samples, 
+                                     projectname = "ximmer", chr)
+              
+              bamdir=bambedObj$bamdir; sampname=bambedObj$sampname; ref=bambedObj$ref; projectname=bambedObj$projectname;chr=bambedObj$chr
+              # get raw depth of coverage
+              coverageObj=getcoverage(bambedObj,mapqthres=20)
+              Y=coverageObj$Y; readlength=coverageObj$readlength
+              # get gc content
+              gc=getgc(chr,ref)
+              # get mappability
+              mapp=getmapp(chr,ref)
+              
+              ref.all=c(ref.all,bambedObj$ref)
+              Y.all=rbind(Y.all,coverageObj$Y)
+              gc.all=c(gc.all,gc)
+              mapp.all=c(mapp.all,mapp)
+              chr.all=c(chr.all,rep(chr,length=length(mapp)))
+            }
+
+            Y=Y.all
+            ref=ref.all
+            gc=gc.all
+            mapp=mapp.all
+
+            #------------------------------------
+
+            qcObj <- qc(Y, sampname, chr, ref, mapp, gc, cov_thresh = c(20, 4000),
+                        length_thresh = c(20, 2000), 
+                        mapp_thresh = 0.9, 
+                        gc_thresh = c(20, 80))
+            
+            Y_qc <- qcObj$Y_qc; 
+            sampname_qc <- qcObj$sampname_qc; 
+            gc_qc <- qcObj$gc_qc
+            
+            mapp_qc <- qcObj$mapp_qc; ref_qc <- qcObj$ref_qc; qcmat <- qcObj$qcmat
+            
+            # Rarely normalisation fails if k is too high
+            # Here we loop while reducing max_k until it works
+            # If this is happening consistently then better to reduce the configured initial max_k
+            # via the parameter.
+            max_k=$max_k; 
+            normObj = F;  
+            while(typeof(normObj) == 'logical') { 
+                try(normObj <- normalize(Y_qc, gc_qc, K = 1:max_k)); max_k=max_k-1; 
+            }
+            
+            Yhat <- normObj$Yhat; AIC <- normObj$AIC; BIC <- normObj$BIC
+
+            RSS <- normObj$RSS; 
+            K <- normObj$K 
+            
+            optK = min(9,max(1,K[which.max(BIC)] + $k_offset))
+            
+            finalcall <- segment(Y_qc, Yhat, optK = optK, K = K, sampname_qc,
+                                 ref_qc, chr, lmax = 200, mode = "integer")
+
+            write.table(finalcall,
+                        file="$output.tsv",
+                        row.names=F,
+                        col.names=T,
+                        quote=F,
+                        sep="\\t"
+                        )
+        """}, "codex")
+    }
+    
+    branch.caller_result = output.tsv
+}
+
 codex_call_cnvs = {
 
     var batch_name : false,
@@ -118,6 +255,15 @@ merge_codex = {
     
 }
 
-codex_pipeline = segment {
-    chromosomes * [ codex_call_cnvs ] + merge_codex
+codex_split_chrs = true
+
+if(codex_split_chrs) {
+    codex_pipeline = segment {
+        chromosomes * [ codex_call_cnvs ] + merge_codex
+    }
+}
+else {
+    codex_pipeline = segment {
+         codex_call_cnvs_combined 
+    }
 }
