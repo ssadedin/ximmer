@@ -255,9 +255,7 @@ merge_codex = {
     
 }
 
-codex_split_chr = true
-
-if(codex_split_chr) {
+if(codex_split_chrs) {
     codex_pipeline = segment {
         chromosomes * [ codex_call_cnvs ] + merge_codex
     }
