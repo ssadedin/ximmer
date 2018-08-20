@@ -34,7 +34,7 @@ codex_call_cnvs_combined = {
 
             bedFile <- "$input.bed"
 
-            targ.chr <- unique(as.matrix(read.table(bedFile, sep = "\t")[,1]))
+            targ.chr <- unique(as.matrix(read.table(bedFile, sep = "\\t")[,1]))
             chr=targ.chr[[1]]
 
             bambedObj <- getbambed(bamdir = bam.files, bedFile = bedFile,
