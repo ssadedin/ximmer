@@ -36,7 +36,7 @@ codex_call_cnvs_combined = {
 
             bedFile <- "$input.bed"
             targ.chr <- unique(as.matrix(read.table(bedFile, sep = "\\t")[,1]))
-            gene.all=as.matrix(read.table(bedFile,head=F,sep='\t')[,4])
+            gene.all=as.matrix(read.table(bedFile,head=F,sep='\\t')[,4])
 
             chr=targ.chr[[1]]
 
