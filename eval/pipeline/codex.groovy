@@ -160,7 +160,7 @@ codex_call_cnvs_combined = {
             cn.filter=(cn<=$codex_deletion_threshold)|(cn>=$codex_duplication_threshold)
             finalcall=finalcall[cn.filter,]
 
-            write.table(finalcall,
+            write.table(finalcall[,-3], # to be concordant with chr-split results (below), remove gene column
                         file="$output.tsv",
                         row.names=F,
                         col.names=T,
