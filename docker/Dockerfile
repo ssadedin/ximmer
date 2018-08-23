@@ -2,6 +2,8 @@ FROM ubuntu:14.04
 MAINTAINER Simon Sadedin "simon.sadedin@mcri.edu.au" 
 RUN apt-get update; 
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+RUN echo 'deb http://cran.rstudio.com/bin/linux/ubuntu trusty/' >> /etc/apt/sources.list
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
 RUN apt-get update && \
     apt-get install -y software-properties-common python-software-properties && \
     apt-get install -y curl wget &&  \
