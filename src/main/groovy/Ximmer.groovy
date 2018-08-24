@@ -452,6 +452,7 @@ class Ximmer {
                 "-p", "target_bed=$targetRegionsPath", 
                 "-p", /sample_id_mask="$sampleIdMask"/, 
                 "-p", "imgpath=${runDir.name}/#batch#/report/", 
+                "-p", "filter_target_regions=${cfg.getOrDefault('filter_target_regions', false)}"
             ] + dddParam + this.geneListParameters + minCatOpt + 
                 excludeRegionsParam + geneFilterParam + excludeGenesParam +
                 exome_depth_split_chrs_param + codex_split_chrs_param + drawCnvsParam + [
