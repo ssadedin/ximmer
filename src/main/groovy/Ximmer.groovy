@@ -919,6 +919,7 @@ class Ximmer {
         
         CNVSimulator simulator = new CNVSimulator(targetRegion, targetSample, sourceSample) 
         simulator.simulatedSampleId = simulatedSampleId
+        simulator.deletionDownsampleRate = this.cfg.getOrDefault('deletion_downsample_rate', 0.5d) 
         if('target_coverage' in cfg) {
             simulator.setTargetCoverage(cfg.target_coverage.toDouble())
         }

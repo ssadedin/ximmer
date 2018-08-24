@@ -53,6 +53,11 @@ class CNVSimulator {
     double maleDownSampleRate = -1.0d
     
     /**
+     * The amount of downsampling that will be applied to deletions
+     */
+    double deletionDownsampleRate = 0.5d
+    
+    /**
      * Maximum number of attempts to select a random region satisfying all constraints
      */
     int maxSelectionAttempts = MAX_REGION_SELECTION_TRIES
@@ -468,7 +473,7 @@ class CNVSimulator {
         // technical note: the femaleDownSampleRate takes into account the coverage in the supplied
         //                 male alignment. This is necessary to make the output comparable
         //                 in terms of coverage when using 'both'.
-        double deletionDownSampleRate = 0.5d * femaleDownSampleRate
+        double deletionDownSampleRate = deletionDownsampleRate * femaleDownSampleRate
         
         Map options = [:]
         if(this.simulatedSampleId != null)
