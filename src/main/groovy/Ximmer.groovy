@@ -362,6 +362,7 @@ class Ximmer {
         List geneFilterParam = []
         List dddParam = []
         List exome_depth_split_chrs_param = []
+        List codex_split_chrs_param = []
         
         synchronized(analysisLock) { // Avoid any potential multi-threading issues since all the below
                                      // are reading from non-threadsafe maps, config objects, etc.
@@ -417,6 +418,10 @@ class Ximmer {
             if(cfg.containsKey('exome_depth_split_chrs')) {
                exome_depth_split_chrs_param = ["-p", "exome_depth_split_chrs=$cfg.exome_depth_split_chrs"]
             }
+            
+            if(cfg.containsKey('codex_split_chrs')) {
+               exome_depth_split_chrs_param = ["-p", "codex_split_chrs=$cfg.codex_split_chrs"]
+            }
         }
         
         
@@ -449,7 +454,7 @@ class Ximmer {
                 "-p", "imgpath=${runDir.name}/#batch#/report/", 
             ] + dddParam + this.geneListParameters + minCatOpt + 
                 excludeRegionsParam + geneFilterParam + excludeGenesParam +
-                exome_depth_split_chrs_param + drawCnvsParam + [
+                exome_depth_split_chrs_param + codex_split_chrs_param + drawCnvsParam + [
                 "$ximmerBase/eval/pipeline/exome_cnv_pipeline.groovy"
             ]  + bamFiles + vcfFiles + (enableTruePositives ? ["true_cnvs.bed"] : [])
             
