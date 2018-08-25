@@ -24,8 +24,8 @@ create_analysable_target = {
 
         
     if(!filter_target_regions) {
-        println "Filtering of target regions is disabled: CNV callers will be passed the raw BED file"
         from(target_bed) {
+            println "Filtering of target regions is disabled: CNV callers will be passed the raw BED file: $input.bed"
             branch.analysable_target = input.bed
         }
     }

@@ -15,7 +15,7 @@ codex_call_cnvs_combined = {
 
     def outputFile = batch_name ? batch_name + '.cnvs.tsv' : input.bam + '.codex.cnvs.tsv'
 
-    produce(outputFile) {
+    from(analysable_target) produce(outputFile) {
         
         def bamDir = file(input.bam).parentFile.absoluteFile.absolutePath
     
