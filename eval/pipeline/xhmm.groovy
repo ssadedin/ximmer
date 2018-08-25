@@ -65,11 +65,12 @@ xhmm_init = {
 
 gatk_depth_of_coverage = {
     
+    
     // requires target_bed : "BED file containing regions to calculate coverage depth for"
 
     output.dir = "common/xhmm"
     
-    transform("sample_interval_summary") {
+    from(analysable_target) transform("sample_interval_summary") {
         exec """
             $JAVA -Xmx2g -Djava.io.tmpdir=$TMPDIR -jar $GATK/GenomeAnalysisTK.jar 
                  -T DepthOfCoverage 
