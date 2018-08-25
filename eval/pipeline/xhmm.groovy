@@ -70,11 +70,11 @@ gatk_depth_of_coverage = {
 
     output.dir = "common/xhmm"
     
-    from(analysable_target) transform("sample_interval_summary") {
+    from('bam', analysable_target) transform("sample_interval_summary") {
         exec """
             $JAVA -Xmx2g -Djava.io.tmpdir=$TMPDIR -jar $GATK/GenomeAnalysisTK.jar 
                  -T DepthOfCoverage 
-                 ${inputs.bam.withFlag("-I")}
+                 $input.bam
                  -L $input.bed
                  -R $HGFA
                  -dt BY_SAMPLE 
