@@ -13,7 +13,6 @@
 // NOTE: Depends on base HG19
 
 xhmm_init = {
-    
 
     // Settings that can be overridden on command line
     var exome_wide_cnv_rate :  '1e-03',
@@ -25,7 +24,8 @@ xhmm_init = {
         standard_deviation_of_diploid_z_score_distribution: 1,
         mean_of_duplication_z_score_distribution: 3,
         standard_deviation_of_duplication_z_score_distribution: 1,
-        min_sample_mean:15
+        min_sample_mean:15,
+        filter_target_bed: true
 
 
     var xhmm_batch_name : batch_name
@@ -49,6 +49,17 @@ xhmm_init = {
                 $standard_deviation_of_duplication_z_score_distribution
                 > $output.txt
           ""","local"
+    }
+    
+    // By default we restrict target regions to those that can be analysed by all variant callers
+    // However this can be disabled in which case we forward the original target region
+    if(filter_target_bed) {
+        println "Using filtered target BED file for XHMM analysis"
+        forward(output.txt, analysable_target)
+    }
+    else {
+        println "Using raw target BED file for XHMM analysis"
+        forward(output.txt, target_bed)
     }
 }
 
@@ -231,8 +242,8 @@ xhmm_discover = {
 }
 
 xhmm_pipeline = segment {
-    find_extreme_gc_content + 
              xhmm_init + 
+             find_extreme_gc_content + 
              xhmm_merge_coverage + 
              xhmm_mean_center +
              xhmm_pca +
