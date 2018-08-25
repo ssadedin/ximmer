@@ -1057,10 +1057,9 @@ class Ximmer {
         // Find the analysable target region - this is actually produced by the bpipe run,
         // so it has to come from there
         File runDir = this.runs*.value[0].runDirectory
-        String analysedRegions = cfg.getOrDefault('filter_target_regions',false) ? 
-                new File(cfg.target_regions).name.replaceAll('.bed$',".analysable.bed") : cfg.target_regions  
+        File analysedTargets = cfg.getOrDefault('filter_target_regions',false) ? 
+                new File(runDir,new File(cfg.target_regions).name.replaceAll('.bed$',".analysable.bed")) : new File(cfg.target_regions)  
                 
-        File analysedTargets = new File(runDir,analysedRegions)
         if(!analysedTargets.exists())
             throw new RuntimeException("ERROR: analysis pipeline did not produce expected analysed target region BED: $analysedTargets.absolutePath")
         
