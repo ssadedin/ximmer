@@ -70,13 +70,14 @@ cd ximmer
 If you use Docker, you can install and run Ximmer simply by building it
 from the Docker file. In this case the primary requirement is that you do 
 this on a computer with enough RAM, we recommend at least 24GB of RAM for 
-the analysis pipeline to run successfully.
+the analysis pipeline to run successfully. You may need to change your
+docker settings to allow it to access the RAM also.
 
 To build the Docker image use:
 
 ```bash
 git clone https://github.com/ssadedin/ximmer.git
-cd ximmer/docker
+cd ximmer
 docker build -t ximmer . 
 ```
 
@@ -84,7 +85,7 @@ Note: if your machine is behind a proxy, you can provide it ike this:
 
 ```bash
 git clone https://github.com/ssadedin/ximmer.git
-cd ximmer/docker
+cd ximmer
 docker build --build-arg http_proxy='http://proxy.host.com:proxy-port' -t ximmer . 
 ```
 
