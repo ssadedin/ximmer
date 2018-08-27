@@ -11,7 +11,8 @@ codex_call_cnvs_combined = {
         k_offset : 0,
         max_k : 9,
         codex_deletion_threshold: 1.7,
-        codex_duplication_threshold: 2.3
+        codex_duplication_threshold: 2.3,
+        codex_copynumber_mode : 'integer' // integer or fraction
 
     def outputFile = batch_name ? batch_name + '.cnvs.tsv' : input.bam + '.codex.cnvs.tsv'
 
@@ -151,14 +152,19 @@ codex_call_cnvs_combined = {
               yhati=Yhat[[optK]][geneindex,]
               refi=ref_qc[geneindex]
               chri=chr_qc[geneindex][1]
-              finalcalli=segment_targeted(yi, yhati, sampname_qc, refi, genei, chri, lmax=length(geneindex), mode='fraction') 
+              finalcalli=segment_targeted(yi, yhati, sampname_qc, refi, genei, chri, lmax=length(geneindex), mode='$codex_copynumber_mode') 
               finalcall=rbind(finalcall,finalcalli)
             }
             
             finalcall=finalcall[-1,]
             cn=(as.numeric(as.matrix(finalcall[,'copy_no'])))
-            cn.filter=(cn<=$codex_deletion_threshold)|(cn>=$codex_duplication_threshold)
-            finalcall=finalcall[cn.filter,]
+            if("$codex_copynumber_mode" == "fraction") {
+                cn.filter=(cn<=$codex_deletion_threshold)|(cn>=$codex_duplication_threshold)
+                finalcall=finalcall[cn.filter,]
+            }
+            else {
+                finalcall=finalcall[cn!=2,]
+            }
 
             write.table(finalcall[,-3], # to be concordant with chr-split results (below), remove gene column
                         file="$output.tsv",
