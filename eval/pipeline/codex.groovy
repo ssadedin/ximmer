@@ -146,7 +146,7 @@ codex_call_cnvs_combined = {
                                   'norm_cov','copy_no','lratio',
                                   'mBIC')
             for(genei in unique(gene_qc)){
-              cat('Segmenting gene',genei,'\n')
+              cat('Segmenting gene',genei,'\\n')
               geneindex=which(gene_qc==genei)
               yi=Y_qc[geneindex,]
               yhati=Yhat[[optK]][geneindex,]
@@ -161,8 +161,7 @@ codex_call_cnvs_combined = {
             if("$codex_copynumber_mode" == "fraction") {
                 cn.filter=(cn<=$codex_deletion_threshold)|(cn>=$codex_duplication_threshold)
                 finalcall=finalcall[cn.filter,]
-            }
-            else {
+            } else {
                 finalcall=finalcall[cn!=2,]
             }
 
