@@ -30,7 +30,7 @@ Ximmer's output looks like.
 Requirements
 ============
 
- * Java 1.7+ 
+ * Java 1.8+ 
  * Python 2.7, preferably the Anaconda installation (you will need
    support for pandas, numpy and other computational libraries that
    are not always easy to compile in a vanilla installation).

@@ -15,7 +15,7 @@ To make Ximmer easier to use we have included support to automatically download
 and build the tools and other dependencies it needs. You should make sure
 before starting that you have at minimum the following requirements:
 
- * Java 1.7+ 
+ * Java 1.8+ 
  * Python 2.7, preferably the Anaconda installation (you will need
    support for pandas, numpy and other computational libraries that
    are not always easy to compile in a vanilla installation).
