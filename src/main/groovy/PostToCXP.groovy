@@ -72,7 +72,7 @@ class PostToCXP extends ToolBase {
         }
         else {
             log.info "Creating new batch $batchIdentifier"
-            (ws / 'batch').post(
+            batch = (ws / 'batch').post(
                 metadata: [:],
                 identifier: batchIdentifier,
                 batchDate(batchDir.lastModified())
@@ -84,7 +84,7 @@ class PostToCXP extends ToolBase {
             assay: assay,
             sequencer: sequencer,
             samples: ximmer.bamFiles*.key,
-            batch_id: batchIdentifier,
+            batch_id: batch[0].id,
             results: new File(opts.analysis).absolutePath,
             control_samples: [],
             analysis_samples: ximmer.bamFiles*.key,
