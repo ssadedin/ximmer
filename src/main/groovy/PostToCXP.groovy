@@ -63,16 +63,18 @@ class PostToCXP extends ToolBase {
             return r.readName.tokenize(':')[0].stripMargin('@')
         }
         
+        String batchIdentifier = opts.batch?:batchDir.name
+        
         // An analysis needs a batch, so create one?
-        List batch = (ws / 'batch').get(identifier:batchDir.name)
+        List batch = (ws / 'batch').get(identifier:batchIdentifier)
         if(batch) {
             println "Found batch $batch"
         }
         else {
-            log.info "Creating new batch $batchDir.name"
-            batch = (ws / 'batch').post(
+            log.info "Creating new batch $batchIdentifier"
+            (ws / 'batch').post(
                 metadata: [:],
-                identifier: batchDir.name,
+                identifier: batchIdentifier,
                 batchDate(batchDir.lastModified())
             )
         }
@@ -82,7 +84,7 @@ class PostToCXP extends ToolBase {
             assay: assay,
             sequencer: sequencer,
             samples: ximmer.bamFiles*.key,
-            batch_id: batch[0].id,
+            batch_id: batchIdentifier,
             results: new File(opts.analysis).absolutePath,
             control_samples: [],
             analysis_samples: ximmer.bamFiles*.key,
@@ -147,6 +149,7 @@ class PostToCXP extends ToolBase {
             analysis 'The directory of the analysis to import', args:1, required: true
             qc 'The directory containing QC files to import', args:1, required: true
             cxp 'Base URL to CXP server', args:1, required: true
+            batch 'CNV calling batch identifier (default: name of current directory', args:1, required: false
         }
     }
 }
