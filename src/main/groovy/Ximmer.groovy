@@ -238,6 +238,32 @@ class Ximmer {
         
     }
     
+    /**
+     * Filter the bam files discovered to the specified sex value (male, female)
+     */
+    void filterToSex(String sex) {
+        
+        if(!cfg.containsKey('samples')) {
+            log.info "Running inference of sexes to allow for sex filtering ..."
+            this.inferSexes()
+        }
+        
+        int originalSize = this.bamFiles.size()
+        
+        List desiredSamples
+        if(sex.toLowerCase() == "male")
+            desiredSamples = this.cfg.samples.males
+        else
+            desiredSamples = this.cfg.samples.females
+        
+            
+        this.bamFiles = this.bamFiles.grep { Map.Entry e ->
+            e.key in desiredSamples
+        }.collectEntries()
+        
+        log.info "Filtering to sex $sex, retained ${bamFiles.size()}/$originalSize samples"
+    }
+    
     void cacheReferenceData() {
         
         File sharedCache = new File(ximmerBase,'cache')
