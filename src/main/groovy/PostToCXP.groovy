@@ -72,11 +72,11 @@ class PostToCXP extends ToolBase {
         }
         else {
             log.info "Creating new batch $batchIdentifier"
-            batch = (ws / 'batch').post(
+            batch = [(ws / 'batch').post(
                 metadata: [:],
                 identifier: batchIdentifier,
-                batchDate(batchDir.lastModified())
-            )
+                date: batchDate(batchDir.lastModified())
+            )]
         }
         
         (ws / 'analysis/import').post(
