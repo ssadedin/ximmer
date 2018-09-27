@@ -130,11 +130,14 @@ class PostToCXP extends ToolBase {
      * declared.
      */
     void inferSexes(List<SAM> bamFiles) {
+
         log.info "Inferring sexes for ${bamFiles.size()} bam files"
+        List karyoChr = ['1','X','Y']
+        Pattern chrStart = ~'^chr'
+        Regions karyoRegions = ximmer.targetRegion.grep { it.chr.replaceAll(chrStart,'') in karyoChr } as Regions
+        log.info "Karyotyping using ${Utils.humanBp(karyoRegions.size())} consisting of ${karyoRegions.numberOfRanges} target regions from total ${Utils.humanBp(ximmer.targetRegion.size())} in target region"
+
         for(bam in bamFiles) {
-            String karyoChr = ['1','X','Y']
-            Pattern chrStart = ~'^chr'
-            Regions karyoRegions = ximmer.targetRegion.grep { it.chr.replaceAll(chrStart,'') in karyoChr } as Regions
             SexKaryotyper karyotyper = new SexKaryotyper(bam, karyoRegions)
             karyotyper.run()
             String sampleId = bam.samples[0]
