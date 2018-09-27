@@ -190,7 +190,7 @@ class PostToCXP extends ToolBase {
             qc 'The directory containing QC files to import', args:1, required: true
             cxp 'Base URL to CXP server', args:1, required: true
             batch 'CNV calling batch identifier (default: name of current directory', args:1, required: false
-            test 'Do not actually post data, just show what would be posted', args:1, required: false
+            test 'Do not actually post data, just show what would be posted', required: false
         }
     }
 }
