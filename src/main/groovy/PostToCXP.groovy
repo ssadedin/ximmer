@@ -26,7 +26,11 @@ class PostToCXP extends ToolBase {
     
     private Ximmer ximmer
     
+    private Map<String,String> sampleSexes = [:]
+    
     private ConfigObject cfg
+    
+    private WebService createBamService
 
     @Override
     public void run() {
@@ -40,13 +44,21 @@ class PostToCXP extends ToolBase {
         ws = new WebService(opts.cxp)
         ws.autoSlash = true
         ws.credentialsPath = ".cxp/credentials"
+        
+        this.createBamService = (ws / 'dataasset/create/bam/')
+        
         File batchDir = new File('.').absoluteFile.parentFile
         String assay = new File(cfg.target_regions).name.replaceAll('.bed$','')
         
-        // Step 1: Make sure the BAM files are registered
+        // Step 1: Infer the sexes
+        this.inferSexes(ximmer.bamFiles*.value)
+        
+        log.info "Inferred sexes: \n" + Utils.table(["Sample","Sex"], [ sampleSexes*.key,sampleSexes*.value].transpose())
+        
+        // Step 2: Make sure the BAM files are registered
         this.registerBAMFiles(assay)
         
-        // Step 2: Register a new analysis - or can this happen automatically for a result that doesn't have an analysis?
+        // Step 3: Register a new analysis - or can this happen automatically for a result that doesn't have an analysis?
         this.postAnalysis(batchDir, assay)
     }
     
@@ -79,7 +91,7 @@ class PostToCXP extends ToolBase {
             )]
         }
         
-        (ws / 'analysis/import').post(
+        Map data = [
             identifier: batchDir.absolutePath,
             assay: assay,
             sequencer: sequencer,
@@ -89,7 +101,17 @@ class PostToCXP extends ToolBase {
             control_samples: [],
             analysis_samples: ximmer.bamFiles*.key,
             qc: new File(opts.qc).absolutePath
-        ) 
+        ]
+        
+        WebService importService = ws / 'analysis/import'
+        
+        if(opts.test) {
+            log.info "Would post $data to $createBamService.endPoint"
+        } 
+        else {
+            importService.post(data) 
+        }
+        
     }
     
     /**
@@ -104,6 +126,24 @@ class PostToCXP extends ToolBase {
     }
     
     /**
+     * Infer sex for each BAM file. Primarily just so we don't have to worry about them being
+     * declared.
+     */
+    void inferSexes(List<SAM> bamFiles) {
+        log.info "Inferring sexes for ${bamFiles.size()} bam files"
+        for(bam in bamFiles) {
+            String karyoChr = ['1','X','Y']
+            Pattern chrStart = ~'^chr'
+            Regions karyoRegions = ximmer.targetRegion.grep { it.chr.replaceAll(chrStart,'') in karyoChr } as Regions
+            SexKaryotyper karyotyper = new SexKaryotyper(bam, karyoRegions)
+            karyotyper.run()
+            String sampleId = bam.samples[0]
+            log.info "Sample $sampleId => $karyotyper.sex"
+            sampleSexes[sampleId] = karyotyper.sex.toString()        
+        }
+    }
+    
+    /**
      * Register the given BAM file with CXP
      * <p>
      * NOTE: sex is inferred from the BAM file itself. 
@@ -113,21 +153,16 @@ class PostToCXP extends ToolBase {
      */
     void registerBAM(SAM bam, String assay) {
         
-        String karyoChr = ['1','X','Y']
-        Pattern chrStart = ~'^chr'
-        Regions karyoRegions = ximmer.targetRegion.grep { it.chr.replaceAll(chrStart,'') in karyoChr } as Regions
-        SexKaryotyper karyotyper = new SexKaryotyper(bam, karyoRegions)
-        karyotyper.run()
-        
         File bamDir = bam.samFile.absoluteFile.parentFile
         File bamBatchDir = bamDir.parentFile
+        String sampleId = bam.samples[0]
         
         Map data = [
             'fullpath': bam.samFile.absolutePath,
-            'sample': bam.samples[0],
+            'sample': sampleId,
             'filetype': '.bam',
-            'alt_sample_id': bam.samples[0],
-            'sex': karyotyper.sex.toString(),
+            'alt_sample_id': sampleId,
+            'sex': sampleSexes[sampleId],
             'batch': bamBatchDir.name + '_' + bamDir.name,
             'sequencer': 'Test',
             'assay': assay,
@@ -135,8 +170,13 @@ class PostToCXP extends ToolBase {
             'metadata': [:]
         ]
         
-        // Make sure sample exists
-        (ws / 'dataasset/create/bam/').post(data)
+        
+        if(opts.test) {
+            log.info "Would post $data to $createBamService.endPoint"
+        }
+        else {
+            createBamService.post(data)
+        }
     }
     
     String batchDate(long timeMs) {
@@ -150,6 +190,7 @@ class PostToCXP extends ToolBase {
             qc 'The directory containing QC files to import', args:1, required: true
             cxp 'Base URL to CXP server', args:1, required: true
             batch 'CNV calling batch identifier (default: name of current directory', args:1, required: false
+            test 'Do not actually post data, just show what would be posted', args:1, required: false
         }
     }
 }
