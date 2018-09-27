@@ -188,12 +188,23 @@ codex_call_cnvs = {
     
     if(!(chr in analysable_chromosomes))
         succeed "Chromosome $chr is not analysable by CODEX"
+
+    if(filter_to_sex == "FEMALE" && chr == "Y" || chr == "chrY") {
+        succeed "Ignoring Y chromosome due to sex filtering to female samples"
+    }
+    else {
+        println "Analysing $chr with CODEX"
+    }
+
+
     
     def outputFile = batch_name ? batch_name + '.codex.' + chr + '.cnvs.tsv' : input.bam + '.codex.' + chr + '.cnvs.tsv'
 
     produce(outputFile) {
         
         def bamDir = file(input.bam).parentFile.absoluteFile.absolutePath
+
+ 
         
         R({"""
 

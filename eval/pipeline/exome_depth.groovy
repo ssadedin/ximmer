@@ -14,7 +14,8 @@
 run_exome_depth = {
 
     requires target_bed : "BED file containing regions to analyse",
-            sample_names : "List of sample names to process (comma separated, or List object)"
+            sample_names : "List of sample names to process (comma separated, or List object)",
+            filter_to_sex : false
 
     var transition_probability : "0.0001",
         expected_cnv_length: 50000,
@@ -27,6 +28,15 @@ run_exome_depth = {
     }
 
     def chr = branch.name
+
+    if(filter_to_sex == "FEMALE" && chr == "Y" || chr == "chrY") {
+        println "Ignoring Y chromosome due to sex filtering to female samples"
+        return
+    }
+    else {
+        println "Analysing $chr with ExomeDepth"
+    }
+
     
     def sample_list = sample_names
     if(sample_names instanceof String) {
@@ -71,7 +81,7 @@ run_exome_depth = {
             print(sprintf("Read %d samples",length(dsd.samples)))
 
             # Here we rely on ASSUMPTIONs:  - Single BAM file per sample
-            dsd.bam.files = c(${sample_info.collect { key, s -> "'$s.sample'='${s.files.bam[0]}'"}.join(",") })
+            dsd.bam.files = c(${sample_names.collect { s -> "'$s'='${sample_info[s].files.bam[0]}'"}.join(",") })
 
             print(sprintf("Found %d bam files",length(dsd.bam.files)))
 
