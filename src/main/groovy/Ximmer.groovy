@@ -189,8 +189,6 @@ class Ximmer {
         
         this.cacheReferenceData()
         
-        this.targetRegion = new BED(cfg.target_regions).load().reduce()
-        
         this.initialiseRuns()
 
         this.simulate()
@@ -325,6 +323,9 @@ class Ximmer {
     }
     
     void initialiseRuns() {
+        
+        this.targetRegion = new BED(cfg.target_regions).load().reduce()
+        
         this.runs = SimulationRun.configureRuns(this.outputDirectory, this.runDirectoryPrefix, cfg)
         
         this.enableTruePositives = this.enableSimulation ||  this.runs.every { it.value.knownCnvs != null  }
