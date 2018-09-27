@@ -91,11 +91,17 @@ class PostToCXP extends ToolBase {
             )]
         }
         
+        List samplesToSubmit = ximmer.bamFiles*.key
+        def requiredSex = this.cfg.getOrDefault('filter_to_sex',false)
+        if(requiredSex) {
+            samplesToSubmit = samplesToSubmit.grep { sampleSexes[it] == requiredSex }
+        }
+        
         Map data = [
             identifier: batchDir.absolutePath,
             assay: assay,
             sequencer: sequencer,
-            samples: ximmer.bamFiles*.key,
+            samples: samplesToSubmit,
             batch_id: batch[0].id,
             results: new File(opts.analysis).absolutePath,
             control_samples: [],
