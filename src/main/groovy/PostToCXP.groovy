@@ -141,6 +141,7 @@ class PostToCXP extends ToolBase {
         List karyoChr = ['1','X','Y']
         Pattern chrStart = ~'^chr'
         Regions karyoRegions = ximmer.targetRegion.grep { it.chr.replaceAll(chrStart,'') in karyoChr } as Regions
+        karyoRegions = karyoRegions.thin(200, 50)
         log.info "Karyotyping using ${Utils.humanBp(karyoRegions.size())} consisting of ${karyoRegions.numberOfRanges} target regions from total ${Utils.humanBp(ximmer.targetRegion.size())} in target region"
 
         for(bam in bamFiles) {
