@@ -201,7 +201,7 @@ calc_qc_stats = {
 
             unset GROOVY_HOME
 
-            $JAVA -Xmx4g -cp $GROOVY_ALL_JAR:$GNGS_JAR gngs.tools.MultiCov
+            $JAVA -Xmx32g -cp $GROOVY_ALL_JAR:$GNGS_JAR gngs.tools.MultiCov
                     -cvj $output.js
                     -stats 
                     -cv  
