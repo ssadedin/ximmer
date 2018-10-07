@@ -14,13 +14,13 @@
 run_exome_depth = {
 
     requires target_bed : "BED file containing regions to analyse",
-            sample_names : "List of sample names to process (comma separated, or List object)",
-            filter_to_sex : false
+            sample_names : "List of sample names to process (comma separated, or List object)"
 
     var transition_probability : "0.0001",
         expected_cnv_length: 50000,
         filter_target_bed : true,
-        exome_depth_split_chrs : true
+        exome_depth_split_chrs : true,
+        filter_to_sex : false
         
     def target_region_to_use = analysable_target
     if(!filter_target_bed) {
