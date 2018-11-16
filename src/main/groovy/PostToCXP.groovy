@@ -142,14 +142,22 @@ class PostToCXP extends ToolBase {
         Pattern chrStart = ~'^chr'
         Regions karyoRegions = ximmer.targetRegion.grep { it.chr.replaceAll(chrStart,'') in karyoChr } as Regions
         karyoRegions = karyoRegions.thin(200, 50)
-        log.info "Karyotyping using ${Utils.humanBp(karyoRegions.size())} consisting of ${karyoRegions.numberOfRanges} target regions from total ${Utils.humanBp(ximmer.targetRegion.size())} in target region"
-
+        if(!opts.sex)
+            log.info "Karyotyping using ${Utils.humanBp(karyoRegions.size())} consisting of ${karyoRegions.numberOfRanges} target regions from total ${Utils.humanBp(ximmer.targetRegion.size())} in target region"
+        else
+            log.info "Sex pre-specified as $opts.sex for all samples"
+        
         for(bam in bamFiles) {
-            SexKaryotyper karyotyper = new SexKaryotyper(bam, karyoRegions)
-            karyotyper.run()
             String sampleId = bam.samples[0]
-            log.info "Sample $sampleId => $karyotyper.sex"
-            sampleSexes[sampleId] = karyotyper.sex.toString()        
+            if(opts.sex) {
+                sampleSexes[sampleId] = opts.sex
+            }
+            else {
+                SexKaryotyper karyotyper = new SexKaryotyper(bam, karyoRegions)
+                karyotyper.run()
+                log.info "Sample $sampleId => $karyotyper.sex"
+                sampleSexes[sampleId] = karyotyper.sex.toString()        
+            }
         }
     }
     
@@ -196,11 +204,12 @@ class PostToCXP extends ToolBase {
     static void main(String [] args) {
         cli('PostToCXP -c <Ximmer Config> -cxp <CXP URL> <analysis directory>', args) {
             c 'Ximmer Configuration File', args:1, required: true
-            analysis 'The directory of the analysis to import', args:1, required: true
+            analysis 'The zip file of the analysis to import', args:1, required: true
             qc 'The directory containing QC files to import', args:1, required: true
             cxp 'Base URL to CXP server', args:1, required: true
             batch 'CNV calling batch identifier (default: name of current directory', args:1, required: false
             test 'Do not actually post data, just show what would be posted', required: false
+            sex 'Specify sex for all samples', args: 1, required: false
         }
     }
 }
