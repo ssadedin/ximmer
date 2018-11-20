@@ -3,6 +3,11 @@ import java.text.NumberFormat
 import java.util.logging.Level
 
 import jsr166y.ForkJoinPool;
+import ximmer.CountReadsMeanEstimator
+import ximmer.GATKMeanEstimator
+import ximmer.MeanEstimator
+import ximmer.MultiCovMeanEstimator
+import ximmer.PileupMeanEstimator
 
 import org.apache.commons.math3.analysis.interpolation.LoessInterpolator
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
@@ -97,6 +102,8 @@ class CNVDiagram {
     
     String gatkMeanEstimator = null
     
+    String covjsMeanEstimator = null
+    
     boolean redraw = false
     
     double yMax = 2.0d
@@ -162,43 +169,42 @@ class CNVDiagram {
         
         GParsPool.withPool(concurrency) {
             log.info "Calculating coverage means for: $allSamples ..."
+            MeanEstimator meanEstimator = createMeanEstimator()
+            this.means = meanEstimator.calculateMeans(allSamples)
+        }
+        log.info "Sample means are $means"
+    }
+
+    private MeanEstimator createMeanEstimator() {
+        MeanEstimator meanEstimator
+        if(gatkMeanEstimator) {
+            meanEstimator = new GATKMeanEstimator(this.gatkMeanEstimator)
+            log.info "Discovered ${meanEstimator.intervalFiles.size()} samples with GATK coverage information"
+        }
+        else
+        if(covjsMeanEstimator) {
+            meanEstimator = new MultiCovMeanEstimator(Utils.reader(covjsMeanEstimator))
+        }
+        else
+        if(extendedMeanEstimator || liteMeanEstimator) {
             
             Regions meanRegions = targetRegions
-            
             if(liteMeanEstimator) {
                 // Search for the smallest chromosome that we can that is in the target regions
                 meanRegions = findLiteMeanRegions()
             }
-            
-            if(gatkMeanEstimator) {
-                GATKMeanEstimator estimator = new GATKMeanEstimator(this.gatkMeanEstimator)
-                log.info "Discovered ${estimator.intervalFiles.size()} samples with GATK coverage information"
-                means = estimator.calculateMeans(allSamples)
-            }
+
+            if(extendedMeanEstimator)
+                log.info "Using extended mean coverage estimation ..."
             else
-            if(extendedMeanEstimator || liteMeanEstimator) {
-                if(extendedMeanEstimator)
-                    log.info "Using extended mean coverage estimation ..."
-                else
-                    log.info "Using lite mean coverage estimation ..."
-                means = Collections.synchronizedMap([allSamples, 
-                                                     allSamples.collectParallel { bams[it].coverageStatistics(meanRegions).mean }]
-                                                               .transpose().collectEntries())
-            }
-            else {
-                int targetSize = targetRegions.size()
-                means = Collections.synchronizedMap([allSamples, allSamples.collectParallel { 
-                        log.info "Counting reads for $it"; 
-                        if(!bams[it])
-                            System.err.println "No BAM file provided for $it"
-                            
-                        long count=0; bams[it].eachRecord { count += it.readLength }; 
-                        count/(double)targetSize 
-                    }
-                ].transpose().collectEntries())
-            }
+                log.info "Using lite mean coverage estimation ..."
+
+            meanEstimator = new PileupMeanEstimator(meanRegions, bams)
         }
-        log.info "Sample means are $means"
+        else {
+            meanEstimator = new CountReadsMeanEstimator(targetRegions, bams)
+        }
+        return meanEstimator
     }
     
     void draw(String outputFileBase, int width, int height) {
@@ -949,6 +955,7 @@ class CNVDiagram {
             xmean 'Use extended, but more accurate / slower estimator of sample mean read depth'
             litemean 'Use extremely quick, less accurate mean coverage estimator'
             gatkcov 'Use precalculated coverage information from gatk, located in given directory', args:1
+            covjs 'Use precalculated mean coverage information from MultiCov js output', args:1
             ignoremissing 'Ignore samples that are missing coverage information'
             noamplabels 'Omit drawing read counts over each amplicon'
             redraw 'Redraw image even if file already exists'
@@ -1049,6 +1056,11 @@ class CNVDiagram {
         if(opts.gatkcov) {
             diagram.gatkMeanEstimator = opts.gatkcov
             log.info "Using coverage estimates from GATK DepthOfCoverage output"
+        }
+        else
+        if(opts.covjs) {
+            diagram.covjsMeanEstimator = opts.covjs
+            log.info "Using coverage estimates from MultiCov output"
         }
         else
         if(opts.xmean)

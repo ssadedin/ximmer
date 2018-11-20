@@ -63,7 +63,7 @@ plot_cnv_coverage = {
                 -chr $chromosome
                 -cnvs $input.tsv
                 -ref $HGFA
-                -gatkcov common/xhmm
+                -covjs $input.cov.js
                 -targets $input.bed
                 -json -nopng
                 -o ${output.dir+"/cnv.png"} $reportSamplesFlag
@@ -195,18 +195,19 @@ calc_qc_stats = {
     
     output.dir = "common/$type"
     
-    produce(["${batch}_per_base.coverage.tsv.gz", "${batch}.coeffv.js", "${batch}.correlations.js","${batch}.correlations.tsv", "${batch}.cov.js"]) {
+    produce(["${batch}_per_base.coverage.tsv.gz", "${batch}.coeffv.js", "${batch}.correlations.js","${batch}.correlations.tsv", "${batch}.cov.js", "${batch}.merge.sample_interval_summary"]) {
         exec """
             set -o pipefail
 
             unset GROOVY_HOME
 
-            $JAVA -Xmx32g -cp $GROOVY_ALL_JAR:$GNGS_JAR gngs.tools.MultiCov
+            $JAVA -Xmx${memory}g -cp $GROOVY_ALL_JAR:$GNGS_JAR gngs.tools.MultiCov
                     -cvj $output.js
                     -stats 
                     -cv  
                     -corr .
                     -2pass
+                    -targetmeans $output.sample_interval_summary
                     -covo $output.cov.js
                     -co $output.tsv
                     -co $output.correlations.js

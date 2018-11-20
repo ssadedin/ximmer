@@ -66,8 +66,13 @@ xhmm_init = {
 gatk_depth_of_coverage = {
     
     
-    // requires target_bed : "BED file containing regions to calculate coverage depth for"
-
+    var WGS_MODE : false
+    
+    if(WGS_MODE) {
+        println "Skipping GATK coverage because running in WGS mode"
+        return
+    }
+    
     output.dir = "common/xhmm"
     
     from('bam', analysable_target) transform("sample_interval_summary") {
@@ -108,6 +113,25 @@ find_extreme_gc_content = {
 
             cat $output1.txt | awk '{if (\$2 < 0.1 || \$2 > 0.9) print \$1}' > $output2.txt
         ""","medium"
+    }
+}
+
+xhmm_count_reads = {
+    
+    var batch: 'xhmm'
+    
+    output.dir = "common/xhmm"
+    
+    produce(["${batch}_per_base.coverage.tsv.bgz", "${batch}.merged.sample_interval_summary"]) {
+        exec """
+            set -o pipefail
+
+            unset GROOVY_HOME
+
+            $JAVA -Xmx${memory}g -cp $GROOVY_ALL_JAR:$GNGS_JAR gngs.tools.MultiCov
+                    -targetmeans $output.sample_interval_summary
+                    -bed $target_bed $inputs.bam > $output.bgz; 
+        """, "calc_qc_stats"
     }
 }
 
@@ -240,6 +264,19 @@ xhmm_discover = {
     
     branch.caller_result = output.xcnv
 }
+
+xhmm_wgs_pipeline = segment {
+             xhmm_init + 
+             find_extreme_gc_content + 
+             xhmm_count_reads + 
+             xhmm_mean_center +
+             xhmm_pca +
+             xhmm_normalize + 
+             xhmm_filter_normalized + 
+             xhmm_filter_orig + 
+             xhmm_discover
+}
+
 
 xhmm_pipeline = segment {
              xhmm_init + 

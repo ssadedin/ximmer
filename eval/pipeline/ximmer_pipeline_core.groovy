@@ -1,4 +1,12 @@
 
+
+if(!getProperty('WGS_MODE')) {
+    println "Running in exome / targeted mode"
+    WGS_MODE=false
+}
+
+println "WGS_MODE: $WGS_MODE"
+
 set_sample = {
     branch.sample = branch.name
 }
@@ -109,7 +117,7 @@ ximmer_core = segment {
        
        ed  : (init_exome_depth + exome_depth_pipeline),
        
-       xhmm: (init_xhmm + xhmm_pipeline),
+       xhmm: (init_xhmm + (WGS_MODE ? xhmm_wgs_pipeline : xhmm_pipeline)),
        
        cnmops: (init_cn_mops + cn_mops_call_cnvs),
        
