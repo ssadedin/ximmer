@@ -465,7 +465,7 @@ class CNVDiagram {
         // UNLESS that leaves less than 3 samples?
         List<Region> otherCnvs = cnvs.getOverlaps(cnv)*.extra.grep { it.sample != cnv.sample }
         
-        List<String> excludeSamples = otherCnvs*.sample
+        List<String> excludeSamples = otherCnvs*.sample.unique()
         
         Matrix coverage = getStandardisedCoverage(targetRegion, cnv.sample, excludeSamples)
 
