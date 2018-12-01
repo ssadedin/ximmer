@@ -110,7 +110,7 @@ ximmer_core = segment {
     
     cnv_reports << create_cnv_report.using(file_name_prefix:"local_", imgpath: "") 
     
-    common_stages = [ init_common, "%.bam" * [ gatk_depth_of_coverage  ] ]
+    common_stages = WGS_MODE ? init_common : [ init_common, "%.bam" * [ gatk_depth_of_coverage  ] ]
        
     caller_pipelines = [
        ex  :  (init_excavator + excavator_pipeline),
