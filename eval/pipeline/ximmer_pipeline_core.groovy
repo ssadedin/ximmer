@@ -94,7 +94,7 @@ all_bams = []
 filtered_bams = []
 
 init = {
-    all_bams = inputs.bam.collect { it } // clone
+    all_bams = inputs.bam.collect { it.toString() } // clone
 }
 
 reset_bams = {
