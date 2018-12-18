@@ -1,8 +1,10 @@
 
 
-if(!getProperty('WGS_MODE')) {
+// WGS_MODE changes some of the downstream steps, esp. how coverage is calculated for XHMM
+var WGS_MODE : false
+
+if(!WGS_MODE) {
     println "Running in exome / targeted mode"
-    WGS_MODE=false
 }
 
 println "WGS_MODE: $WGS_MODE"
