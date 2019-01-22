@@ -95,9 +95,9 @@ select_controls = {
         new gngs.SAM(it).samples[0] in control_samples
     }
     
-    sample_info = sample_info.grep { it.key in control_samples }.collectEntries()
+    branch.sample_info = sample_info.grep { it.key in control_samples }.collectEntries()
     
-    sample_names = sample_names.grep { it in control_samples }
+    branch.sample_names = sample_names.grep { it in control_samples }
     
     forward(filtered_bams)
 }
