@@ -91,12 +91,8 @@ init_common = {
     println "Running Common Stages"
 }
 
-all_bams = []
-
-filtered_bams = []
-
 init = {
-    all_bams = inputs.bam.collect { it.toString() } // clone
+    branch.all_bams = inputs.bam.collect { it.toString() } // clone
 }
 
 reset_bams = {

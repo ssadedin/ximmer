@@ -91,7 +91,7 @@ select_controls = {
     
     List control_samples = file(output.txt).readLines()*.trim()
     
-    filtered_bams = all_bams.grep {
+    branch.filtered_bams = all_bams.grep {
         new gngs.SAM(it).samples[0] in control_samples
     }
     
