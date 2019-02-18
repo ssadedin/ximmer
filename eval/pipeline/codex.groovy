@@ -291,7 +291,7 @@ codex_call_cnvs = {
 merge_codex = {
     transform('.chr*.cnvs.tsv','.merge.tsv') {
         exec """
-            head -1 $input.tsv >> $output.tsv; 
+            head -1 $input.tsv > $output.tsv; 
 
             for i in $inputs.tsv; do echo "Merge $i"; grep -v '^sample_name' $i  >> $output.tsv || true ; done
 
