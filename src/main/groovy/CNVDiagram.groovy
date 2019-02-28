@@ -8,6 +8,7 @@ import ximmer.GATKMeanEstimator
 import ximmer.MeanEstimator
 import ximmer.MultiCovMeanEstimator
 import ximmer.PileupMeanEstimator
+import ximmer.results.*
 
 import org.apache.commons.math3.analysis.interpolation.LoessInterpolator
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction

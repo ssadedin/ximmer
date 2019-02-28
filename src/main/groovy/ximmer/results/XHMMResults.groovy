@@ -26,7 +26,6 @@ class XHMMResults extends CNVResults {
         return new Region(line[2])
     }
 
-
     static void main(String [] args) {
         def xhmm = new XHMMResults("testdata/asdsibs.params.xhmm_discover.xcnv").load()
         println xhmm[0].toString() + " sample " + xhmm[0].sample

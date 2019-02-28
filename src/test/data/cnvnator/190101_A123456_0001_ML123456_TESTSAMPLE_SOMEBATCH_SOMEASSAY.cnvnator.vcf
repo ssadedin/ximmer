@@ -1,0 +1,50 @@
+##fileformat=VCFv4.1
+##fileDate=20190102
+##reference=1000GenomesPhase3_decoy-GRCh37
+##source=CNVnator
+##INFO=<ID=END,Number=1,Type=Integer,Description="End position of the variant described in this record">
+##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description="Imprecise structural variation">
+##INFO=<ID=SVLEN,Number=1,Type=Integer,Description="Difference in length between REF and ALT alleles">
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
+##INFO=<ID=natorRD,Number=1,Type=Float,Description="Normalized RD">
+##INFO=<ID=natorP1,Number=1,Type=Float,Description="e-val by t-test">
+##INFO=<ID=natorP2,Number=1,Type=Float,Description="e-val by Gaussian tail">
+##INFO=<ID=natorP3,Number=1,Type=Float,Description="e-val by t-test (middle)">
+##INFO=<ID=natorP4,Number=1,Type=Float,Description="e-val by Gaussian tail (middle)">
+##INFO=<ID=natorQ0,Number=1,Type=Float,Description="Fraction of reads with 0 mapping quality">
+##INFO=<ID=natorPE,Number=1,Type=Integer,Description="Number of paired-ends support the event">
+##INFO=<ID=SAMPLES,Number=.,Type=String,Description="Sample genotyped to have the variant">
+##ALT=<ID=DEL,Description="Deletion">
+##ALT=<ID=DUP,Description="Duplication">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=CN,Number=1,Type=Integer,Description="Copy number genotype for imprecise events">
+##FORMAT=<ID=PE,Number=1,Type=Integer,Description="Number of paired-ends that support the event">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	180803_K00164_0161_ML182888_GM12878_MAN-20180724_NEXTERAWGS
+chrM	1	CNVnator_dup_1	G	<DUP>	.	PASS	END=16600;SVTYPE=DUP;SVLEN=16600;IMPRECISE;natorRD=221.253;natorP1=0;natorP2=0;natorP3=0;natorP4=0;natorQ0=0.00809677	GT:CN	./1:221
+chr1	1	CNVnator_del_2	N	<DEL>	.	PASS	END=10000;SVTYPE=DEL;SVLEN=-10000;IMPRECISE;natorRD=0;natorP1=1.59373e-11;natorP2=2.12419e-252;natorP3=1.99216e-11;natorP4=3.57571e-200;natorQ0=-1	GT:CN	1/1:0
+chr1	10901	CNVnator_dup_3	g	<DUP>	.	PASS	END=15700;SVTYPE=DUP;SVLEN=4800;IMPRECISE;natorRD=4.27722;natorP1=0;natorP2=4.96212e+07;natorP3=0.00051838;natorP4=2.69145e+08;natorQ0=0.672392	GT:CN	./1:4
+chr1	16201	CNVnator_dup_4	A	<DUP>	.	PASS	END=21500;SVTYPE=DUP;SVLEN=5300;IMPRECISE;natorRD=3.38;natorP1=1.14953e-06;natorP2=2.52135e+09;natorP3=0.0153805;natorP4=2.64799e+09;natorQ0=0.609705	GT:CN	./1:3
+chr1	66001	CNVnator_del_5	a	<DEL>	.	PASS	END=67700;SVTYPE=DEL;SVLEN=-1700;IMPRECISE;natorRD=0.347801;natorP1=0.0434543;natorP2=122.016;natorP3=1;natorP4=1;natorQ0=0.561905	GT:CN	0/1:1
+chr1	68701	CNVnator_del_6	C	<DEL>	.	PASS	END=93400;SVTYPE=DEL;SVLEN=-24700;IMPRECISE;natorRD=0.305843;natorP1=6.45233e-12;natorP2=5.21264e+07;natorP3=7.02082e-12;natorP4=7.21153e+07;natorQ0=0.833882	GT:CN	0/1:1
+chr1	130501	CNVnator_dup_7	c	<DUP>	.	PASS	END=134600;SVTYPE=DUP;SVLEN=4100;IMPRECISE;natorRD=1.52035;natorP1=0.000592426;natorP2=3.98765e+06;natorP3=16.4795;natorP4=9.87483e+07;natorQ0=0.643947	GT:CN	0/1:2
+chr1	137301	CNVnator_dup_8	T	<DUP>	.	PASS	END=139300;SVTYPE=DUP;SVLEN=2000;IMPRECISE;natorRD=2.29586;natorP1=0.00475382;natorP2=1.12269e-13;natorP3=1;natorP4=1;natorQ0=0.310627	GT:CN	./1:2
+chr1	145501	CNVnator_del_9	T	<DEL>	.	PASS	END=153100;SVTYPE=DEL;SVLEN=-7600;IMPRECISE;natorRD=0.691075;natorP1=1.34271e-07;natorP2=659813;natorP3=4.20715e-07;natorP4=34242.8;natorQ0=0.927725	GT:CN	0/1:1
+chr1	153601	CNVnator_del_10	g	<DEL>	.	PASS	END=156100;SVTYPE=DEL;SVLEN=-2500;IMPRECISE;natorRD=0.518298;natorP1=0.00116151;natorP2=520598;natorP3=9463.05;natorP4=2.54007e+06;natorQ0=0.986607	GT:CN	0/1:1
+chr1	177101	CNVnator_del_11	A	<DEL>	.	PASS	END=227700;SVTYPE=DEL;SVLEN=-50600;IMPRECISE;natorRD=0.00372926;natorP1=3.14965e-12;natorP2=0;natorP3=3.27927e-12;natorP4=0;natorQ0=0.953488	GT:CN	1/1:0
+chr1	228001	CNVnator_dup_12	t	<DUP>	.	PASS	END=239700;SVTYPE=DUP;SVLEN=11700;IMPRECISE;natorRD=2.39774;natorP1=0;natorP2=3.59299e+08;natorP3=0;natorP4=5.12557e+08;natorQ0=0.411539	GT:CN	./1:2
+chr1	267301	CNVnator_del_13	t	<DEL>	.	PASS	END=318400;SVTYPE=DEL;SVLEN=-51100;IMPRECISE;natorRD=0.00763173;natorP1=3.11884e-12;natorP2=2.64381e-303;natorP3=3.24588e-12;natorP4=0;natorQ0=0.635135	GT:CN	1/1:0
+chr1	351501	CNVnator_del_14	C	<DEL>	.	PASS	END=386000;SVTYPE=DEL;SVLEN=-34500;IMPRECISE;natorRD=0.678229;natorP1=4.61949e-12;natorP2=2.53454e+09;natorP3=4.90377e-12;natorP4=2.55292e+09;natorQ0=0.954205	GT:CN	0/1:1
+chr1	426301	CNVnator_dup_15	C	<DUP>	.	PASS	END=448900;SVTYPE=DUP;SVLEN=22600;IMPRECISE;natorRD=1.73198;natorP1=0;natorP2=5.18314e+07;natorP3=0;natorP4=7.394e+07;natorQ0=0.996778	GT:CN	0/1:2
+chr1	454201	CNVnator_dup_16	T	<DUP>	.	PASS	END=463900;SVTYPE=DUP;SVLEN=9700;IMPRECISE;natorRD=1.74694;natorP1=0;natorP2=1.91174e+09;natorP3=1.3081e-08;natorP4=2.07894e+09;natorQ0=0.967127	GT:CN	0/1:2
+chr1	465301	CNVnator_dup_17	A	<DUP>	.	PASS	END=471300;SVTYPE=DUP;SVLEN=6000;IMPRECISE;natorRD=2.50448;natorP1=0;natorP2=1.04442e-09;natorP3=1.09967e-08;natorP4=0.00146306;natorQ0=1	GT:CN	./1:3
+chr1	471301	CNVnator_del_18	G	<DEL>	.	PASS	END=521500;SVTYPE=DEL;SVLEN=-50200;IMPRECISE;natorRD=0.00162889;natorP1=3.17475e-12;natorP2=7.12161e-251;natorP3=3.30648e-12;natorP4=0;natorQ0=1	GT:CN	1/1:0
+chr1	528201	CNVnator_dup_19	G	<DUP>	.	PASS	END=586000;SVTYPE=DUP;SVLEN=57800;IMPRECISE;natorRD=2.49936;natorP1=0;natorP2=4.22814e+06;natorP3=0;natorP4=5.29832e+06;natorQ0=0.579278	GT:CN	./1:2
+chr1	657901	CNVnator_dup_20	T	<DUP>	.	PASS	END=662500;SVTYPE=DUP;SVLEN=4600;IMPRECISE;natorRD=1.69967;natorP1=1.7725e-07;natorP2=6928.85;natorP3=0.110069;natorP4=1.91866e+06;natorQ0=0.738525	GT:CN	0/1:2
+chr1	672101	CNVnator_dup_21	a	<DUP>	.	PASS	END=676300;SVTYPE=DUP;SVLEN=4200;IMPRECISE;natorRD=2.73317;natorP1=9.03111e-09;natorP2=704.553;natorP3=0.00797396;natorP4=989896;natorQ0=0.464541	GT:CN	./1:3
+chr1	702601	CNVnator_dup_22	T	<DUP>	.	PASS	END=717900;SVTYPE=DUP;SVLEN=15300;IMPRECISE;natorRD=1.49809;natorP1=0;natorP2=5.66099e+06;natorP3=0;natorP4=1.27793e+07;natorQ0=0.276643	GT:CN	0/1:2
+chr1	754301	CNVnator_dup_23	A	<DUP>	.	PASS	END=769100;SVTYPE=DUP;SVLEN=14800;IMPRECISE;natorRD=1.51471;natorP1=0;natorP2=5.09656e+07;natorP3=0;natorP4=8.7875e+07;natorQ0=0.0424754	GT:CN	0/1:2
+chr1	793401	CNVnator_dup_24	T	<DUP>	.	PASS	END=843800;SVTYPE=DUP;SVLEN=50400;IMPRECISE;natorRD=1.66361;natorP1=0;natorP2=8.97832e-10;natorP3=0;natorP4=4.86983e-09;natorQ0=0.0206	GT:CN	0/1:2
+chr1	845101	CNVnator_dup_25	T	<DUP>	.	PASS	END=869400;SVTYPE=DUP;SVLEN=24300;IMPRECISE;natorRD=2.11894;natorP1=0;natorP2=9.06856e-40;natorP3=0;natorP4=8.89915e-36;natorQ0=0.00220291	GT:CN	1/1:2
+chr1	870301	CNVnator_dup_26	T	<DUP>	.	PASS	END=912400;SVTYPE=DUP;SVLEN=42100;IMPRECISE;natorRD=2.10798;natorP1=0;natorP2=1.8001e-30;natorP3=0;natorP4=1.31117e-28;natorQ0=0.0044191	GT:CN	1/1:2
+chr1	913401	CNVnator_dup_27	c	<DUP>	.	PASS	END=1011700;SVTYPE=DUP;SVLEN=98300;IMPRECISE;natorRD=2.07181;natorP1=0;natorP2=1.19659e-08;natorP3=0;natorP4=2.70121e-08;natorQ0=0.00725914	GT:CN	1/1:2
+chr1	1012801	CNVnator_dup_28	G	<DUP>	.	PASS	END=1074700;SVTYPE=DUP;SVLEN=61900;IMPRECISE;natorRD=1.84382;natorP1=0;natorP2=5.38097e-14;natorP3=0;natorP4=6.82687e-22;natorQ0=0.0222713	GT:CN	1/1:2
