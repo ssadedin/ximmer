@@ -1,3 +1,4 @@
+package ximmer.results
 
 import com.xlson.groovycsv.PropertyMapper
 

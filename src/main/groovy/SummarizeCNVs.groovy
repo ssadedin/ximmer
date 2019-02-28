@@ -7,6 +7,8 @@ import groovy.json.JsonOutput
 import groovy.text.SimpleTemplateEngine
 import groovy.util.logging.Log;
 
+import ximmer.results.*
+
 /**
  * Reads results from any number of CNV callers and combines them together into
  * a consolidated report in TSV and HTML format.
@@ -48,7 +50,7 @@ class SummarizeCNVs {
     
     List<String> samples = []
     
-    TargetedCNVAnnotator cnvAnnotator = null
+    TargetedCNVAnnotator cnvAnnotator = null 
     
     RefGenes refGenes = null
     
@@ -97,7 +99,7 @@ class SummarizeCNVs {
             if(parts.size()==1) {
                 parts.add(0,caller)
             }
-            results[parts[0]] = factory(parts[1]).load()
+            results[parts[0]] = factory(*parts[1..-1])
         }        
     }
     
@@ -115,6 +117,7 @@ class SummarizeCNVs {
             angel 'Angel results', args:Cli.UNLIMITED
             ex 'Excavator results', args:Cli.UNLIMITED
             cdx 'CODEX results', args:Cli.UNLIMITED
+            px 'Parallax results', args:Cli.UNLIMITED
             truth 'Postiive control CNVs', args:1
             vcf 'VCF file containing variants for a sample in results', args:Cli.UNLIMITED
             target 'Target regions with id for each region to annotate', args:1, required:true
@@ -169,7 +172,10 @@ class SummarizeCNVs {
        if(opts.cdxs)
             parseCallerOpt("cdx", opts.cdxs, { new CodexResults(it) }, results) 
             
-        if(opts.truth) 
+       if(opts.px)
+            parseCallerOpt("px", opts.pxs, { fileName -> new ParallaxResults(fileName) }, results) 
+            
+         if(opts.truth) 
             results.truth = new PositiveControlResults(opts.truth).load() 
             
         List exportSamples = null

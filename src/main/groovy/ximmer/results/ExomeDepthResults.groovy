@@ -1,3 +1,4 @@
+package ximmer.results
 
 class ExomeDepthResults extends CNVResults {
 

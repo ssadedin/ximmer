@@ -1,3 +1,4 @@
+package ximmer.results
 import groovy.lang.Closure;
 
 import java.util.Map;
@@ -6,32 +7,32 @@ import gngs.RangedData
 import gngs.Region
 
 
-class CodexResults extends CNVResults {
+class ConiferResults extends CNVResults {
     
 
-    CodexResults(String fileName) {
-        super(fileName, 1, 3, 4)
+    ConiferResults(String fileName) {
+        super(fileName, 1, 2, 3)
     }
 
     @Override
     public RangedData load(Map options, Closure c = null) {
         
         return super.load(options) { Region r ->
-            r.sample = r.sample_name
+            r.sample = r.sampleID
             r.size = r.to - r.from
-            r.quality = r.lratio
-            if(r.cnv == "dup")
-				r.type = 'DUP'
-            else
-            if(r.cnv == "del")
+            r.quality = Math.log10(r.size == 0 ? 1 : r.size)
+            if(r.state == "del")
 				r.type = 'DEL'
+            else
+            if(r.state == "dup")
+				r.type = 'DUP'
             else
                 r.type = 'UNKNOWN'
         }
     }
     
     static void main(String [] args) {
-       def con = new CodexResults("codex.tsv").load()
+       def con = new ConiferResults("testdata/test.conifer.cnvs.tsv").load()
        
        println con[0].sample + " region " + con[0].toString() + " has " + con[0].type + ' with quality ' + con[0].quality
     }
