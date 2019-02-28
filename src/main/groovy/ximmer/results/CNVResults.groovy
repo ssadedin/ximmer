@@ -26,6 +26,18 @@ abstract class CNVResults extends RangedData {
 	CNVResults(String fileName) {
         super(fileName)
 	}
+	
+	String getSampleFromFile(String sourceFile) {
+		String sample = new File(sourceFile).getName().replaceAll('\\..*$','')
+		List parts = sample.tokenize('_')
+		// VCGS specific logic
+		// TODO: fix to make sample passable as param
+		if(parts.size() > 6) {
+			sample = parts[4]
+		}
+		return sample
+		
+	}
     
     String toJson(TargetedCNVAnnotator annotator = null) {
         JsonOutput.toJson(

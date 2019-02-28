@@ -15,7 +15,7 @@ class CodexResults extends CNVResults {
     }
 
     @Override
-    public RangedData load(Map options, Closure c = null) {
+    RangedData load(Map options, Closure c = null) {
         
         return super.load(options) { Region r ->
             r.sample = r.sample_name
