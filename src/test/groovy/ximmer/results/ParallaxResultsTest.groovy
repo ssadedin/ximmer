@@ -51,7 +51,9 @@ class ParallaxResultsTest {
 	public void 'Check Properties'() {
 		ParallaxResults p = new ParallaxResults(pxResultFile, 'someSample').load()
 		def row = p.first()
-		
+		assert row.chr == 'chr22'	
+		assert row.start == 16057532
+		assert row.end == 16059424
 		assert row.type == 'DEL'
 		assert row.sample == 'someSample'
 		assert row.quality == 473.5896343569966
