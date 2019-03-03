@@ -12,6 +12,7 @@ class CodexResults extends CNVResults {
 
     CodexResults(String fileName) {
         super(fileName, 1, 3, 4)
+		this.load()
     }
 
     @Override

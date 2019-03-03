@@ -12,6 +12,7 @@ class ConiferResults extends CNVResults {
 
     ConiferResults(String fileName) {
         super(fileName, 1, 2, 3)
+		this.load()
     }
 
     @Override

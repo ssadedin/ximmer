@@ -9,6 +9,7 @@ class AngelResults extends CNVResults {
     
     AngelResults(String fileName) {
         super(fileName)
+		this.load()
     }
 
     @Override

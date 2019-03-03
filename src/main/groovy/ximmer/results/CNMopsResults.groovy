@@ -22,6 +22,7 @@ class CNMopsResults extends CNVResults {
     
     CNMopsResults(String fileName) {
         super(fileName)
+		this.load()
     }
 
     @Override

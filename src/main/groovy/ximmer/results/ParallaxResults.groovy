@@ -9,6 +9,7 @@ class ParallaxResults extends CNVResults {
         super(sourceFile, 0, 1, 2);
         this.sourceFile = sourceFile
 		this.sample = sample ? sample : getSampleFromFile(sourceFile)
+		this.load()
     }
     
     ParallaxResults load(Map options=[:], Closure c=null) {
