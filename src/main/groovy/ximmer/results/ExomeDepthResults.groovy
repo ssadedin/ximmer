@@ -5,6 +5,7 @@ class ExomeDepthResults extends CNVResults {
     public ExomeDepthResults(String sourceFile) {
         super(sourceFile, 6, 4, 5);
         this.separator = "\t"
+		this.load()
     }
     
     ExomeDepthResults load(Map options=[:], Closure c=null) {

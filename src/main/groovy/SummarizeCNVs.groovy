@@ -100,6 +100,7 @@ class SummarizeCNVs {
                 parts.add(0,caller)
             }
             results[parts[0]] = factory(*parts[1..-1])
+            //results[parts[0]] = factory(parts[1]).load()
         }        
     }
     
@@ -207,6 +208,7 @@ class SummarizeCNVs {
         }
         
         List<VCF> vcfList = parseVCFs(opts, results)
+		
         
         Regions target = new BED(opts.target, withExtra:true).load()
         

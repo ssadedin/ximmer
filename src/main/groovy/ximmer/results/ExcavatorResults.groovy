@@ -12,6 +12,7 @@ class ExcavatorResults extends CNVResults {
 
     ExcavatorResults(String fileName) {
         super(fileName, 1, 2, 3)
+		this.load()
     }
 
     @Override

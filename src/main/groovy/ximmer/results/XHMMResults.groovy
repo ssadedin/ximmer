@@ -10,6 +10,7 @@ class XHMMResults extends CNVResults {
     
     XHMMResults(String fileName) {
         super(fileName, -1, -1, -1)
+		this.load()
     }
     
     @Override
