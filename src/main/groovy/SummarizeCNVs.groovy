@@ -118,6 +118,7 @@ class SummarizeCNVs {
             ex 'Excavator results', args:Cli.UNLIMITED
             cdx 'CODEX results', args:Cli.UNLIMITED
             px 'Parallax results', args:Cli.UNLIMITED
+            cnvnator 'CNVNator results', args:Cli.UNLIMITED
             truth 'Postiive control CNVs', args:1
             vcf 'VCF file containing variants for a sample in results', args:Cli.UNLIMITED
             target 'Target regions with id for each region to annotate', args:1, required:true
@@ -169,13 +170,16 @@ class SummarizeCNVs {
         if(opts.cfrs)
             parseCallerOpt("cfr", opts.cfrs, { new ConiferResults(it) }, results)
             
-       if(opts.cdxs)
+		if(opts.cdxs)
             parseCallerOpt("cdx", opts.cdxs, { new CodexResults(it) }, results) 
             
-       if(opts.px)
+		if(opts.pxs)
             parseCallerOpt("px", opts.pxs, { fileName -> new ParallaxResults(fileName) }, results) 
             
-         if(opts.truth) 
+		if(opts.cnvnators)
+            parseCallerOpt("cnvnator", opts.cnvnators, { fileName -> new CNVNatorResults(fileName) }, results) 
+			
+        if(opts.truth) 
             results.truth = new PositiveControlResults(opts.truth).load() 
             
         List exportSamples = null
