@@ -87,6 +87,9 @@ class PostToCXPWGS extends ToolBase {
 				if (!new File(bamFile).exists()) {
 					throw new IllegalArgumentException("Bamfile: [$bamFile] doesn't exist")
 				}
+				if (!new File(bamFile + '.bai').exists()) {
+					throw new IllegalArgumentException("Bam Index file for: [$bamFile] doesn't exist")
+				}
 				// Only accept if sampleId has already been inserted into bamFiles
 				if (!bamFiles.keySet().contains(sampleId)) 
 					throw new IllegalArgumentException("Bamfile with sample: $sampleId provided without sex")
@@ -102,6 +105,7 @@ class PostToCXPWGS extends ToolBase {
 		this.createBamService = (ws / 'dataasset/create/bam/')
 		
 		this.registerBAMFiles(batchDir, assay)
+		this.postAnalysis(batchDir, assay)
 		
 	}
     
@@ -112,14 +116,14 @@ class PostToCXPWGS extends ToolBase {
      * @param assay
      */
     void postAnalysis(File batchDir, String assay) {
-        
-        String sequencer = ximmer.bamFiles*.value[0].withIterator { i -> 
-            SAMRecord r = i.next()
-            return r.readName.tokenize(':')[0].stripMargin('@')
-        }
-        
-        String batchIdentifier = opts.batch?:batchDir.name
-        
+		String sequencer = new SAM(new File(this.bamFiles.values()[0][0])).withIterator { i -> 
+			SAMRecord r = i.next()
+			return r.readName.tokenize(':')[0].stripMargin('@')
+		}
+		
+		log.info "Found sequencer: $sequencer"
+		
+        String batchIdentifier = batchDir.name
         // An analysis needs a batch, so create one?
         List batch = (ws / 'batch').get(identifier:batchIdentifier)
         if(batch) {
@@ -133,25 +137,21 @@ class PostToCXPWGS extends ToolBase {
                 date: batchDate(batchDir.lastModified())
             )]
         }
-        
-        List samplesToSubmit = ximmer.bamFiles*.key
-        def requiredSex = this.cfg.getOrDefault('filter_to_sex',false)
-        if(requiredSex) {
-            samplesToSubmit = samplesToSubmit.grep { sampleSexes[it] == requiredSex }
-        }
-        
+		
+       
         Map data = [
             identifier: batchDir.absolutePath,
             assay: assay,
             sequencer: sequencer,
-            samples: samplesToSubmit,
+            samples: this.bamFiles.keySet(),
             batch_id: batch[0].id,
             results: new File(opts.analysis).absolutePath,
             control_samples: [],
-            analysis_samples: ximmer.bamFiles*.key,
-            qc: new File(opts.qc).absolutePath
+            analysis_samples: this.bamFiles.keySet()
         ]
-        
+		
+		log.info "Sending to analysis/import data: $data"
+       
         WebService importService = ws / 'analysis/import'
         
         if(opts.test) {
