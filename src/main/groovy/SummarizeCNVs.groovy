@@ -209,7 +209,6 @@ class SummarizeCNVs {
         
         List<VCF> vcfList = parseVCFs(opts, results)
 		
-        
         Regions target = new BED(opts.target, withExtra:true).load()
         
         log.info "Loaded ${Utils.humanBp(target.size())} target regions"
@@ -263,7 +262,7 @@ class SummarizeCNVs {
             }
             
             Regions cnvs = summarizer.run(exportSamples)
-            
+			
             if(opts.tsv) {
                 summarizer.writeTSV(cnvs, opts.tsv)
             }
@@ -486,6 +485,7 @@ class SummarizeCNVs {
         }
         
         List<String> dbIds = cnvAnnotator ? cnvAnnotator.cnvDatabases*.key : []
+		
         
         new File(fileName).withWriter { w ->
             
@@ -498,7 +498,7 @@ class SummarizeCNVs {
             w.println('[')
             
             cnvs.eachWithIndex { cnv, i ->
-                
+				
                 if(i>0)
                     w.println(',')
                     
@@ -524,9 +524,12 @@ class SummarizeCNVs {
                     cnv[caller] ? cnv[caller].quality : 0
                 } 
                 
-                Map data = [columnNames,line].transpose().collectEntries()
-                
-                w.print(JsonOutput.toJson(data))
+                //Map data = [columnNames,line].transpose().collectEntries()
+				Map data = [columnNames,line].transpose().collectEntries()
+				// For some reason getting null:null as an entry to the Map so filter it out
+				Map subData = data.subMap(data.findAll { it.value != null }.collect(){ it.key })
+				
+                w.print(JsonOutput.toJson(subData))
             }
             w.println(']')
         }
@@ -773,7 +776,10 @@ class SummarizeCNVs {
             cnv.category = genes.collect { categories[it] }.grep { it != null }.max()
             
             log.info "CNV $cnv assigned category $cnv.category based on $genes"
-        }
+        } else {
+			// FIXME What's a proper default category? 
+			cnv.category = "defaultcategory"
+		}
             
         // Annotate the variants if we have a VCF for this sample
         if(variants[sample]) {
