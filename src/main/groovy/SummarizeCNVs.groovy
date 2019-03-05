@@ -120,6 +120,7 @@ class SummarizeCNVs {
             cdx 'CODEX results', args:Cli.UNLIMITED
             px 'Parallax results', args:Cli.UNLIMITED
             cnvn 'CNVNator results', args:Cli.UNLIMITED
+            delly 'Delly results', args:Cli.UNLIMITED
             truth 'Postiive control CNVs', args:1
             vcf 'VCF file containing variants for a sample in results', args:Cli.UNLIMITED
             target 'Target regions with id for each region to annotate', args:1, required:true
@@ -180,6 +181,9 @@ class SummarizeCNVs {
 		if(opts.cnvns)
             parseCallerOpt("cnvn", opts.cnvns, { fileName -> new CNVNatorResults(fileName) }, results) 
 			
+		if(opts.delly)
+            parseCallerOpt("delly", opts.dellys, { fileName -> new DellyResults(fileName) }, results) 
+            
         if(opts.truth) 
             results.truth = new PositiveControlResults(opts.truth).load() 
             
@@ -760,7 +764,8 @@ class SummarizeCNVs {
                 log.info "Best CNV for $caller is " + best + " with quality " + best?.quality
                 foundInCallers << caller
             }
-            best.calls = callerCalls
+            if(best)
+                best.calls = callerCalls
             cnv[caller] = best
         }
             
