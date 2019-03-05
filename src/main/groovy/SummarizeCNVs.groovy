@@ -119,7 +119,7 @@ class SummarizeCNVs {
             ex 'Excavator results', args:Cli.UNLIMITED
             cdx 'CODEX results', args:Cli.UNLIMITED
             px 'Parallax results', args:Cli.UNLIMITED
-            cnvnator 'CNVNator results', args:Cli.UNLIMITED
+            cnvn 'CNVNator results', args:Cli.UNLIMITED
             truth 'Postiive control CNVs', args:1
             vcf 'VCF file containing variants for a sample in results', args:Cli.UNLIMITED
             target 'Target regions with id for each region to annotate', args:1, required:true
@@ -177,8 +177,8 @@ class SummarizeCNVs {
 		if(opts.pxs)
             parseCallerOpt("px", opts.pxs, { fileName -> new ParallaxResults(fileName) }, results) 
             
-		if(opts.cnvnators)
-            parseCallerOpt("cnvnator", opts.cnvnators, { fileName -> new CNVNatorResults(fileName) }, results) 
+		if(opts.cnvns)
+            parseCallerOpt("cnvn", opts.cnvns, { fileName -> new CNVNatorResults(fileName) }, results) 
 			
         if(opts.truth) 
             results.truth = new PositiveControlResults(opts.truth).load() 
@@ -479,18 +479,17 @@ class SummarizeCNVs {
     
     final Map<String,String> anno_types = [ "DEL" : "LOSS", "DUP" : "GAIN" ]
     
+    final static List<String> DEFAULT_JS_COLUMNS = 
+        ["chr","start","end","targets","sample","genes","category", "type","count","stotal","sampleCount","sampleFreq"]
+    
     void writeJSON(Regions cnvs, Writer w) {
         
         List<String> cnvCallers = results.keySet() as List
         
         List<String> dbIds = cnvAnnotator ? cnvAnnotator.cnvDatabases*.key : []
             
-        List<String> columnNames = 
-                   ["chr","start","end","targets","sample","genes","category", "type","count","stotal","sampleCount","sampleFreq"] + 
-                   dbIds.collect { String dbId -> [dbId, dbId + 'Freq'] }.sum() +
-                   cnvCallers + 
-                   cnvCallers.collect { it+"_qual" }
-            
+        List<String> columnNames = computeColumns(cnvCallers, dbIds)
+
         w.println('[')
             
         cnvs.eachWithIndex { Region cnv, int i ->
@@ -498,21 +497,39 @@ class SummarizeCNVs {
             if(i>0)
                 w.println(',')
                     
-            Map cnvData = annotateCNV(cnvCallers, dbIds, columnNames, cnv)
+            Map cnvData = cnvToMap(cnvCallers, dbIds, columnNames, cnv)
 			
             w.print(JsonOutput.toJson(cnvData))
         }
         w.println('\n]')        
     }
     
-    Map<String, Object> annotateCNV(List<String> cnvCallers, List<String> dbIds, List<String> columnNames, Region cnv) {
+    List<String> computeColumns(List<String> cnvCallers, List<String> dbIds) {
+       return DEFAULT_JS_COLUMNS + 
+           (dbIds.collect { String dbId -> [dbId, dbId + 'Freq'] }.sum()?:[]) +
+           cnvCallers + cnvCallers.collect { it+"_qual" } + ['calls']
+    }
+    
+    Map<String, Object> cnvToMap(List<String> cnvCallers, List<String> dbIds, List<String> columnNames, Region cnv) {
         Map<String,CNVFrequency> freqInfos = 
             cnvAnnotator?.annotate(new Region(cnv.chr, cnv.from..cnv.to), anno_types[cnv.type])?:[:]
         List frequencyInfo = dbIds.collect { dbId -> 
             CNVFrequency freqInfo = freqInfos[dbId];  
             [freqInfo.spanning.size(), freqInfo.spanningFreq] 
-        }.sum() 
-                
+        }.sum()?:[] 
+        
+        List callerFlags =  cnvCallers.collect { caller ->
+            cnv[caller] ? "TRUE" : "FALSE"
+        }
+        
+        Map calls = [:]
+        for(String caller in cnvCallers) {
+            if(cnv[caller]) {
+                println "adding calls for $caller"
+                calls[caller] = cnv[caller].calls.collect { [it.from, it.to, it.quality] }
+            }
+        }
+        
         List line = [
             cnv.chr, 
             cnv.from,
@@ -531,12 +548,11 @@ class SummarizeCNVs {
             cnv[caller] ? "TRUE" : "FALSE"
         }  + cnvCallers.collect { caller ->
             cnv[caller] ? cnv[caller].quality : 0
-        } 
-                
-        //Map data = [columnNames,line].transpose().collectEntries()
+        } + [calls]
+               
 		Map data = [columnNames,line].transpose().collectEntries()
-		// For some reason getting null:null as an entry to the Map so filter it out
-		Map subData = data.subMap(data.findAll { it.value != null }.collect(){ it.key })
+        
+        return data
     }
     
     void writeReport(Regions cnvs, 
@@ -738,11 +754,13 @@ class SummarizeCNVs {
         List foundInCallers = []
         for(String caller in callers) {
             // log.info "Find best CNV call for $caller"
-            Region best = results[caller].grep { it.sample == sample && it.overlaps(cnv) }.max { it.quality?.toFloat() }
+            List<Region> callerCalls = results[caller].grep { it.sample == sample && it.overlaps(cnv) }
+            Region best = callerCalls.max { it.quality?.toFloat() }
             if(best != null) {
                 log.info "Best CNV for $caller is " + best + " with quality " + best?.quality
                 foundInCallers << caller
             }
+            best.calls = callerCalls
             cnv[caller] = best
         }
             
@@ -781,8 +799,7 @@ class SummarizeCNVs {
             
             log.info "CNV $cnv assigned category $cnv.category based on $genes"
         } else {
-			// FIXME What's a proper default category? 
-			cnv.category = "defaultcategory"
+			cnv.category = 0
 		}
             
         // Annotate the variants if we have a VCF for this sample
