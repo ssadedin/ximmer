@@ -471,69 +471,73 @@ class SummarizeCNVs {
     }
     
     void writeJSON(Regions cnvs, String fileName) {
-        
         log.info "Writing JSON report to $fileName"
-        
-        List<String> cnvCallers = results.keySet() as List
-        Map<String,String> anno_types = [ "DEL" : "LOSS", "DUP" : "GAIN" ]
-        
-        List annotations = null
-        if(cnvAnnotator) {
-             annotations = cnvs.collect { cnv -> 
-                cnvAnnotator.annotate(new Region(cnv.chr, cnv.from..cnv.to), anno_types[cnv.type]) 
-             }
-        }
-        
-        List<String> dbIds = cnvAnnotator ? cnvAnnotator.cnvDatabases*.key : []
-		
-        
         new File(fileName).withWriter { w ->
-            
-            List<String> columnNames = 
-                       ["chr","start","end","targets","sample","genes","category", "type","count","stotal","sampleCount","sampleFreq"] + 
-                       dbIds.collect { String dbId -> [dbId, dbId + 'Freq'] }.sum() +
-                       cnvCallers + 
-                       cnvCallers.collect { it+"_qual" }
-            
-            w.println('[')
-            
-            cnvs.eachWithIndex { cnv, i ->
-				
-                if(i>0)
-                    w.println(',')
-                    
-                List frequencyInfo = dbIds.collect { dbId -> CNVFrequency freqInfo = annotations[i][dbId];  [freqInfo.spanning.size(), freqInfo.spanningFreq] }.sum() 
-                
-                List line = [
-                    cnv.chr, 
-                    cnv.from,
-                    cnv.to, 
-                    cnv.targets,
-                    cnv.sample,
-                    cnv.genes,
-                    cnv.category,
-                    cnv.type, 
-                    cnv.count, 
-                    cnv.stotal, 
-                    cnv.sampleCount,
-                    cnv.sampleFreq
-                ] + frequencyInfo +
-                cnvCallers.collect { caller ->
-                    cnv[caller] ? "TRUE" : "FALSE"
-                }  + cnvCallers.collect { caller ->
-                    cnv[caller] ? cnv[caller].quality : 0
-                } 
-                
-                //Map data = [columnNames,line].transpose().collectEntries()
-				Map data = [columnNames,line].transpose().collectEntries()
-				// For some reason getting null:null as an entry to the Map so filter it out
-				Map subData = data.subMap(data.findAll { it.value != null }.collect(){ it.key })
-				
-                w.print(JsonOutput.toJson(subData))
-            }
-            w.println(']')
+            writeJSON(cnvs, w)
         }
     } 
+    
+    final Map<String,String> anno_types = [ "DEL" : "LOSS", "DUP" : "GAIN" ]
+    
+    void writeJSON(Regions cnvs, Writer w) {
+        
+        List<String> cnvCallers = results.keySet() as List
+        
+        List<String> dbIds = cnvAnnotator ? cnvAnnotator.cnvDatabases*.key : []
+            
+        List<String> columnNames = 
+                   ["chr","start","end","targets","sample","genes","category", "type","count","stotal","sampleCount","sampleFreq"] + 
+                   dbIds.collect { String dbId -> [dbId, dbId + 'Freq'] }.sum() +
+                   cnvCallers + 
+                   cnvCallers.collect { it+"_qual" }
+            
+        w.println('[')
+            
+        cnvs.eachWithIndex { Region cnv, int i ->
+                
+            if(i>0)
+                w.println(',')
+                    
+            Map cnvData = annotateCNV(cnvCallers, dbIds, columnNames, cnv)
+			
+            w.print(JsonOutput.toJson(cnvData))
+        }
+        w.println('\n]')        
+    }
+    
+    Map<String, Object> annotateCNV(List<String> cnvCallers, List<String> dbIds, List<String> columnNames, Region cnv) {
+        Map<String,CNVFrequency> freqInfos = 
+            cnvAnnotator?.annotate(new Region(cnv.chr, cnv.from..cnv.to), anno_types[cnv.type])?:[:]
+        List frequencyInfo = dbIds.collect { dbId -> 
+            CNVFrequency freqInfo = freqInfos[dbId];  
+            [freqInfo.spanning.size(), freqInfo.spanningFreq] 
+        }.sum() 
+                
+        List line = [
+            cnv.chr, 
+            cnv.from,
+            cnv.to, 
+            cnv.targets,
+            cnv.sample,
+            cnv.genes,
+            cnv.category,
+            cnv.type, 
+            cnv.count, 
+            cnv.stotal, 
+            cnv.sampleCount,
+            cnv.sampleFreq
+        ] + frequencyInfo +
+        cnvCallers.collect { caller ->
+            cnv[caller] ? "TRUE" : "FALSE"
+        }  + cnvCallers.collect { caller ->
+            cnv[caller] ? cnv[caller].quality : 0
+        } 
+                
+        //Map data = [columnNames,line].transpose().collectEntries()
+		Map data = [columnNames,line].transpose().collectEntries()
+		// For some reason getting null:null as an entry to the Map so filter it out
+		Map subData = data.subMap(data.findAll { it.value != null }.collect(){ it.key })
+    }
     
     void writeReport(Regions cnvs, 
                      String name, 
