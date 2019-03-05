@@ -28,6 +28,11 @@ abstract class CNVResults extends RangedData {
 	}
 	
 	String getSampleFromFile(String sourceFile) {
+        
+        if(sourceFile.endsWith('.vcf') || sourceFile.endsWith('.vcf.gz')) {
+            return new VCF(sourceFile).samples[0]
+        }
+        
 		String sample = new File(sourceFile).getName().replaceAll('\\..*$','')
 		List parts = sample.tokenize('_')
 		// VCGS specific logic
