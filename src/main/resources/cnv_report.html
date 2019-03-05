@@ -197,7 +197,7 @@
                              if(hasVariants)
                                 tableHeaders.addAll(['Het Count', 'Hom Count', 'Balance'])
                                 
-                                tableHeaders.addAll(dbIds.collect { dbId -> [dbId, dbId + 'Freq'] }.sum())
+                                tableHeaders.addAll(dbIds.collect { dbId -> [dbId, dbId + 'Freq'] }.sum()?:[])
                                 
                              if(!cnv_callers.contains("truth")) {
                                 tableHeaders.remove("True?")
