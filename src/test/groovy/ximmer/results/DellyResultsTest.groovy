@@ -31,4 +31,9 @@ class DellyResultsTest {
         assert dr.getOverlaps(inv).isEmpty()
     }
     
+    @Test
+    void 'correct sample id inferred'() {
+        DellyResults dr = new DellyResults('src/test/data/test.delly.vcf')
+        assert dr[0].sample == 'TESTSAMPLE' // See VCF
+    }
 }
