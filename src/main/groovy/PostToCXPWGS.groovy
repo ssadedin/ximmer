@@ -39,6 +39,7 @@ class PostToCXPWGS extends ToolBase {
 			analysis 'The zip file of the analysis to import', args:1, required: true
 			sex 'Provide sample_id:SEX', args:UNLIMITED, required: true
 			bam 'Provide sample_id:BAM', args:UNLIMITED, required: true
+            qc 'Zip file containing QC files to import', args:1, required: true
 			cxp 'CXP Url', args:1, required: true
 			target 'Provide the path to target region', args:1, required: true
 			batch 'Fullpath to batch', args:1, required: false
@@ -61,7 +62,6 @@ class PostToCXPWGS extends ToolBase {
 		
 		if(!opts.cxp.contains('http')) throw new IllegalArgumentException("Invalid CXP URL used")
 		log.info "CXP url: ${opts.cxp}"
-		
 		
 		if (opts.sexs) {
 			for(sexArg in opts.sexs) {
@@ -147,7 +147,8 @@ class PostToCXPWGS extends ToolBase {
             batch_id: batch[0].id,
             results: new File(opts.analysis).absolutePath,
             control_samples: [],
-            analysis_samples: this.bamFiles.keySet()
+            analysis_samples: this.bamFiles.keySet(),
+            qc: new File(opts.qc).absolutePath
         ]
 		
 		log.info "Sending to analysis/import data: $data"
