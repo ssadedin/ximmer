@@ -529,7 +529,6 @@ class SummarizeCNVs {
         Map calls = [:]
         for(String caller in cnvCallers) {
             if(cnv[caller]) {
-                println "adding calls for $caller"
                 calls[caller] = cnv[caller].calls.collect { [it.from, it.to, it.quality] }
             }
         }
