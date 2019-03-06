@@ -13,9 +13,9 @@ class ParallaxResults extends CNVResults {
     }
     
     ParallaxResults load(Map options=[:], Closure c=null) {
-        super.load(options+[separator:"\t", columnNames:['chr','start','end','quality']]) { r ->
+        super.load(options+[separator:"\t", columnNames:['chr','start','end','type','quality']]) { r ->
 			r.sample = this.sample
-            r.type = "DEL"
+            r.type = r.type
 			r.start = r.from
 			r.end = r.to
         }
