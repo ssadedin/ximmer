@@ -39,7 +39,7 @@ class CNVNatorResultsTest {
 		def row = c.first()
 		assert row.chr == 'chrM'
 		assert row.start == 1
-		assert row.end == 16601
+		assert row.end == 16600
 		assert row.type == 'DUP'
 		assert row.sample == 'TESTSAMPLE'
 		assert row.quality == 0.00809677
