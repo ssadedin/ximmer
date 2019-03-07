@@ -19,7 +19,7 @@
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##FORMAT=<ID=CN,Number=1,Type=Integer,Description="Copy number genotype for imprecise events">
 ##FORMAT=<ID=PE,Number=1,Type=Integer,Description="Number of paired-ends that support the event">
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	180803_K00164_0161_ML182888_GM12878_MAN-20180724_NEXTERAWGS
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	TESTSAMPLE
 chrM	1	CNVnator_dup_1	G	<DUP>	.	PASS	END=16600;SVTYPE=DUP;SVLEN=16600;IMPRECISE;natorRD=221.253;natorP1=0;natorP2=0;natorP3=0;natorP4=0;natorQ0=0.00809677	GT:CN	./1:221
 chr1	1	CNVnator_del_2	N	<DEL>	.	PASS	END=10000;SVTYPE=DEL;SVLEN=-10000;IMPRECISE;natorRD=0;natorP1=1.59373e-11;natorP2=2.12419e-252;natorP3=1.99216e-11;natorP4=3.57571e-200;natorQ0=-1	GT:CN	1/1:0
 chr1	10901	CNVnator_dup_3	g	<DUP>	.	PASS	END=15700;SVTYPE=DUP;SVLEN=4800;IMPRECISE;natorRD=4.27722;natorP1=0;natorP2=4.96212e+07;natorP3=0.00051838;natorP4=2.69145e+08;natorQ0=0.672392	GT:CN	./1:4
