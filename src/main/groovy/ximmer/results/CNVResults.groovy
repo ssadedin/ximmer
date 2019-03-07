@@ -34,12 +34,12 @@ abstract class CNVResults extends RangedData {
         }
         
 		String sample = new File(sourceFile).getName().replaceAll('\\..*$','')
-		List parts = sample.tokenize('_')
-		// VCGS specific logic
-		// TODO: fix to make sample passable as param
-		if(parts.size() > 6) {
-			sample = parts[4]
-		}
+//		List parts = sample.tokenize('_')
+//		// VCGS specific logic
+//		// TODO: fix to make sample passable as param
+//		if(parts.size() > 6) {
+//			sample = parts[4]
+//		}
 		return sample
 		
 	}
