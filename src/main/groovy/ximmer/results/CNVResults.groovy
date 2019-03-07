@@ -30,7 +30,7 @@ abstract class CNVResults extends RangedData {
 	String getSampleFromFile(String sourceFile) {
         
         if(sourceFile.endsWith('.vcf') || sourceFile.endsWith('.vcf.gz')) {
-            return new VCF(sourceFile).samples[0]
+            return new VCF(sourceFile).samples[0].tokenize('/')[-1]
         }
         
 		String sample = new File(sourceFile).getName().replaceAll('\\..*$','')
