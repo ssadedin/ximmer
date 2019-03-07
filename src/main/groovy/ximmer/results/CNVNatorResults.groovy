@@ -14,6 +14,10 @@ class CNVNatorResults extends CNVResults {
 		this.sample = sample ? sample : getSampleFromFile(sourceFile)
 		
 		def v = VCF.parse(this.sourceFile) {
+            
+            if(it.filter != 'PASS')
+                return false
+            
 			Region r = new Region(it.chr, it.pos, it.info.END.toInteger())
 			r.type = it.info.SVTYPE
 			r.sample = this.sample
@@ -21,6 +25,8 @@ class CNVNatorResults extends CNVResults {
 			r.end = it.info.END.toInteger()
 			r.quality = it.info['natorQ0'].toDouble()
 			addRegion(r)
+            
+            return false
 		}
     }
 	
