@@ -14,8 +14,11 @@ class DellyResults extends CNVResults {
 		
 		VCF.parse(this.sourceFile) {
             if(!(it.info.SVTYPE in ['DEL','DUP'])) {
-                return
+                return false
             }
+            
+            if(Region.isMinorContig(it.chr))
+                return false
                 
 			Region r = new Region(it.chr, it.pos, it.info.END.toInteger())
 			r.type = it.info.SVTYPE
