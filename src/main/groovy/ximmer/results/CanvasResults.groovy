@@ -23,7 +23,7 @@ class CanvasResults extends CNVResults {
             if(type == null)
                 return false
                 
-            if(v.quality < 2)
+            if(v.qual < 2)
                 return
                 
             if(Region.isMinorContig(v.chr))
