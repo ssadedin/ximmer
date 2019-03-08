@@ -9,7 +9,6 @@ class CanvasResults extends CNVResults {
     
     static final Map<String,String> CANVAS_TYPE_MAP = [
         LOSS : 'DEL',
-        LOH : 'DEL',
         GAIN : 'DUP'
     ]
     
