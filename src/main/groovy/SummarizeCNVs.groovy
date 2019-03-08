@@ -120,6 +120,7 @@ class SummarizeCNVs {
             cdx 'CODEX results', args:Cli.UNLIMITED
             px 'Parallax results', args:Cli.UNLIMITED
             cnvn 'CNVNator results', args:Cli.UNLIMITED
+            canv 'Canvas results', args:Cli.UNLIMITED
             delly 'Delly results', args:Cli.UNLIMITED
             truth 'Postiive control CNVs', args:1
             vcf 'VCF file containing variants for a sample in results', args:Cli.UNLIMITED
@@ -183,6 +184,9 @@ class SummarizeCNVs {
 			
 		if(opts.delly)
             parseCallerOpt("delly", opts.dellys, { fileName -> new DellyResults(fileName) }, results) 
+            
+		if(opts.canv)
+            parseCallerOpt("canvas", opts.canvs, { fileName -> new CanvasResults(fileName) }, results) 
             
         if(opts.truth) 
             results.truth = new PositiveControlResults(opts.truth).load() 
