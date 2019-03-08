@@ -18,7 +18,10 @@ class CNVNatorResults extends CNVResults {
             if(it.filter != 'PASS')
                 return false
             
-			Region r = new Region(it.chr, it.pos, it.info.END.toInteger())
+            if(Region.isMinorContig(it.chr))
+                return false
+                
+ 			Region r = new Region(it.chr, it.pos, it.info.END.toInteger())
 			r.type = it.info.SVTYPE
 			r.sample = this.sample
 			r.start = it.pos

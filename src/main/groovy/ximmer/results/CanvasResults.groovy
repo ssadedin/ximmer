@@ -25,7 +25,10 @@ class CanvasResults extends CNVResults {
                 
             if(v.quality < 2)
                 return
-               
+                
+            if(Region.isMinorContig(v.chr))
+                return false
+        
 			Region r = new Region(v.chr, v.pos, v.info.END.toInteger())
 			r.type = type
 			r.sample = this.sample
