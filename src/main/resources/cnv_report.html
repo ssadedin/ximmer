@@ -55,11 +55,14 @@
     }
     
     def allCnvs = cnvs
+    
+    log.println "Samples are: " + allCnvs*.sample.unique().join(',')
+    log.println "Types are: " + allCnvs.countBy { it.type }
 
     cnvs = allCnvs.grep { cnv -> cnv.type.tokenize(',').any { it in cnvTypes } && (!includeSamples || (cnv.sample in includeSamples)) }
 
-    log.println "${cnvs.size()} / ${allCnvs.size()} cnvs remain after filtering by types $types and samples ${includeSamples}"
-
+    log.println "${cnvs.size()} / ${allCnvs.numberOfRanges} cnvs remain after filtering by types $types and samples ${includeSamples}"
+    
     // println("Processing ${cnvs.size()} cnvs")
     //println(cnvs);
     def cnv_labels = [
@@ -106,7 +109,7 @@
     else
         log.println "Excluding DGV annotations"
     
-    boolean hasVariants = cnvs[0].het != null
+    boolean hasVariants = cnvs[0]?.het != null
 
     log.println "Writing report ..."
 %>
@@ -224,7 +227,7 @@
                                 <%if(cnv_callers.contains("truth")) {%>
                                     <td><%=cnv["truth"]!=null?"Yes":"No"%></td>
                                 <%}%>
-                              <td><%=cnv_callers.grep { it != "truth" && cnv[it] !=null }.collect { clr -> "<span class='qual' title='QUAL="+ cnv[clr].quality+"'>$clr</span>"}.join(",")%></td>
+                              <td><%=cnv_callers.grep { it != "truth" && cnv[it].best !=null }.collect { clr -> "<span class='qual' title='QUAL="+ cnv[clr].best.quality+"'>$clr</span>"}.join(",")%></td>
                                 <td>${cnv.sample}</td>
                                 <td>${cnv.count}</td>
                                 <td title='Freq=${cnv.sampleFreq}'>${cnv.sampleCount}</td>
