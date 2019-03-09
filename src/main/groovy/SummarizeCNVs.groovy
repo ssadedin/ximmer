@@ -130,6 +130,7 @@ class SummarizeCNVs {
             cnvn 'CNVNator results', args:Cli.UNLIMITED
             canv 'Canvas results', args:Cli.UNLIMITED
             delly 'Delly results', args:Cli.UNLIMITED
+            lumpy 'Lumpy results', args:Cli.UNLIMITED
             truth 'Postiive control CNVs', args:1
             vcf 'VCF file containing variants for a sample in results', args:Cli.UNLIMITED
             target 'Target regions with id for each region to annotate', args:1, required:true
@@ -197,6 +198,9 @@ class SummarizeCNVs {
 		if(opts.canv)
             parseCallerOpt("canvas", opts.canvs, { fileName -> new CanvasResults(fileName) }, results) 
             
+		if(opts.lumpy)
+            parseCallerOpt("lumpy", opts.lumpy, { fileName -> new LumpyResults(fileName) }, results) 
+                
         if(opts.truth) 
             results.truth = new PositiveControlResults(opts.truth).load() 
             
