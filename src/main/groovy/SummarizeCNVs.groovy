@@ -1,6 +1,7 @@
 // vim: sw=4 expandtab cindent ts=4
 import org.codehaus.groovy.runtime.StackTraceUtils;
 
+
 import gngs.*
 import graxxia.Stats
 import groovy.json.JsonOutput
@@ -8,6 +9,7 @@ import groovy.text.SimpleTemplateEngine
 import groovy.util.logging.Log;
 
 import ximmer.results.*
+import ximmer.*
 
 /**
  * Reads results from any number of CNV callers and combines them together into
@@ -87,6 +89,12 @@ class SummarizeCNVs {
     int minimumCategory = 0
     
     /**
+     * The fraction of mutual overlap at which calls from differnet CNV callers will be
+     * counted as supporting an overall larger call
+     */
+    double mergeOverlapThreshold = 0.5
+    
+    /**
      * Parse an option specifying a CNV caller
      * 
      * @param caller    the caller to parse the config for
@@ -145,6 +153,7 @@ class SummarizeCNVs {
             exgenes 'Optional file of genes to exclude from output', args:1
             genelist 'Define a named gene list, to be passed through to report', args:Cli.UNLIMITED
             mincat 'Set a category below which CNVs will be excluded from results' , args: 1
+            mergefrac 'The fraction of mutual overlap at which CNVs should be merged to a single call', args:1
             o 'Output file name', args:1
         }
         
@@ -278,6 +287,10 @@ class SummarizeCNVs {
             if(opts.json) {
                 summarizer.writeJSON(cnvs, opts.json)
             }
+            
+            if(opts.mergefrac) {
+                summarizer.mergeOverlapThreshold = opts.mergefrac.toDouble()
+            }
              
             // If there is a truth set available, for each CNV set,
             // set the true CNVs on the set
@@ -383,7 +396,7 @@ class SummarizeCNVs {
 
         Regions results = new Regions()
         for(s in exportSamples) {
-            Regions sampleCnvs = extractSampleCnvs(s)
+            Regions sampleCnvs = extractMergedSampleCnvs(s)
             for(cnv in sampleCnvs) {
                 log.info "Merging CNV $cnv for sample '$s' type = $cnv.type"
                 results.addRegion(cnv)
@@ -468,9 +481,9 @@ class SummarizeCNVs {
                     cnv.sampleFreq
                 ] + frequencyInfo +
                 cnvCallers.collect { caller ->
-                    cnv[caller] ? "TRUE" : "FALSE"
+                    cnv[caller].best ? "TRUE" : "FALSE"
                 }  + cnvCallers.collect { caller ->
-                    cnv[caller] ? cnv[caller].quality : 0
+                    cnv[caller].best ? cnv[caller].best.quality : 0
                 } 
                 
                 w.println line.join("\t")
@@ -527,13 +540,13 @@ class SummarizeCNVs {
         }.sum()?:[] 
         
         List callerFlags =  cnvCallers.collect { caller ->
-            cnv[caller] ? "TRUE" : "FALSE"
+            cnv[caller].best ? "TRUE" : "FALSE"
         }
         
         Map calls = [:]
         for(String caller in cnvCallers) {
             if(cnv[caller]) {
-                calls[caller] = cnv[caller].calls.collect { [it.from, it.to, it.quality] }
+                calls[caller] = cnv[caller].all.collect { [it.from, it.to, it.quality] }
             }
         }
         
@@ -552,9 +565,9 @@ class SummarizeCNVs {
             cnv.sampleFreq
         ] + frequencyInfo +
         cnvCallers.collect { caller ->
-            cnv[caller] ? "TRUE" : "FALSE"
+            cnv[caller].best ? "TRUE" : "FALSE"
         }  + cnvCallers.collect { caller ->
-            cnv[caller] ? cnv[caller].quality : 0
+            cnv[caller].best ? cnv[caller].best.quality : 0
         } + [calls]
                
 		Map data = [columnNames,line].transpose().collectEntries()
@@ -644,17 +657,15 @@ class SummarizeCNVs {
         log.info "Extracted samples from calls: $samples"
     }
     
-    Regions extractSampleCnvs(String sample) {
+    Regions extractMergedSampleCnvs(String sample) {
         
         // First accumulate CNVs from all the callers into one merged object
-        Regions merged = new Regions()
-        results.each { caller, calls ->
-            for(Region cnv in calls.grep { it.sample == sample }) {
-                merged.addRegion(cnv)
-            }
-        }
+        Regions sampleCNVs = extractSampleIndividualCnvs(sample)
         
-        Regions flattened = merged.reduce()
+//        Regions flattened = merged.reduce()
+       
+        CNVMerger cnvMerger = new CNVMerger(sampleCNVs, this.mergeOverlapThreshold)
+        Regions flattened = cnvMerger.merge()
         
         log.info "Sample $sample has ${flattened.numberOfRanges} CNVs"
         
@@ -678,6 +689,16 @@ class SummarizeCNVs {
         }
         
         return result
+    }
+
+    private Regions extractSampleIndividualCnvs(String sample) {
+        Regions sampleCNVs = new Regions()
+        results.each { caller, calls ->
+            for(Region cnv in calls.grep { it.sample == sample }) {
+                sampleCNVs.addRegion(cnv)
+            }
+        }
+        return sampleCNVs
     }
     
     /**
@@ -761,18 +782,26 @@ class SummarizeCNVs {
         List foundInCallers = []
         for(String caller in callers) {
             // log.info "Find best CNV call for $caller"
-            List<Region> callerCalls = results[caller].grep { it.sample == sample && it.overlaps(cnv) }
-            Region best = callerCalls.max { it.quality?.toFloat() }
-            if(best != null) {
-                log.info "Best CNV for $caller is " + best + " with quality " + best?.quality
+            List<Region> callerCalls = results[caller].grep { Region call -> call.sample == sample && call.overlaps(cnv) }
+            
+            List<Region> mutualOverlapCalls = callerCalls.grep { Region call -> call.mutualOverlap(cnv) > mergeOverlapThreshold }
+            if(!mutualOverlapCalls.isEmpty()) {
                 foundInCallers << caller
             }
-            if(best)
-                best.calls = callerCalls
-            cnv[caller] = best
+            
+            Region best = mutualOverlapCalls.max { it.quality?.toFloat() }
+            if(best != null) {
+                log.info "Best CNV for $caller is " + best + " with quality " + best?.quality
+            }
+            
+            cnv[caller] = [
+                best : best,
+                supporting : mutualOverlapCalls,
+                all : callerCalls
+            ]
         }
             
-        def types = foundInCallers.collect { cnv[it]?.type }.grep { it }.unique()
+        def types = foundInCallers.collect { cnv[it]?.best?.type }.grep { it }.unique()
         if(types.size()>1)
             log.info "WARNING: CNV $cnv has conflicting calls: " + types
             
@@ -781,7 +810,7 @@ class SummarizeCNVs {
         
         cnv.sample = sample
             
-        cnv.count = callers.grep { it != "truth" }.count { cnv[it] != null } 
+        cnv.count = callers.grep { it != "truth" }.count { cnv[it].best != null } 
         
         List<String> genes
         if(refGenes != null) {
