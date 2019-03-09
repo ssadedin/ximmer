@@ -437,7 +437,7 @@ class SummarizeCNVs {
             cnv.sampleCount = cnv.samples.size()
             cnv.sampleFreq = (cnv.sampleCount / (double)samples.size())
             
-            log.info "Samples for $cnv = $cnv.samples (count = $cnv.sampleCount)"
+//            log.info "Samples for $cnv = $cnv.samples (count = $cnv.sampleCount)"
         }
     }
     
