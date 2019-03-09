@@ -199,7 +199,7 @@ class SummarizeCNVs {
             parseCallerOpt("canvas", opts.canvs, { fileName -> new CanvasResults(fileName) }, results) 
             
 		if(opts.lumpy)
-            parseCallerOpt("lumpy", opts.lumpy, { fileName -> new LumpyResults(fileName) }, results) 
+            parseCallerOpt("lumpy", opts.lumpys, { fileName -> new LumpyResults(fileName) }, results) 
                 
         if(opts.truth) 
             results.truth = new PositiveControlResults(opts.truth).load() 
