@@ -134,7 +134,7 @@ class PostToCXPWGS extends ToolBase {
             batch = [(ws / 'batch').post(
                 metadata: [:],
                 identifier: batchIdentifier,
-                date: batchDate(batchDir.lastModified())
+                date: batchDate(batchDir.exists() ? batchDir.lastModified() : System.currentTimeMillis())
             )]
         }
 		
