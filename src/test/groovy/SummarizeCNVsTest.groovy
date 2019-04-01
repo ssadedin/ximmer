@@ -32,8 +32,10 @@ class SummarizeCNVsTest {
         
         Region ed = new Region('chr1:900-1300')
         ed.quality = 10
-        ed.calls = [ed]
+        ed.all = [ed]
+        ed.best= ed
         cnv.ed = ed
+        cnv.xhmm = [:]
         
         Map data = scnvs.cnvToMap(callers, [], scnvs.computeColumns(callers,[]), cnv)
         
@@ -45,4 +47,49 @@ class SummarizeCNVsTest {
         assert data.xhmm == 'FALSE'
         assert data.calls.ed[0] == [900,1300,10]
     }
+    
+    @Test
+    void 'test single caller are annotated correctly'() {
+        Region edCall = new Region('chr1', 1000..2000, quality: 100, sample: 'MrBoo', )
+        scnvs.results = [
+            'ed' : new Regions([edCall])
+        ]
+        
+        // Should find 'ed' overlaps
+        Region cnv = new Region('chr1', 1200..1800)
+        assert scnvs.annotateCaller('MrBoo', cnv,  'ed')
+        assert cnv.ed.best.is(edCall)
+        assert cnv.ed.supporting.size() == 1
+        assert cnv.ed.all.size() == 1
+    }
+    
+    @Test
+    void 'test single call only supported when mutal overlap'() {
+        Region edCall = new Region('chr1', 1200..1250, quality: 100, sample: 'MrBoo', )
+        scnvs.results = [
+            'ed' : new Regions([edCall])
+        ]
+        
+        // Should find 'ed' overlaps
+        Region cnv = new Region('chr1', 1000..2000) // tiny overlap
+        assert !scnvs.annotateCaller('MrBoo', cnv,  'ed')
+        assert cnv.ed.best == null
+        assert cnv.ed.supporting.size() == 0
+        assert cnv.ed.all.size() == 1
+    } 
+    
+    @Test
+    void 'test single call only supported when correct sample'() {
+        Region edCall = new Region('chr1', 1200..1250, quality: 100, sample: 'MsFoo', )
+        scnvs.results = [
+            'ed' : new Regions([edCall])
+        ]
+        
+        // Should find 'ed' overlaps
+        Region cnv = new Region('chr1', 1000..2000) // tiny overlap
+        assert !scnvs.annotateCaller('MrBoo', cnv,  'ed')
+        assert cnv.ed.best == null
+        assert cnv.ed.supporting.size() == 0
+        assert cnv.ed.all.size() == 0
+    }  
 }

@@ -536,8 +536,10 @@ class SummarizeCNVs {
     }
     
     Map<String, Object> cnvToMap(List<String> cnvCallers, List<String> dbIds, List<String> columnNames, Region cnv) {
+        
         Map<String,CNVFrequency> freqInfos = 
             cnvAnnotator?.annotate(new Region(cnv.chr, cnv.from..cnv.to), anno_types[cnv.type])?:[:]
+            
         List frequencyInfo = dbIds.collect { dbId -> 
             CNVFrequency freqInfo = freqInfos[dbId];  
             [freqInfo.spanning.size(), freqInfo.spanningFreq] 
@@ -783,37 +785,21 @@ class SummarizeCNVs {
      */
     void annotateCNV(String sample, List callers, Region cnv) {
         
+        cnv.sample = sample
+        
         List foundInCallers = []
         for(String caller in callers) {
-            // log.info "Find best CNV call for $caller"
-            List<Region> callerCalls = results[caller].grep { Region call -> call.sample == sample && call.overlaps(cnv) }
-            
-            List<Region> mutualOverlapCalls = callerCalls.grep { Region call -> call.mutualOverlap(cnv) > mergeOverlapThreshold }
-            if(!mutualOverlapCalls.isEmpty()) {
+            if(annotateCaller(cnv, caller)) {
                 foundInCallers << caller
             }
-            
-            Region best = mutualOverlapCalls.max { it.quality?.toFloat() }
-            if(best != null) {
-                log.info "Best CNV for $caller is " + best + " with quality " + best?.quality
-            }
-            
-            cnv[caller] = [
-                best : best,
-                supporting : mutualOverlapCalls,
-                all : callerCalls
-            ]
+                
         }
             
-        def types = foundInCallers.collect { cnv[it]?.best?.type }.grep { it }.unique()
+        List types = foundInCallers.collect { cnv[it]?.best?.type }.grep { it }.unique()
         if(types.size()>1)
             log.info "WARNING: CNV $cnv has conflicting calls: " + types
             
-            
         cnv.type = types.join(",")
-        
-        cnv.sample = sample
-            
         cnv.count = callers.grep { it != "truth" }.count { cnv[it].best != null } 
         
         List<String> genes
@@ -827,37 +813,79 @@ class SummarizeCNVs {
         
         cnv.genes=genes.join(",")
         
-        log.info "Gene lists are: $genelists"
-        if(genelists) {
-            String sampleGenelist = this.sampleToGenelist[sample]
-            
-            Map<String,Integer> categories = sampleGenelist ? 
-                this.genelistCategories.get(sampleGenelist, this.geneCategories /* global */)
-            :
-                this.geneCategories 
-            
-            cnv.category = genes.collect { categories[it] }.grep { it != null }.max()
-            
-            log.info "CNV $cnv assigned category $cnv.category based on $genes"
-        } else {
-			cnv.category = 0
-		}
+        annotateGeneCategories(cnv, genes)
             
         // Annotate the variants if we have a VCF for this sample
-        if(variants[sample]) {
-            int sampleIndex = variants[sample][0].extra.header.samples.indexOf(sample)
-            cnv.variants = variants[sample].getOverlaps(cnv)*.extra.grep { it.sampleDosage(sample) > 0 }
-            cnv.hom = cnv.variants.count { it.dosages[sampleIndex] == 2 }
-            cnv.het = cnv.variants.count { it.dosages[sampleIndex] == 1 }
-            cnv.bal = Stats.mean(cnv.variants.grep { it.dosages[sampleIndex] == 1 }.collect { 
-                def refDepth = it.getAlleleDepths(0)[sampleIndex]
-                if(refDepth == 0)
-                    return Float.NaN
-                    
-                it.getAlleleDepths(1)[sampleIndex] / (float)refDepth
-            })
-        }
+        if(variants[sample]) 
+            sample = annotateVariants(sample, cnv)
             
         log.info "$cnv.count callers found $cnv of type $cnv.type in sample $sample covering genes $cnv.genes with ${cnv.variants?.size()} variants"
+    }
+    
+    /**
+     * Annotates a CNV with how many calls support the CNV from different callers.
+     * 
+     * Support is divided into two levels: <code>supporting</code>, which means that there
+     * is at least a minimum threshold of mutual overlap (default 50%), and <code>all</code>
+     * which counts every overlapping call. In general, only supporting calls should be considered
+     * for filtering and evidence that a call is real.
+     * 
+     * @param sample
+     * @param cnv
+     * @param caller
+     * 
+     * @return  true if the CNV was supported by at least 1 call from the given caller
+     */
+    boolean annotateCaller(String sample, Region cnv, String caller) {
+        // log.info "Find best CNV call for $caller"
+        List<Region> callerCalls = results[caller].grep { Region call -> call.sample == sample && call.overlaps(cnv) }
+            
+        List<Region> mutualOverlapCalls = callerCalls.grep { Region call -> call.mutualOverlap(cnv) > mergeOverlapThreshold }
+            
+        Region best = mutualOverlapCalls.max { it.quality?.toFloat() }
+        if(best != null) {
+            log.info "Best CNV for $caller is " + best + " with quality " + best?.quality
+        }
+            
+        cnv[caller] = [
+            best : best,
+            supporting : mutualOverlapCalls,
+            all : callerCalls
+        ]        
+            
+        return !mutualOverlapCalls.isEmpty()
+    }
+
+    private void annotateGeneCategories(Region cnv, List genes) {
+        String sample = cnv.sample
+        if(genelists) {
+            String sampleGenelist = this.sampleToGenelist[sample]
+
+            Map<String,Integer> categories = sampleGenelist ?
+                    this.genelistCategories.get(sampleGenelist, this.geneCategories /* global */)
+                    :
+                    this.geneCategories
+
+            cnv.category = genes.collect { categories[it] }.grep { it != null }.max()
+
+            log.info "CNV $cnv assigned category $cnv.category based on $genes"
+        } else {
+            cnv.category = 0
+        }
+    }
+
+    private String annotateVariants(String sample, Region cnv) {
+        int sampleIndex = variants[sample][0].extra.header.samples.indexOf(sample)
+        cnv.variants = variants[sample].getOverlaps(cnv)*.extra.grep { it.sampleDosage(sample) > 0 }
+        cnv.hom = cnv.variants.count { it.dosages[sampleIndex] == 2 }
+        cnv.het = cnv.variants.count { it.dosages[sampleIndex] == 1 }
+        cnv.bal = Stats.mean(cnv.variants.grep { it.dosages[sampleIndex] == 1 }.collect {
+            def refDepth = it.getAlleleDepths(0)[sampleIndex]
+            if(refDepth == 0)
+                return Float.NaN
+
+            it.getAlleleDepths(1)[sampleIndex] / (float)refDepth
+        })
+        return sample
     }
 }
