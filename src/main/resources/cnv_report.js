@@ -729,6 +729,15 @@ function ucscChr(chr) {
    return chr.startsWith('chr') ? chr : 'chr' + chr;
 }
 
+/**
+ * remove chr from a chromosome reference
+ * 
+ * @param {string} chr 
+ */
+function stripChr(chr) {
+   return chr.startsWith('chr') ? chr : 'chr' + chr;
+}
+
 /** 
  * Show details of a CNV in the bottom pane
  */
@@ -783,6 +792,15 @@ function show_cnv_details(cnvIndex) {
                   href:'http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position='+ucscChr(cnv.chr)+'%3A'+cnv.start+'-'+cnv.end+'&dgv=pack&knownGene=pack&omimGene=pack',
                   target: 'ximmerucsc'
                  }).$span('UCSC')
+        $li().$a({
+                  href:`https://gnomad.broadinstitute.org/region/${stripChr(cnv.chr)}-${cnv.start}-${cnv.end}?dataset=gnomad_sv_r2`,
+                  target: 'ximmergnomAD'
+                 }).$span('gnomAD')                 
+                 
+        $li().$a({
+                  href:`https://decipher.sanger.ac.uk/browser#q/${ucscChr(cnv.chr)}:${cnv.start}-${cnv.end}`,
+                  target: 'ximmerdecipher'
+                 }).$span('Decipher')                                  
         with($li()) {
           with($a({href:'#'})) {
             $span('IGV')
