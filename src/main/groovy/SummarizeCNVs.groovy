@@ -6,6 +6,7 @@ import gngs.*
 import graxxia.Stats
 import groovy.json.JsonOutput
 import groovy.text.SimpleTemplateEngine
+import groovy.transform.CompileStatic
 import groovy.util.logging.Log;
 
 import ximmer.results.*
@@ -80,6 +81,8 @@ class SummarizeCNVs {
     
     Map<String,String> genelists
     
+    gngs.VCFIndex gnomad
+    
     /**
      * The gene category below which results will be filtered out. If zero is set,
      * genes with no category will be included. Otherwise, a CNV must be both assigned
@@ -138,6 +141,7 @@ class SummarizeCNVs {
             report 'Template to use for creating HTML report', args: 1
             dgv 'Path to file containing CNVs from database of genomic variants (DGV)', args: 1
             ddd 'Path to file containing CNVs from Decipher (DDD)', args: 1
+            gmd 'Path to gnomAD sites VCF to annotate frequencies from gnomAD', args:1
             samples 'Samples to export', args:1
             samplemap 'Map samples to gene lists in a two column, tab separated file', args:1
             quality 'Filtering by quality score, in form caller:quality...', args:Cli.UNLIMITED
@@ -155,6 +159,7 @@ class SummarizeCNVs {
             genelist 'Define a named gene list, to be passed through to report', args:Cli.UNLIMITED
             mincat 'Set a category below which CNVs will be excluded from results' , args: 1
             mergefrac 'The fraction of mutual overlap at which CNVs should be merged to a single call', args:1
+            gnomad 'gnomAD VCF to provide population frequency annotations', args:1
             o 'Output file name', args:1
         }
         
@@ -328,7 +333,7 @@ class SummarizeCNVs {
     }
 
     private static initFrequencyAnnotator(OptionAccessor opts, Regions target, SummarizeCNVs summarizer) {
-        if(opts.dgv || opts.ddd) {
+        if(opts.dgv || opts.ddd || opts.gmd) {
 
             Map databases = [:]
             if(opts.ddd) {
@@ -339,6 +344,11 @@ class SummarizeCNVs {
             if(opts.dgv) {
                 log.info "Loading DGV annotations from $opts.dgv ..."
                 databases["DGV"] = new DGV(opts.dgv).parse()
+            }
+            
+            if(opts.gmd) {
+                log.info "Adding gnomAD annotation source from $opts.gmd"
+                databases["GMD"] = new GnomADCNVDatabase(new VCFIndex(opts.gmd))
             }
 
             summarizer.cnvAnnotator = new TargetedCNVAnnotator(databases, target)
@@ -537,13 +547,7 @@ class SummarizeCNVs {
     
     Map<String, Object> cnvToMap(List<String> cnvCallers, List<String> dbIds, List<String> columnNames, Region cnv) {
         
-        Map<String,CNVFrequency> freqInfos = 
-            cnvAnnotator?.annotate(new Region(cnv.chr, cnv.from..cnv.to), anno_types[cnv.type])?:[:]
-            
-        List frequencyInfo = dbIds.collect { dbId -> 
-            CNVFrequency freqInfo = freqInfos[dbId];  
-            [freqInfo.spanning.size(), freqInfo.spanningFreq] 
-        }.sum()?:[] 
+        List frequencyInfo = computeCNVFrequencyInfo(cnv, dbIds)
         
         List callerFlags =  cnvCallers.collect { caller ->
             cnv[caller].best ? "TRUE" : "FALSE"
@@ -580,7 +584,32 @@ class SummarizeCNVs {
         
         return data
     }
+
+    private List computeCNVFrequencyInfo(Region cnv, List<String> dbIds) {
+        
+        String annoType = anno_types[cnv.type]
+        
+        Region cnvRegion = new Region(cnv.chr, cnv.from..cnv.to)
+
+        Map<String,CNVFrequency> freqInfos = [:]
+        if(cnvAnnotator)
+            freqInfos = cnvAnnotator.annotate(cnvRegion, annoType)
+
+        List frequencyInfo = dbIds.collect { dbId ->
+            CNVFrequency freqInfo = freqInfos[dbId];
+            
+            assert freqInfo != null : "Annotations from database $dbId were not applied by the configured annotator"
+
+//            if(freqInfo.spanning.size()>0) {
+//                log.info "One or more spanning CNVs from $dbId ws identified for $cnv"
+//            }
+
+            [freqInfo.spanning.size(), freqInfo.spanningFreq]
+        }.sum()?:[]
+        return frequencyInfo
+    }
     
+    @CompileStatic
     void writeReport(Regions cnvs, 
                      String name, 
                      String fileName, 
@@ -590,7 +619,7 @@ class SummarizeCNVs {
                      def bamFilePath=false, 
                      String imgpath="") {
         
-        log.info "Using report template: " + reportTemplate
+        log.info "Writing ${cnvs.numberOfRanges} CNVs to report using template: " + reportTemplate
         
         File outputFile = new File(fileName).absoluteFile
         log.info "Output path = " + outputFile.absolutePath
@@ -603,7 +632,6 @@ class SummarizeCNVs {
         File cnvReportFile = new File(reportTemplate)
         
         HTMLAssetSource assetSource
-        File outputDir = outputFile.parentFile
         
         // Avoid using the output file as a template if it happens to exist!
         if(cnvReportFile.exists() && (cnvReportFile.canonicalPath != outputFile.canonicalPath)) {
@@ -616,6 +644,7 @@ class SummarizeCNVs {
             templateStream = getClass().classLoader.getResourceAsStream(reportTemplate)
         }
         
+        File outputDir = outputFile.parentFile
         HTMLAssets assets = 
             new HTMLAssets(assetSource, outputDir) \
                   << new HTMLAsset(
@@ -792,7 +821,6 @@ class SummarizeCNVs {
             if(annotateCaller(cnv, caller)) {
                 foundInCallers << caller
             }
-                
         }
             
         List types = foundInCallers.collect { cnv[it]?.best?.type }.grep { it }.unique()
@@ -800,8 +828,19 @@ class SummarizeCNVs {
             log.info "WARNING: CNV $cnv has conflicting calls: " + types
             
         cnv.type = types.join(",")
-        cnv.count = callers.grep { it != "truth" }.count { cnv[it].best != null } 
+        cnv.count = callers.grep { it != "truth" }
+                           .count { cnv[it].best != null } 
         
+        annotateGenes(cnv)
+            
+        // Annotate the variants if we have a VCF for this sample
+        if(variants[sample]) 
+            sample = annotateVariants(sample, cnv)
+            
+        log.info "$cnv.count callers found $cnv of type $cnv.type in sample $sample covering genes $cnv.genes with ${cnv.variants?.size()} variants"
+    }
+
+    private void annotateGenes(final Region cnv) {
         List<String> genes
         if(refGenes != null) {
             log.info "Annotating $cnv using RefGene database"
@@ -810,16 +849,10 @@ class SummarizeCNVs {
         else {
             genes = targetRegions.getOverlaps(cnv)*.extra.unique()
         }
-        
+
         cnv.genes=genes.join(",")
-        
+
         annotateGeneCategories(cnv, genes)
-            
-        // Annotate the variants if we have a VCF for this sample
-        if(variants[sample]) 
-            sample = annotateVariants(sample, cnv)
-            
-        log.info "$cnv.count callers found $cnv of type $cnv.type in sample $sample covering genes $cnv.genes with ${cnv.variants?.size()} variants"
     }
     
     /**
@@ -836,24 +869,42 @@ class SummarizeCNVs {
      * 
      * @return  true if the CNV was supported by at least 1 call from the given caller
      */
-    boolean annotateCaller(String sample, Region cnv, String caller) {
+    @CompileStatic
+    boolean annotateCaller(Region cnv, String caller) {
+        
+        final String sample = cnv['sample']
+        
         // log.info "Find best CNV call for $caller"
-        List<Region> callerCalls = results[caller].grep { Region call -> call.sample == sample && call.overlaps(cnv) }
+        Iterable<Region> callerCalls = results[caller].grep { Region call -> call['sample'] == sample && call.overlaps(cnv) }
             
-        List<Region> mutualOverlapCalls = callerCalls.grep { Region call -> call.mutualOverlap(cnv) > mergeOverlapThreshold }
+        Collection<Region> mutualOverlapCalls = callerCalls.grep { Region call -> call.mutualOverlap(cnv) > mergeOverlapThreshold }
             
-        Region best = mutualOverlapCalls.max { it.quality?.toFloat() }
-        if(best != null) {
-            log.info "Best CNV for $caller is " + best + " with quality " + best?.quality
-        }
-            
-        cnv[caller] = [
+        Region best = findBestCall(mutualOverlapCalls, caller)
+        
+        final Map props = [
             best : best,
             supporting : mutualOverlapCalls,
             all : callerCalls
-        ]        
+        ]
+            
+        cnv[caller] = props        
             
         return !mutualOverlapCalls.isEmpty()
+    }
+
+    /**
+     * Return the highest quality call from a list of CNVs 
+     * 
+     * @param mutualOverlapCalls
+     * @param caller
+     * @return
+     */
+    private Region findBestCall(Iterable<Region> mutualOverlapCalls, String caller) {
+        final  Region best = mutualOverlapCalls.max { Region call -> call['quality']?.toFloat() }
+        if(best != null) {
+            log.info "Best CNV for $caller is " + best + " with quality " + best.quality
+        }
+        return best
     }
 
     private void annotateGeneCategories(Region cnv, List genes) {
