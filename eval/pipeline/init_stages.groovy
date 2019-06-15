@@ -76,6 +76,7 @@ select_controls = {
     
     if(!control_samples) {
         println "No control samples are specified: skipping control selection"
+        branch.filtered_bams = all_bams
         return
     }
     
