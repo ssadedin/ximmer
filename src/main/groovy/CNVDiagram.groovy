@@ -915,7 +915,7 @@ class CNVDiagram {
             if(parts.size()==1) {
                 parts.add(0,caller)
             }
-            results[parts[0]] = factory(parts[1]).load()
+            results[parts[0]] = factory(parts[1])
         }        
     }
     
