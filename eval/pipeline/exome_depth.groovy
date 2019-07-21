@@ -14,7 +14,10 @@
 run_exome_depth = {
 
     requires target_bed : "BED file containing regions to analyse",
-            sample_names : "List of sample names to process (comma separated, or List object)"
+            filtered_sample_names : "List of sample names to process (comma separated, or List object)"
+
+    println "Exome Depth sample names: $sample_names"
+    println "Exome Depth branch sample names: $branch.sample_names"
 
     var transition_probability : "0.0001",
         expected_cnv_length: 50000,
@@ -38,8 +41,8 @@ run_exome_depth = {
     }
 
     
-    def sample_list = sample_names
-    if(sample_names instanceof String) {
+    def sample_list = filtered_sample_names
+    if(filtered_sample_names instanceof String) {
         sample_list = sample_names.split(",")
     }
 
@@ -81,7 +84,7 @@ run_exome_depth = {
             print(sprintf("Read %d samples",length(dsd.samples)))
 
             # Here we rely on ASSUMPTIONs:  - Single BAM file per sample
-            dsd.bam.files = c(${sample_names.collect { s -> "'$s'='${sample_info[s].files.bam[0]}'"}.join(",") })
+            dsd.bam.files = c(${sample_list.collect { s -> "'$s'='${sample_info[s].files.bam[0]}'"}.join(",") })
 
             print(sprintf("Found %d bam files",length(dsd.bam.files)))
 

@@ -77,6 +77,7 @@ select_controls = {
     if(!control_samples) {
         println "No control samples are specified: skipping control selection"
         branch.filtered_bams = all_bams
+        filtered_sample_names = sample_names
         return
     }
     
@@ -99,6 +100,10 @@ select_controls = {
     branch.sample_info = sample_info.grep { it.key in control_samples }.collectEntries()
     
     branch.sample_names = sample_names.grep { it in control_samples }
+
+    filtered_sample_names = sample_names.grep { it in control_samples }
+
+    println "Sample names after filtering are : $branch.sample_names"
     
     forward(filtered_bams)
 }
