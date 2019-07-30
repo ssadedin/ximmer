@@ -5,6 +5,28 @@
 //
 //////////////////////////////////////////////////////////////////
 
+CODEX_HG38_RELOAD_CODE = """
+
+        library(BSgenome.Hsapiens.UCSC.hg38)
+
+        getgc = function (chr, ref) {
+          if (chr == "X" | chr == "x" | chr == "chrX" | chr == "chrx") {
+            chrtemp <- 23
+          } else if (chr == "Y" | chr == "y" | chr == "chrY" | chr == "chry") {
+            chrtemp <- 24
+          } else {
+            chrtemp <- as.numeric(mapSeqlevels(as.character(chr), "NCBI")[1])
+          }
+          if (length(chrtemp) == 0) message("Chromosome cannot be found in NCBI Homo sapiens database!")
+          chrm <- unmasked(Hsapiens[[chrtemp]])
+          seqs <- Views(chrm, ref)
+          af <- alphabetFrequency(seqs, baseOnly = TRUE, as.prob = TRUE)
+          gc <- round((af[, "G"] + af[, "C"]) * 100, 2)
+          gc
+        }
+
+""".stripIndent()
+
 codex_call_cnvs_combined = {
     
     var batch_name : false,
@@ -12,17 +34,27 @@ codex_call_cnvs_combined = {
         max_k : 9,
         codex_deletion_threshold: 1.7,
         codex_duplication_threshold: 2.3,
-        codex_copynumber_mode : 'integer' // integer or fraction
+        codex_copynumber_mode : 'integer', // integer or fraction
+        build : 19
 
     def outputFile = batch_name ? batch_name + '.cnvs.tsv' : input.bam + '.codex.cnvs.tsv'
 
     from(analysable_target) produce(outputFile) {
         
         def bamDir = file(input.bam).parentFile.absoluteFile.absolutePath
+        
+        def hg38_reload = ""
+        
+        if(build == 38) {
+            hg38_reload = CODEX_HG38_RELOAD_CODE
+        }
+            
     
         R({"""
             source("$TOOLS/r-utils/cnv_utils.R")
             library(CODEX)
+
+            $hg38_reload
 
             source("$TOOLS/codex/codex_segment_targeted.R")
 
@@ -83,8 +115,14 @@ codex_call_cnvs_combined = {
               Y=coverageObj$Y; readlength=coverageObj$readlength
               # get gc content
               gc=getgc(chr,ref)
+
               # get mappability
-              mapp=getmapp(chr,ref)
+              if("$build" == "38") {
+                  mapp=rep(1,length(gc)) 
+              }
+              else {
+                  mapp <- getmapp(chr, ref)
+              }
               
               ref.all=c(ref.all,bambedObj$ref)
               Y.all=rbind(Y.all,coverageObj$Y)
@@ -182,9 +220,11 @@ codex_call_cnvs = {
 
     var batch_name : false,
         k_offset : 0,
-        max_k : 9
+        max_k : 9,
+        build: 19
 
     def chr = branch.name
+    
     
     if(!(chr in analysable_chromosomes))
         succeed "Chromosome $chr is not analysable by CODEX"
@@ -196,6 +236,11 @@ codex_call_cnvs = {
         println "Analysing $chr with CODEX"
     }
 
+    def hg38_reload = ""
+    
+    if(build == 38) {
+        hg38_reload = CODEX_HG38_RELOAD_CODE
+    }
 
     
     def outputFile = batch_name ? batch_name + '.codex.' + chr + '.cnvs.tsv' : input.bam + '.codex.' + chr + '.cnvs.tsv'
@@ -204,13 +249,13 @@ codex_call_cnvs = {
         
         def bamDir = file(input.bam).parentFile.absoluteFile.absolutePath
 
- 
-        
         R({"""
 
             source("$TOOLS/r-utils/cnv_utils.R")
 
             library(CODEX)
+
+            $hg38_reload
 
             bam.files = c('${inputs.bam.join("','")}')
 
@@ -242,7 +287,12 @@ codex_call_cnvs = {
             
             gc <- getgc(chr, ref)
             
-            mapp <- getmapp(chr, ref)
+            if("$build" == "38") {
+                mapp=rep(1,length(gc)) 
+            }
+            else {
+                mapp <- getmapp(chr, ref)
+            }
             
             qcObj <- qc(Y, sampname, chr, ref, mapp, gc, cov_thresh = c(20, 4000),
                         length_thresh = c(20, 2000), 
