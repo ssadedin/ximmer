@@ -119,8 +119,7 @@ codex_call_cnvs_combined = {
               # get mappability
               if("$build" == "38") {
                   mapp=rep(1,length(gc)) 
-              }
-              else {
+              } else {
                   mapp <- getmapp(chr, ref)
               }
               
@@ -289,8 +288,7 @@ codex_call_cnvs = {
             
             if("$build" == "38") {
                 mapp=rep(1,length(gc)) 
-            }
-            else {
+            } else {
                 mapp <- getmapp(chr, ref)
             }
             
