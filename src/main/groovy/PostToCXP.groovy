@@ -48,7 +48,7 @@ class PostToCXP extends ToolBase {
         this.createBamService = (ws / 'dataasset/create/bam/')
         
         File batchDir = new File('.').absoluteFile.parentFile
-        String assay = new File(cfg.target_regions).name.replaceAll('.bed$','')
+        String assay = opts.assay?:new File(cfg.target_regions).name.replaceAll('.bed$','')
         
         // Step 1: Infer the sexes
         this.inferSexes(ximmer.bamFiles*.value)
@@ -207,6 +207,7 @@ class PostToCXP extends ToolBase {
             analysis 'The zip file of the analysis to import', args:1, required: true
             qc 'The directory containing QC files to import', args:1, required: true
             cxp 'Base URL to CXP server', args:1, required: true
+            assay 'The assay to register the samples under (default: name of BED file)', args:1, required: false
             batch 'CNV calling batch identifier (default: name of current directory', args:1, required: false
             test 'Do not actually post data, just show what would be posted', required: false
             sex 'Specify sex for all samples', args: 1, required: false
