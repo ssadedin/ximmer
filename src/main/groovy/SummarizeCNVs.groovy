@@ -294,6 +294,11 @@ class SummarizeCNVs {
                 log.info "Read ${summarizer.sampleToGenelist} sample-genelist assignments from $opts.samplemap"
             }
             
+            if(opts.x50) {
+                summarizer.excludeRegions50 = new BED(opts.x50).load()
+                log.info "Regions from $opts.x50 will be excluded (${Utils.humanBp(summarizer.excludeRegions50.size())})"
+            }
+             
             Regions cnvs = summarizer.run(exportSamples)
 			
             if(opts.tsv) {
@@ -308,11 +313,6 @@ class SummarizeCNVs {
                 summarizer.mergeOverlapThreshold = opts.mergefrac.toDouble()
             }
             
-            if(opts.x50) {
-                summarizer.excludeRegions50 = new BED(opts.x50).load()
-                log.info "Regions from $opts.x50 will be excluded (${Utils.humanBp(summarizer.excludeRegions50.size())})"
-            }
-             
             // If there is a truth set available, for each CNV set,
             // set the true CNVs on the set
             if(results.truth) {
