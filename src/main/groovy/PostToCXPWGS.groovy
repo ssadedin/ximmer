@@ -43,6 +43,7 @@ class PostToCXPWGS extends ToolBase {
             cxp 'CXP Url', args:1, required: true
             target 'Provide the path to target region', args:1, required: true
             batch 'Fullpath to batch', args:1, required: false
+            test 'Test mode: do not actually send requests, just print them out'
         }
     }
 
@@ -131,10 +132,17 @@ class PostToCXPWGS extends ToolBase {
         }
         else {
             log.info "Creating new batch $batchIdentifier"
-            batch = [(ws / 'batch').post(
-                metadata: [:],
-                identifier: batchIdentifier
-            )]
+            def data =  [
+               metadata: [:],
+               identifier: batchIdentifier
+            ]
+
+            if(opts.test) {
+                log.info "Would post:\n\n$data\n\n to ${ws/'batch'}"
+            }
+            else {
+                batch = [(ws / 'batch').post(data)]
+            }
         }
         
        
@@ -143,7 +151,7 @@ class PostToCXPWGS extends ToolBase {
             assay: assay,
             sequencer: sequencer,
             // samples: this.bamFiles.keySet(),
-            samples: this.bamFiles,
+            samples: this.bamFiles.collectEntries { [it.key, it.value[0] ] },
             batch_id: batch[0].id,
             results: new File(opts.analysis).absolutePath,
             control_samples: [],
@@ -156,7 +164,7 @@ class PostToCXPWGS extends ToolBase {
         WebService importService = ws / 'analysis/import'
         
         if(opts.test) {
-            log.info "Would post $data to $createBamService.endPoint"
+            log.info "Would post\n\n$data to \n\n$importService.endPoint"
         } 
         else {
             importService.post(data) 
@@ -191,7 +199,7 @@ class PostToCXPWGS extends ToolBase {
       
         Map data = [
             'fullpath': new File(bamFile).absolutePath,
-            'sample': sampleId :,
+            'sample': sampleId,
             'filetype': '.bam',
             'alt_sample_id': sampleId,
             'sex': sampleSexes[sampleId],
