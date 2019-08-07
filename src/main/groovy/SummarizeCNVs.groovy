@@ -1,7 +1,6 @@
 // vim: sw=4 expandtab cindent ts=4
 import org.codehaus.groovy.runtime.StackTraceUtils;
 
-
 import gngs.*
 import graxxia.Stats
 import groovy.json.JsonOutput
@@ -98,6 +97,13 @@ class SummarizeCNVs {
     double mergeOverlapThreshold = 0.5
     
     /**
+     * Regions to exclude CNVs from when they overlap by at least 50%
+     */
+    Regions excludeRegions50
+    
+    int countExcludedByRegionOverlap = 0
+    
+    /**
      * Parse an option specifying a CNV caller
      * 
      * @param caller    the caller to parse the config for
@@ -160,6 +166,7 @@ class SummarizeCNVs {
             mincat 'Set a category below which CNVs will be excluded from results' , args: 1
             mergefrac 'The fraction of mutual overlap at which CNVs should be merged to a single call', args:1
             gnomad 'gnomAD VCF to provide population frequency annotations', args:1
+            x50 'Exclude CNVs that overlap these regions (bed file) by more than 50%', args:1, required: false
             o 'Output file name', args:1
         }
         
@@ -300,6 +307,11 @@ class SummarizeCNVs {
             if(opts.mergefrac) {
                 summarizer.mergeOverlapThreshold = opts.mergefrac.toDouble()
             }
+            
+            if(opts.x50) {
+                summarizer.excludeRegions50 = new BED(opts.x50).load()
+                log.info "Regions from $opts.x50 will be excluded (${Utils.humanBp(summarizer.excludeRegions50.size())})"
+            }
              
             // If there is a truth set available, for each CNV set,
             // set the true CNVs on the set
@@ -413,9 +425,17 @@ class SummarizeCNVs {
             Regions sampleCnvs = extractMergedSampleCnvs(s)
             for(cnv in sampleCnvs) {
                 log.info "Merging CNV $cnv for sample '$s' type = $cnv.type"
-                results.addRegion(cnv)
+                if(excludeRegions50 && excludeRegions50.intersect(cnv)*.size()?.sum()?.div(cnv.size()) > 0.5d) {
+                    ++countExcludedByRegionOverlap
+                }
+                else {
+                    results.addRegion(cnv)
+                }
             }
         }
+        
+        if(countExcludedByRegionOverlap)
+            log.info "$countExcludedByRegionOverlap cnvs were excluded because they overlap the exclusion bed file"
         
         // Second phase annotation (annotations that depend on the annotations 
         // created in 1st phase
