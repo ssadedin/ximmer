@@ -337,23 +337,21 @@ codex_call_cnvs = {
 }
 
 merge_codex = {
-    transform('.chr*.cnvs.tsv','.merge.tsv') {
         exec """
-            head -1 $input.tsv > $output.tsv; 
+            head -1 $input.cnvs.tsv > $output.tsv; 
 
-            for i in $inputs.tsv; do echo "Merge $i"; grep -v '^sample_name' $i  >> $output.tsv || true ; done
+            for i in $inputs.cnvs.tsv; do echo "Merge $i"; grep -v '^sample_name' $i  >> $output.tsv || true ; done
 
             echo "Done."
         """
         
         branch.caller_result = output.tsv
-    }
     
 }
 
 if(codex_split_chrs) {
     codex_pipeline = segment {
-        chromosomes * [ codex_call_cnvs ] + merge_codex
+        chromosomes * [ codex_call_cnvs ] >> merge_codex
     }
 }
 else {
