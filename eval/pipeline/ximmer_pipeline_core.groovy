@@ -96,6 +96,7 @@ init = {
 }
 
 reset_bams = {
+    println "Resetting BAMs to: $filtered_bams"
     forward(filtered_bams)
 }
 

@@ -18,6 +18,7 @@ run_exome_depth = {
 
     println "Exome Depth sample names: $sample_names"
     println "Exome Depth branch sample names: $branch.sample_names"
+    println "Exome Depth branch sample names: $filtered_sample_names"
 
     var transition_probability : "0.0001",
         expected_cnv_length: 50000,
@@ -43,7 +44,7 @@ run_exome_depth = {
     
     def sample_list = filtered_sample_names
     if(filtered_sample_names instanceof String) {
-        sample_list = sample_names.split(",")
+        sample_list = filtered_sample_names.split(",")
     }
 
     println "Using Exome Depth transition probability = $transition_probability"

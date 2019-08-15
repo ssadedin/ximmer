@@ -132,7 +132,13 @@ class CNVDiagram {
         }
         
         this.sampleInfo = sampleInfo
-        this.samples = samples  == null ? this.cnvs*.sample : samples
+        if(samples) {
+            this.samples = samples
+        }
+        else  {
+            this.samples = this.cnvs*.sample 
+            log.info "Extracted samples from CNVs: ${this.samples.join(',')}"
+        }
         
         allSamples = (sampleInfo.keySet() as List).grep { 
             sampleInfo[it].files.bam
@@ -1016,7 +1022,7 @@ class CNVDiagram {
             System.exit(1)
         }
         
-        log.info "BAM Files are $opts.bams"
+        log.info "BAM Files are \n\n${opts.bams.join('\n')}"
         
         if(opts.samples) {
             log.info "Diagrams will be drawn only for $opts.samples"
@@ -1034,10 +1040,14 @@ class CNVDiagram {
         Regions targetRegions = new BED(opts.targets).load().reduce()
         
         def sampleInfo = null
-        if(opts.sampleinfo)
+        if(opts.sampleinfo) {
+            log.info "Parsing sample info from $opts.sampleinfo"
             sampleInfo = SampleInfo.parse_sample_info(opts.sampleinfo)
-        else
+        }
+        else {
             sampleInfo = SampleInfo.fromFiles(bamFiles + (opts.vcfs?:[]))
+            log.info "Extracting sample info from bam files: \n${sampleInfo*.key.join('\n')}"
+        }
             
         if(!opts.cnvs && !opts.region) {
             System.err.println "ERROR: please provide either -cnvs or -region"

@@ -75,11 +75,18 @@ select_controls = {
         control_samples : false
     
     if(!control_samples) {
-        println "No control samples are specified: skipping control selection"
         branch.filtered_bams = all_bams
-        filtered_sample_names = sample_names
+        filtered_sample_names = branch.sample_names
+        println "No control samples are specified: skipping control selection, samples are: " + filtered_sample_names.join(',')
         return
     }
+
+    println "Control samples are: " + control_samples
+
+    List all_control_samples = control_samples
+    List test_samples = branch.sample_names.grep { !(it in control_samples) }
+
+    println "Test samples out of $branch.sample_names are: " + test_samples
     
     produce('filtered_controls.txt') {
         exec """
@@ -91,17 +98,21 @@ select_controls = {
     }
         
     
-    List control_samples = file(output.txt).readLines()*.trim()
+    List filtered_control_samples = file(output.txt).readLines()*.trim()
     
-    branch.filtered_bams = all_bams.grep {
-        new gngs.SAM(it).samples[0] in control_samples
-    }
-    
-    branch.sample_info = sample_info.grep { it.key in control_samples }.collectEntries()
-    
-    branch.sample_names = sample_names.grep { it in control_samples }
+    List all_remaining_samples = filtered_control_samples + test_samples
 
-    filtered_sample_names = sample_names.grep { it in control_samples }
+    println "All remaining samples are: " + all_remaining_samples.join(',')
+     branch.filtered_bams = all_bams.grep {
+        new gngs.SAM(it).samples[0] in all_remaining_samples
+    }
+
+   
+    branch.sample_info = sample_info.grep { it.key in filtered_control_samples }.collectEntries()
+    
+    branch.sample_names = branch.sample_names.grep { (it in all_remaining_samples) }
+    
+    filtered_sample_names = branch.sample_names.grep { (it in test_samples) || (it in filtered_control_samples) }
 
     println "Sample names after filtering are : $branch.sample_names"
     
