@@ -92,7 +92,10 @@ create_cnv_report = {
         minimum_category: false,
         sample_map: false,
         DDD_CNVS: false,
-        file_name_prefix : "" ] + 
+        file_name_prefix : "",
+        mergeOverlapFraction: 0.5,
+        cnvMergeMode: "sharedtargets"
+         ] + 
             batch_cnv_results*.key.collectEntries {  caller_label ->
                 [ caller_label + '_quality_filter', false ]
             }
@@ -124,14 +127,14 @@ create_cnv_report = {
         "-genelist $name=${file(f).absolutePath}"
     }.join(' ')
     
-    def sampleMapParam = sample_map ? "-samplemap $sample_map" : "" 
+    String sampleMapParam = sample_map ? "-samplemap $sample_map" : "" 
     
-    def minCatOpt = minimum_category ? "-mincat $minimum_category " : ""
+    String minCatOpt = minimum_category ? "-mincat $minimum_category " : ""
     
-    def idMaskOpt = sample_id_mask ? "-idmask '$sample_id_mask'" : ""
+    String idMaskOpt = sample_id_mask ? "-idmask '$sample_id_mask'" : ""
     
-    def dddOpt = DDD_CNVS ? "-ddd $DDD_CNVS" : ""
-        
+    String dddOpt = DDD_CNVS ? "-ddd $DDD_CNVS" : ""
+    
     produce("${file_name_prefix}cnv_report.html", "${file_name_prefix}cnv_report.tsv", "${file_name_prefix}combined_cnvs.json") {
 
         def true_cnvs = ""
@@ -145,8 +148,9 @@ create_cnv_report = {
             JAVA_OPTS="-Xmx12g -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC:$XIMMER_SRC/../resources:$XIMMER_SRC/../js $XIMMER_SRC/SummarizeCNVs.groovy
                 -target $target_bed ${caller_opts.join(" ")} $refGeneOpts
                 ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} -bampath "$bam_file_path"
-                -tsv $output.tsv -json $output.json ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""}
-                -dgv $DGV_CNVS $dddOpt $true_cnvs $idMaskOpt $geneFilterOpts $excludeGenesOpts $geneListOpts $minCatOpt $sampleMapParam
+                -tsv $output.tsv -json $output.json ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""} -mergefrac $mergeOverlapFraction
+                -dgv $DGV_CNVS $dddOpt $true_cnvs $idMaskOpt $geneFilterOpts $excludeGenesOpts $geneListOpts $minCatOpt $sampleMapParam 
+                -mergeby $cnvMergeMode
                 ${batch_quality_params.join(" ")} -o $output.html 
                 ${batch_name ? "-name $batch_name" : ""} ${inputs.bam.withFlag('-bam')}
         """, "create_cnv_report"
