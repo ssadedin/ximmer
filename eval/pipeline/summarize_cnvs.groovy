@@ -93,7 +93,7 @@ create_cnv_report = {
         sample_map: false,
         DDD_CNVS: false,
         file_name_prefix : "",
-        mergeOverlapFraction: 0.5,
+        mergeOverlapFraction: 0.4,
         cnvMergeMode: "sharedtargets"
          ] + 
             batch_cnv_results*.key.collectEntries {  caller_label ->
