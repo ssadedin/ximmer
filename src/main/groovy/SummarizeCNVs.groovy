@@ -746,7 +746,7 @@ class SummarizeCNVs {
         
 //        Regions flattened = merged.reduce()
        
-        CNVMerger cnvMerger = new CNVMerger(sampleCNVs, this.mergeOverlapThreshold)
+        CNVMerger cnvMerger = new CNVMerger(sampleCNVs, this.overlapCriteria)
         Regions flattened = cnvMerger.merge()
         
         log.info "Sample $sample has ${flattened.numberOfRanges} CNVs"
