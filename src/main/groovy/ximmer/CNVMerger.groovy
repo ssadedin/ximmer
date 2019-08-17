@@ -3,16 +3,57 @@ package ximmer
 import gngs.*
 import groovy.transform.CompileStatic
 
+
+@CompileStatic
+interface OverlapCriteria {
+    boolean overlaps(Region r1, Region r2)
+}
+
+@CompileStatic
+class OverlapBySpan implements OverlapCriteria {
+
+    double minimumFraction = 0.5
+    
+    @Override
+    public boolean overlaps(Region r1, Region r2) {
+        return r1.mutualOverlap(r2) > minimumFraction;
+    }
+}
+
+
+@CompileStatic
+class OverlapByFractionOfTargetRegions implements OverlapCriteria {
+    
+    Regions targetRegions
+    
+    double minimumFraction = 0.5
+
+    @Override
+    public boolean overlaps(Region r1, Region r2) {
+        
+        List<Region> r1Overlaps = targetRegions.getOverlapRegions(r1)
+        List<Region> r2Overlaps = targetRegions.getOverlapRegions(r2)
+        
+        int mutual = (int)r1Overlaps.count { Region r -> r in r2Overlaps }
+        
+        int total = (
+            r1Overlaps.size() + r2Overlaps.size()
+            - mutual /* the mutual ones will have been counted twice otherwise */)
+        
+        return (mutual / total) >= minimumFraction
+    }
+}
+
 class CNVMerger {
     
     final Regions cnvs
     
-    final double fracOverlap
+    OverlapCriteria overlapCriteria
     
-    public CNVMerger(Regions cnvs, double fracOverlap) {
+    public CNVMerger(Regions cnvs, OverlapCriteria overlapCriteria) {
         super();
         this.cnvs = cnvs;
-        this.fracOverlap = fracOverlap;
+        this.overlapCriteria = overlapCriteria
     }
 
     @CompileStatic
@@ -42,36 +83,24 @@ class CNVMerger {
     }
         
     /**
-     * Combine all pairs regions in the list that have at least {@link #fracOverlap} mutual
-     * overlap with each other.
+     * Combine all pairs regions in the list that satisfy the {@link #overlapCriteria}
+     * to overlap with each other.
      * <p>
      * Note that the same region may be included multiple times in the result.
      * 
      * @param overlapping   List of regions to combine
-     * @return  List of combined regions, or null if none could be combined
+     * @return  List of combined regions, or empty list if none could be combined
      */
     List<Region> mergeMutualOverlapping(final List<Region> overlaps) {
         List combined = []
         final Set allMerged = new HashSet<Region>()
         for(int i=0; i<overlaps.size(); ++i) {
             Region cnv1 = overlaps[i]
-            Region newCluster = cnv1
-            for(int j=0; j< overlaps.size(); ++j) {
-                if(i==j)
-                    continue
-                Region cnv2 = overlaps[j]
-                if(cnv1.mutualOverlap(cnv2) > fracOverlap) {
-                    newCluster = newCluster.union(cnv2)
-                    HashSet allCnvs = new HashSet()
-                    allCnvs.addAll(cnv1.cnvs?:[cnv1])
-                    allCnvs.addAll(cnv2.cnvs?:[cnv2])
-                    newCluster.cnvs = allCnvs 
-                }
-            }
+            Region newCluster = findCNVCluster(cnv1, overlaps)
             
             boolean wasMerged = false
             combined = combined.collect { Region existingCluster ->
-                if(existingCluster.mutualOverlap(newCluster) > fracOverlap) {
+                if(this.overlapCriteria.overlaps(existingCluster,newCluster)) {
                     wasMerged = true
                     return existingCluster.union(newCluster)
                 }
@@ -85,6 +114,32 @@ class CNVMerger {
         }
         
         return combined
+    }
+
+    /**
+     * Calculate a region that represents the given CNV merged of all the given regions that satisfy 
+     * the overlap criteria with it
+     * 
+     * @param cnv1
+     * @param overlaps
+     * @return
+     */
+    private Region findCNVCluster(Region cnv1, List overlaps) {
+        Region newCluster = cnv1
+        for(int j=0; j< overlaps.size(); ++j) {
+            Region cnv2 = overlaps[j]
+            if(cnv1.is(cnv2))
+                continue
+            
+            if(this.overlapCriteria.overlaps(cnv1, cnv2)) {
+                newCluster = newCluster.union(cnv2)
+                HashSet allCnvs = new HashSet()
+                allCnvs.addAll(cnv1.cnvs?:[cnv1])
+                allCnvs.addAll(cnv2.cnvs?:[cnv2])
+                newCluster.cnvs = allCnvs
+            }
+        }
+        return newCluster
     }
         
         

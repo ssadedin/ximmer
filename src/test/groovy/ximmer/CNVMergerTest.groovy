@@ -6,7 +6,9 @@ import org.junit.Test
 import gngs.*
 
 class CNVMergerTest {
-
+    
+    OverlapBySpan spanOverlap = new OverlapBySpan(minimumFraction: 0.5)
+    
     @Test
     public void 'merge simple combination'() {
         List regions = [
@@ -14,7 +16,7 @@ class CNVMergerTest {
             40..150
         ].collect { new Region('chr1', it) }
         
-        CNVMerger cm = new CNVMerger(null, 0.5d)
+        CNVMerger cm = new CNVMerger(null, spanOverlap)
         List merged = cm.mergeMutualOverlapping(regions)
         assert merged.size() == 1
         assert merged[0].from == 0
@@ -29,7 +31,7 @@ class CNVMergerTest {
             145..150
         ].collect { new Region('chr1', it) }
         
-        CNVMerger cm = new CNVMerger(null, 0.5d)
+        CNVMerger cm = new CNVMerger(null, spanOverlap)
         List merged = cm.mergeMutualOverlapping(regions)
         assert merged.size() == 2
         assert merged[0].from == 0
@@ -44,7 +46,7 @@ class CNVMergerTest {
             50..54,
         ].collect { new Region('chr1', it) }
         
-        CNVMerger cm = new CNVMerger(null, 0.5d)
+        CNVMerger cm = new CNVMerger(null, spanOverlap)
         List merged = cm.mergeMutualOverlapping(regions)
         assert merged.size() == 2
         assert merged[0].range == 0..100
@@ -60,7 +62,7 @@ class CNVMergerTest {
             110..210
         ].collect { new Region('chr1', it) }
         
-        CNVMerger cm = new CNVMerger(null, 0.5d)
+        CNVMerger cm = new CNVMerger(null, spanOverlap)
         List merged = cm.mergeMutualOverlapping(regions)
         assert merged.size() == 1
         assert merged[0].range == 0..210
@@ -73,7 +75,7 @@ class CNVMergerTest {
             30..130,
         ].collect { new Region('chr1', it) } as Regions
         
-        CNVMerger cm = new CNVMerger(cnvs, 0.5d)        
+        CNVMerger cm = new CNVMerger(cnvs, spanOverlap)        
         List merged = cm.mergeCluster(new Region('chr1:0-130'))
         
         assert merged.size() == 1
@@ -88,7 +90,7 @@ class CNVMergerTest {
             50..150,
         ].collect { new Region('chr1', it) } as Regions
         
-        CNVMerger cm = new CNVMerger(cnvs, 0.5d)        
+        CNVMerger cm = new CNVMerger(cnvs, spanOverlap)        
         List merged = cm.mergeCluster(new Region('chr1:0-150'))
         
         assert merged.size() == 1
@@ -113,7 +115,7 @@ class CNVMergerTest {
             
         ].collect { new Region('chr1', it) } as Regions
         
-        CNVMerger cm = new CNVMerger(cnvs, 0.5d)        
+        CNVMerger cm = new CNVMerger(cnvs, spanOverlap)        
         Region span = new Regions(cnvs).reduce()[0]
         List merged = cm.mergeCluster(span)
         
@@ -123,4 +125,54 @@ class CNVMergerTest {
         assert merged[1].range == 30..150
         assert merged[2].range == 9900..9950
     }     
+    
+    OverlapByFractionOfTargetRegions targetOverlap = new OverlapByFractionOfTargetRegions(
+        minimumFraction: 0.5, targetRegions:
+        [
+        20..40,
+        60..80,
+        100..120,
+        140..160
+    ].collect { new Region("chr1", it) } as Regions)
+
+    @Test
+    void 'cluster of two merges to one by target'() {
+        Regions cnvs = [
+            0..120, // overlaps first 3 targets
+            60..160, // overlaps last 3 targets
+        ].collect { new Region('chr1', it) } as Regions
+        
+        CNVMerger cm = new CNVMerger(cnvs, targetOverlap)        
+        List merged = cm.mergeCluster(new Region('chr1:0-150'))
+        
+        assert merged.size() == 1
+        assert merged[0].range == 0..160
+    }
+    
+    @Test
+    void 'one third of target regions does not merge by target'() {
+        Regions cnvs = [
+            0..40, // overlaps first target
+            0..120, // overlaps last 3 targets
+        ].collect { new Region('chr1', it) } as Regions
+        
+        CNVMerger cm = new CNVMerger(cnvs, targetOverlap)        
+        List merged = cm.mergeCluster(new Region('chr1:0-150'))
+        
+        assert merged.size() == 2
+    }
+    
+    @Test
+    void 'one large and two disjoint overlap by target'() {
+        Regions cnvs = [
+            0..80, // overlaps first 2 targets
+            100..160, // overlaps last 2 targets
+            0..160, // overlaps all 4 targets
+        ].collect { new Region('chr1', it) } as Regions
+        
+        CNVMerger cm = new CNVMerger(cnvs, targetOverlap)        
+        List merged = cm.mergeCluster(new Region('chr1:0-150'))
+        
+        assert merged.size() == 1
+    }
 }

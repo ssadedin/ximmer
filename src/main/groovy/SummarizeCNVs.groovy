@@ -97,6 +97,11 @@ class SummarizeCNVs {
     double mergeOverlapThreshold = 0.5
     
     /**
+     * Method to decide if two overlapping CNVs should be counted as the same CNV
+     */
+    OverlapCriteria overlapCriteria
+    
+    /**
      * Regions to exclude CNVs from when they overlap by at least 50%
      */
     Regions excludeRegions50
@@ -167,6 +172,7 @@ class SummarizeCNVs {
             mergefrac 'The fraction of mutual overlap at which CNVs should be merged to a single call', args:1
             gnomad 'gnomAD VCF to provide population frequency annotations', args:1
             x50 'Exclude CNVs that overlap these regions (bed file) by more than 50%', args:1, required: false
+            mergeby 'one of spanbp or sharedtargets', args: 1, required: false
             o 'Output file name', args:1
         }
         
@@ -313,6 +319,10 @@ class SummarizeCNVs {
                 summarizer.mergeOverlapThreshold = opts.mergefrac.toDouble()
             }
             
+            if(opts.mergeby) {
+                this.initOverlapCriteria(opts, summarizer)
+            }
+            
             // If there is a truth set available, for each CNV set,
             // set the true CNVs on the set
             if(results.truth) {
@@ -341,6 +351,20 @@ class SummarizeCNVs {
             StackTraceUtils.sanitize(e)
             e.printStackTrace()
             System.exit(1)
+        }
+    }
+    
+    private void initOverlapCriteria(OptionAccessor opts, SummarizeCNVs summarizer) {
+        if(opts.mergeby == 'spanbp') {
+            summarizer.overlapCriteria = new OverlapBySpan(minimumFraction:summarizer.mergeOverlapThreshold)
+        }
+        else
+        if(opts.mergeby == 'sharedtargets') {
+            summarizer.overlapCriteria = 
+                new OverlapByFractionOfTargetRegions(targetRegions:summarizer.targetRegions, minimumFraction:summarizer.mergeOverlapThreshold)
+        }
+        else {
+            throw new IllegalArgumentException("The mergeby criteria specified ($opts.mergeby) is not valid")
         }
     }
 
@@ -409,6 +433,9 @@ class SummarizeCNVs {
         
         if(this.dgvFile && !this.cnvAnnotator)
             this.cnvAnnotator = new TargetedCNVAnnotator(targetRegions, dgvFile)
+            
+        if(this.overlapCriteria == null)
+            this.overlapCriteria = new OverlapBySpan(minimumFraction: this.mergeOverlapThreshold)
         
         extractSamples()
         
