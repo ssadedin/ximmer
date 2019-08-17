@@ -320,7 +320,7 @@ class SummarizeCNVs {
             }
             
             if(opts.mergeby) {
-                this.initOverlapCriteria(opts, summarizer)
+                initOverlapCriteria(opts, summarizer)
             }
             
             // If there is a truth set available, for each CNV set,
@@ -354,7 +354,7 @@ class SummarizeCNVs {
         }
     }
     
-    private void initOverlapCriteria(OptionAccessor opts, SummarizeCNVs summarizer) {
+    static private void initOverlapCriteria(OptionAccessor opts, SummarizeCNVs summarizer) {
         if(opts.mergeby == 'spanbp') {
             summarizer.overlapCriteria = new OverlapBySpan(minimumFraction:summarizer.mergeOverlapThreshold)
         }
