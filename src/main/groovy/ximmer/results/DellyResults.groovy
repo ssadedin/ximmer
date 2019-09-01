@@ -17,6 +17,9 @@ class DellyResults extends CNVResults {
                 return false
             }
             
+            if(it.filter != 'PASS')
+                return false
+            
             if(Region.isMinorContig(it.chr))
                 return false
                 
@@ -25,7 +28,7 @@ class DellyResults extends CNVResults {
 			r.sample = this.sample
 			r.start = it.pos
 			r.end = it.info.END.toInteger()
-			r.quality = it.filter == 'PASS' ? 20 : 0
+			r.quality = it.genoTypes[0].GQ.toDouble()
             
 			addRegion(r)
             
