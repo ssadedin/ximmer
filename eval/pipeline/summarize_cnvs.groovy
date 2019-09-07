@@ -196,8 +196,11 @@ calc_qc_stats = {
     
     var batch: 'ximmer',
         type: 'qc'
+        
     
     output.dir = "common/$type"
+    
+    var relFlag = type == 'rawqc' ? '' : '-rel'
     
     produce(["${batch}_per_base.coverage.tsv.gz", "${batch}.coeffv.js", "${batch}.correlations.js","${batch}.correlations.tsv", "${batch}.cov.js", "${batch}.merge.sample_interval_summary"]) {
         exec """
@@ -209,7 +212,7 @@ calc_qc_stats = {
                     -cvj $output.js
                     -stats 
                     -cv  
-                    -corr .
+                    -corr . $relFlag
                     -2pass
                     -targetmeans $output.sample_interval_summary
                     -covo $output.cov.js
