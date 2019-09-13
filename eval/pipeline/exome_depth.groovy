@@ -74,7 +74,7 @@ run_exome_depth = {
 
             # Overlapping targets cause incorrect calls due to ordering applied inside the read counting functions
             # To avoid that, we flatten the target regions here
-            targets.flattened = reduce(target_regions)
+            targets.flattened = reduce(target.regions)
 
             # ExomeDepth wants the columns named in a specific way
             dsd.covered = data.frame(
