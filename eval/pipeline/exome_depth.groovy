@@ -69,14 +69,19 @@ run_exome_depth = {
 
             # Read the target / covered region
             print(sprintf("Reading target regions for $chr from $target_region_to_use"))
-            dsd.covered = read.bed(pipe("${exome_depth_split_chrs?"grep '^$chr[^0-9]' $target_region_to_use" : "cat $target_region_to_use"}"))
 
-            # ExomeDepth wants the columns named differently
+            target.regions = read.bed.ranges(pipe("${exome_depth_split_chrs?"grep '^$chr[^0-9]' $target_region_to_use" : "cat $target_region_to_use"}"))
+
+            # Overlapping targets cause incorrect calls due to ordering applied inside the read counting functions
+            # To avoid that, we flatten the target regions here
+            targets.flattened = reduce(target_regions)
+
+            # ExomeDepth wants the columns named in a specific way
             dsd.covered = data.frame(
-                chromosome=dsd.covered\$chr, 
-                start=dsd.covered$start, 
-                end=dsd.covered$end,  
-                name=paste(dsd.covered\$chr,dsd.covered$start,dsd.covered\$end,sep="-")
+              chromosome=seqnames(targets.flattened),
+              start=start(targets.flattened),
+              end=end(targets.flattened),
+              name=paste(seqnames(targets.flattened),start(targets.flattened),end(targets.flattened),sep="-")
             )
 
             # Now we need all the bam files. Generate them from sample names
