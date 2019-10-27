@@ -173,10 +173,10 @@ class Ximmer {
             throw new IllegalStateException("The analysis pipeline configuration file could not be found at the expected location: $pipelineConfigFile\n\nHave you run the installer?")
         
         ConfigObject pipelineCfg = new ConfigSlurper().parse(pipelineConfigFile.text)
-        if(!pipelineCfg.containsKey('HGFA'))
+        if(!pipelineCfg.containsKey('HGFA') && !cfg.containsKey('HGFA'))
             throw new IllegalArgumentException("Please set the HGFA parameter to your human genome reference in the config file at: $pipelineConfigFile")
             
-        File hgfa = new File(pipelineCfg.HGFA)
+        File hgfa = new File(pipelineCfg.HGFA || cfg.HGFA)
         if(!hgfa.exists())
             throw new IllegalArgumentException("The configured reference file $hgfa does not exist. Please check the HGFA entry in $pipelineConfigFile")
             
@@ -360,6 +360,7 @@ class Ximmer {
         List excludeRegionsParam = []
         List excludeGenesParam = []
         List geneFilterParam = []
+        List genomeReferenceParam = []
         
         synchronized(analysisLock) { // Avoid any potential multi-threading issues since all the below
                                      // are reading from non-threadsafe maps, config objects, etc.
@@ -407,6 +408,10 @@ class Ximmer {
             if(cfg.containsKey('exclude_genes')) {
                excludeGenesParam = ["-p", "exclude_genes=" + cfg.exclude_genes]
             }
+            
+            if(cfg.containsKey('HGFA')) {
+               genomeFastaParam = ["-p", "HGFA=" + cfg.HGFA]
+            }
         }
         
         
@@ -437,7 +442,7 @@ class Ximmer {
                 "-p", "target_bed=$targetRegionsPath", 
                 "-p", /sample_id_mask="$sampleIdMask"/, 
                 "-p", "imgpath=${runDir.name}/#batch#/report/", 
-            ] + this.geneListParameters + minCatOpt + excludeRegionsParam + geneFilterParam + excludeGenesParam + drawCnvsParam + [
+            ] + this.geneListParameters + minCatOpt + excludeRegionsParam + geneFilterParam + excludeGenesParam + drawCnvsParam + genomeFastaParam + [
                 "$ximmerBase/eval/pipeline/exome_cnv_pipeline.groovy"
             ]  + bamFiles + vcfFiles + (enableTruePositives ? ["true_cnvs.bed"] : [])
             
