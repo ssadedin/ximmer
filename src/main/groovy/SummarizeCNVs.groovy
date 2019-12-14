@@ -588,11 +588,14 @@ class SummarizeCNVs {
     
     List<String> computeColumns(List<String> cnvCallers, List<String> dbIds) {
        return DEFAULT_JS_COLUMNS + 
+           (refGenes?['cds']:[]) +
            (dbIds.collect { String dbId -> [dbId, dbId + 'Freq'] }.sum()?:[]) +
            cnvCallers + cnvCallers.collect { it+"_qual" } + ['calls']
     }
     
     Map<String, Object> cnvToMap(List<String> cnvCallers, List<String> dbIds, List<String> columnNames, Region cnv) {
+        
+        List cdsInfo = this.refGenes ? [cnv.cdsOverlap] : []
         
         List frequencyInfo = computeCNVFrequencyInfo(cnv, dbIds)
         
@@ -620,7 +623,7 @@ class SummarizeCNVs {
             cnv.stotal, 
             cnv.sampleCount,
             cnv.sampleFreq
-        ] + frequencyInfo +
+        ] + cdsInfo + frequencyInfo +
         cnvCallers.collect { caller ->
             cnv[caller].best ? "TRUE" : "FALSE"
         }  + cnvCallers.collect { caller ->
@@ -892,11 +895,18 @@ class SummarizeCNVs {
         if(refGenes != null) {
             log.info "Annotating $cnv using RefGene database"
             genes = refGenes.getGenes(cnv)
+            
+            assert refGenes.getCDS(cnv) != null
+            
+            cnv.cdsOverlap = refGenes.getCDS(cnv)*.value?.sum()?:0
+            
+            log.info "CDS Overlap for $cnv is $cnv.cdsOverlap"
         }
         else {
             genes = targetRegions.getOverlaps(cnv)*.extra.unique()
         }
 
+        
         cnv.genes=genes.join(",")
 
         annotateGeneCategories(cnv, genes)
