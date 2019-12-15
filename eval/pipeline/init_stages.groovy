@@ -73,10 +73,15 @@ select_controls = {
     
     var control_correlation_threshold : 0.9,
         control_samples : false
-    
+        
     if(!control_samples) {
+        
+        println "All bams: $all_bams"
+        
+        println "sample names: $branch.sample_names"
+        
         branch.filtered_bams = all_bams
-        filtered_sample_names = branch.sample_names
+        filtered_sample_names = branch.sample_names ?: sample_names
         println "No control samples are specified: skipping control selection, samples are: " + filtered_sample_names.join(',')
         return
     }
