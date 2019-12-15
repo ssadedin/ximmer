@@ -38,7 +38,11 @@ commands {
         // queue="long"
     }
 
-
     cnmops {
+    }
+    
+    calc_qc_stats {
+        procs=8
+        memory="20g"
     }
 }
