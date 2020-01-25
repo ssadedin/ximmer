@@ -101,7 +101,8 @@ class PostToCXP extends ToolBase {
             identifier: batchDir.absolutePath,
             assay: assay,
             sequencer: sequencer,
-            samples: samplesToSubmit,
+//            samples: ximmer.bamFiles, // samplesToSubmit,
+            samples: samplesToSubmit.collectEntries { [ it, ximmer.bamFiles[it] ] },
             batch_id: batch[0].id,
             results: new File(opts.analysis).absolutePath,
             control_samples: [],
@@ -205,7 +206,7 @@ class PostToCXP extends ToolBase {
         cli('PostToCXP -c <Ximmer Config> -cxp <CXP URL> <analysis directory>', args) {
             c 'Ximmer Configuration File', args:1, required: true
             analysis 'The zip file of the analysis to import', args:1, required: true
-            qc 'The directory containing QC files to import', args:1, required: true
+            qc 'The zip file containing QC files to import', args:1, required: true
             cxp 'Base URL to CXP server', args:1, required: true
             assay 'The assay to register the samples under (default: name of BED file)', args:1, required: false
             batch 'CNV calling batch identifier (default: name of current directory', args:1, required: false
