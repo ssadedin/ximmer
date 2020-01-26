@@ -182,8 +182,8 @@ class PostToCXP extends ToolBase {
             'filetype': '.bam',
             'alt_sample_id': sampleId,
             'sex': sampleSexes[sampleId],
-            'batch': bamBatchDir.name + '_' + bamDir.name,
-            'sequencer': 'Test',
+            'batch': opts.bambatch?:(bamBatchDir.name + '_' + bamDir.name),
+            'sequencer': opts.sequencer?:'Unknown',
             'assay': assay,
             'batch_date': batchDate(bamBatchDir.lastModified()),
             'metadata': [:]
@@ -212,6 +212,8 @@ class PostToCXP extends ToolBase {
             batch 'CNV calling batch identifier (default: name of current directory', args:1, required: false
             test 'Do not actually post data, just show what would be posted', required: false
             sex 'Specify sex for all samples', args: 1, required: false
+            bambatch 'The batch name associated to the BAM files', args:1, required: false
+            sequencer 'The sequencer used to create the raw data in the BAM files', args:1, required: false
         }
     }
 }
