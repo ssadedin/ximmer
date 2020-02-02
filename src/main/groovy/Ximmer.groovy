@@ -25,7 +25,8 @@ class Ximmer {
         cnmops : "cnmops",
         xhmm: "xhmm",
         conifer: "cfr",
-        codex: "cdx"
+        codex: "cdx",
+        savvy: "savvy"
     ]
     
     /**
