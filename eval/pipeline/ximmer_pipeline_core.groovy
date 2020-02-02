@@ -112,6 +112,7 @@ ximmer_core = segment {
     common_stages = WGS_MODE ? init_common : [ init_common, "%.bam" * [ gatk_depth_of_coverage  ] ]
        
     caller_pipelines = [
+
        ex  :  (init_excavator + excavator_pipeline),
        
        ed  : (init_exome_depth + exome_depth_pipeline),
@@ -122,7 +123,9 @@ ximmer_core = segment {
        
        cfr:  (init_conifer + run_conifer),
        
-       cdx : codex_pipeline
+       cdx : codex_pipeline,
+       
+       savvy: savvy_cnv
     ]  
 
     caller_stages = cnv_callers.collect { caller ->
