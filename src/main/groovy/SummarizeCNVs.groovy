@@ -890,13 +890,15 @@ class SummarizeCNVs {
         log.info "$cnv.count callers found $cnv of type $cnv.type in sample $sample covering genes $cnv.genes with ${cnv.variants?.size()} variants"
     }
 
-    private void annotateGenes(final Region cnv) {
+    private void annotateGenes(Region cnv) {
         List<String> genes
         if(refGenes != null) {
             log.info "Annotating $cnv using RefGene database"
-            genes = refGenes.getGenes(cnv)
             
-            assert refGenes.getCDS(cnv) != null
+            if(!cnv.chr.startsWith('chr'))
+                cnv = new Region('chr' + cnv.chr, cnv.range)
+            
+            genes = refGenes.getGenes(cnv)
             
             cnv.cdsOverlap = refGenes.getCDS(cnv)*.value?.sum()?:0
             
