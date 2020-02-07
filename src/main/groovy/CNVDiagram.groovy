@@ -145,10 +145,17 @@ class CNVDiagram {
         }
         this.cnvCalls = cnvCalls
         this.targetRegions = targetRegions 
+
+        log.info "There are ${this.cnvs.numberOfRanges} regions, starting with ${this.cnvs[0]}"
+
         
         if(!targetRegions[0].chr.startsWith('chr')) {
-            this.cnvs = this.cnvs.collect { it.chr = it.chr.replaceFirst('chr',''); it } as Regions
+            log.info "Replacing chr on CNVs due to target regions using non-chr prefixed regions"
+            this.cnvs = this.cnvs.collect { it.setChr(it.chr.replaceFirst('chr',''));  it } as Regions
         }
+
+        log.info "There are ${this.cnvs.numberOfRanges} regions, starting with ${this.cnvs[0]}"
+
         
         log.info "Parsing VCFs"
         List<VCF> vcfs = vcfFiles.collect { VCF.parse(it) { cnvs.overlaps(it) } }
@@ -1152,7 +1159,8 @@ class CNVDiagram {
             cnvs = new RangedData(opts.cnvs).load()
             
         if(opts.chr) {
-            cnvs = cnvs.grep { it.chr == opts.chr } as Regions
+            String altChr = 'chr' + opts.chr
+            cnvs = cnvs.grep { it.chr == opts.chr || it.chr == altChr } as Regions
         }
         
         return cnvs
