@@ -898,12 +898,14 @@ class SummarizeCNVs {
     private void annotateGenes(Region cnv) {
         List<String> genes
         if(refGenes != null) {
+            
+            Region annotationRegion = cnv
+            if(!cnv.chr.startsWith('chr'))
+                annotationRegion = new Region('chr' + cnv.chr, cnv.range)
+
             log.info "Annotating $cnv using RefGene database"
             
-            if(!cnv.chr.startsWith('chr'))
-                cnv = new Region('chr' + cnv.chr, cnv.range)
-            
-            genes = refGenes.getGenes(cnv)
+            genes = refGenes.getGenes(annotationRegion)
             
             cnv.cdsOverlap = refGenes.getCDS(cnv)*.value?.sum()?:0
             
