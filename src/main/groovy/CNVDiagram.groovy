@@ -257,6 +257,11 @@ class CNVDiagram {
     double round2Digits(double x) {
         Math.round(x*100.0f)/100.0
     }
+    
+    @CompileStatic
+    String normChr(Region cnv) {
+       cnv.chr.startsWith('chr') ? cnv.chr : 'chr' + cnv.chr 
+    }
 
     void drawCNV(Region cnv, String outputFileBase, int width, int height, List callers, Map colors) {
         
@@ -269,8 +274,8 @@ class CNVDiagram {
         
         log.info "Call $cnv.chr:$cnv.from-$cnv.to for sample $cnv.sample"
 
-        String imageFileName = outputFileBase.replaceAll('.png$','') + "_${cnv.chr}_${cnv.from}_${cnv.to}_${cnv.sample}.png"
-        String jsonFileName = outputFileBase.replaceAll('.png$','') + "_${cnv.chr}_${cnv.from}_${cnv.to}_${cnv.sample}.js"
+        String imageFileName = outputFileBase.replaceAll('.png$','') + "_${normChr(cnv.chr)}_${cnv.from}_${cnv.to}_${cnv.sample}.png"
+        String jsonFileName = outputFileBase.replaceAll('.png$','') + "_${normChr(cnv.chr)}_${cnv.from}_${cnv.to}_${cnv.sample}.js"
         
         File jsonFile
         Writer json = new StringWriter()

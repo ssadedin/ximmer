@@ -530,7 +530,7 @@ class SummarizeCNVs {
                 List frequencyInfo = dbIds.collect { dbId -> CNVFrequency freqInfo = annotations[i][dbId];  [freqInfo.spanning.size(), freqInfo.spanningFreq] }.sum() 
                 
                 List line = [
-                    cnv.chr, 
+                    normChr(cnv), 
                     cnv.from,
                     cnv.to, 
                     cnv.sample,
@@ -611,7 +611,7 @@ class SummarizeCNVs {
         }
         
         List line = [
-            cnv.chr, 
+            normChr(cnv), 
             cnv.from,
             cnv.to, 
             cnv.targets,
@@ -633,6 +633,11 @@ class SummarizeCNVs {
 		Map data = [columnNames,line].transpose().collectEntries()
         
         return data
+    }
+    
+    @CompileStatic
+    String normChr(Region cnv) {
+       cnv.chr.startsWith('chr') ? cnv.chr : 'chr' + cnv.chr 
     }
 
     private List computeCNVFrequencyInfo(Region cnv, List<String> dbIds) {
