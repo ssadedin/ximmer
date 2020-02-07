@@ -146,6 +146,10 @@ class CNVDiagram {
         this.cnvCalls = cnvCalls
         this.targetRegions = targetRegions 
         
+        if(!targetRegions[0].chr.startsWith('chr')) {
+            this.cnvs = this.cnvs.collect { it.chr = it.chr.replaceFirst('chr',''); it } as Regions
+        }
+        
         log.info "Parsing VCFs"
         List<VCF> vcfs = vcfFiles.collect { VCF.parse(it) { cnvs.overlaps(it) } }
         
