@@ -263,8 +263,8 @@ class CNVDiagram {
     }
     
     @CompileStatic
-    String normChr(Region cnv) {
-       cnv.chr.startsWith('chr') ? cnv.chr : 'chr' + cnv.chr 
+    String normChr(String chr) {
+       chr.startsWith('chr') ? chr : 'chr' + chr 
     }
 
     void drawCNV(Region cnv, String outputFileBase, int width, int height, List callers, Map colors) {
