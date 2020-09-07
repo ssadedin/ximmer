@@ -18,7 +18,7 @@ run_exome_depth = {
 
     println "Exome Depth sample names: $sample_names"
     println "Exome Depth branch sample names: $branch.sample_names"
-    println "Exome Depth branch sample names: $filtered_sample_names"
+    println "Exome Depth filtered sample names: $filtered_sample_names"
 
     var transition_probability : "0.0001",
         expected_cnv_length: 50000,
@@ -103,11 +103,13 @@ run_exome_depth = {
             # Note: at this point dsd.counts has column names reflecting the file names => convert to actual sample names
             print(sprintf("Successfully counted reads in BAM files"))
 
-            colnames(dsd.counts) = c("GC", dsd.samples)
+            non.sample.columns = (length(colnames(dsd.counts)) - length(dsd.samples))
+
+            colnames(dsd.counts) = c(colnames(dsd.counts)[1:non.sample.columns], dsd.samples)
 
             # Problem: sample names starting with numbers get mangled. So convert them back, but ignore the first column
             # which is actually the GC percentage
-            dsd.samples = colnames(dsd.counts)[-1]
+            dsd.samples = colnames(dsd.counts)[-1:-non.sample.columns]
 
             write(paste("start.p","end.p","type","nexons","start","end","chromosome","id","BF","reads.expected","reads.observed","reads.ratio","sample",sep="\\t"), "$output.exome_depth.tsv")
 
@@ -117,16 +119,19 @@ run_exome_depth = {
 
                 dsd.reference.samples = dsd.samples[-match(dsd.test.sample, dsd.samples)]
 
-                dsd.counts.df = as.data.frame(dsd.counts[,dsd.reference.samples])[,-1:-5]
+                dsd.counts.df = as.data.frame(dsd.counts[,dsd.reference.samples])
 
-                dsd.test.sample.counts = dsd.counts[,dsd.test.sample][[1]]
+                dsd.test.sample.counts = dsd.counts[,dsd.test.sample]
+                if(R.version$major != "4") { 
+                  dsd.test.sample.counts = dsd.test.sample.counts[[1]] # this line broke when transitioning to R 4.0? 
+                } 
 
                 assign("last.warning", NULL, envir = baseenv())
 
                 print(sprintf("Selecting reference set for %s ...", dsd.test.sample ))
                 dsd.reference = select.reference.set(
-                                         test.counts = dsd.counts[,dsd.test.sample][[1]],
-                                         reference.counts = as.matrix(as.data.frame(dsd.counts[,dsd.reference.samples])[,-1:-5]),
+                                         test.counts = dsd.test.sample.counts,
+                                         reference.counts = as.matrix(dsd.counts.df),
                                          bin.length = dsd.covered$end - dsd.covered$start
                                         )
 
