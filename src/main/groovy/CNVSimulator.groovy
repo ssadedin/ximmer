@@ -397,7 +397,7 @@ class CNVSimulator {
         final String chr = cleanRegions[0].chr
         final String rgId = femaleBam.samFileReader.fileHeader.getReadGroups()[0].getId()
         
-        final long outputReadCount = 0;
+        long outputReadCount = 0;
         
         // Read each BAM 
         ProgressCounter writeProgress = new ProgressCounter()
