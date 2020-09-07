@@ -123,9 +123,9 @@ ximmer_core = segment {
        
        cfr:  (init_conifer + run_conifer),
        
-       cdx : codex_pipeline,
+       cdx : codex_pipeline
        
-       savvy: savvy_cnv
+       // savvy: savvy_cnv
     ]  
 
     caller_stages = cnv_callers.collect { caller ->
