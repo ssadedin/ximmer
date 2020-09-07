@@ -105,7 +105,7 @@ find_extreme_gc_content = {
     produce(file(input.bed).name + ".gc.txt", file(input.bed).name+".extremegc.txt") {
 
         exec """
-            $JAVA -Xmx3g -jar $XIMMER_HOME/eval/pipeline/tools/gatk/2.3.9/GenomeAnalysisTK.jar 
+            $JAVA -Xmx3g -jar $XIMMER/eval/pipeline/tools/gatk/2.3.9/GenomeAnalysisTK.jar 
                 -T GCContentByInterval 
                 -L $input.bed
                 -R $HGFA
