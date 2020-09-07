@@ -90,6 +90,10 @@ select_controls = {
 
     List all_control_samples = control_samples
     List test_samples = branch.sample_names.grep { !(it in control_samples) }
+    
+    if(!test_samples) {
+        fail "All ${branch.sample_names.size()} samples were listed as controls. Please identify one or more samples as a test sample"
+    }
 
     println "Test samples out of $branch.sample_names are: " + test_samples
     
