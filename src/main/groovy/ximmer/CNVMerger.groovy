@@ -3,6 +3,47 @@ package ximmer
 import gngs.*
 import groovy.transform.CompileStatic
 
+/**
+ * Implements logic for merging multiple CNV calls (typically, from different CNV callers) into 
+ * one overarching harmonised CNV call
+ * <p>
+ * There are a range of factors that are important to consider in this process. The fine grained
+ * logic is abstracted to an {@link OverlapCriteria} interface to allow customisation.
+ * <p>
+ * The high level logic consists of the following process:
+ * 
+ * <li> Flatten the ranges of all calls to a single flattened set of non-overlapping ranges, eg:
+ * <pre>
+ *        |------------|
+ *               |--------|
+ *               ⬇
+ *        |---------------|
+ * </pre>
+ * <li>Each flattened range (or "cluster") represents a candidate combined call. However, some such combined
+ *     calls are in apppropriate, so each such call is then further processed, by the
+ *     {@link #mergeCluster} method to split it into separate regions that satisfy
+ *     the configured {@link #overlapCriteria}. This process is iterative: 
+ *     <ol>
+ *        <li>all combinatorial pairs of regions within the cluster are tested for mutual overlap
+ *        <li>all mutual overlaps are merged to a single call
+ *        <li>the remaining merged calls are then fed back into the step 1
+ *        <li>when an iteration occurs where no merges occur, the process ends
+ *     </ol>
+ * For example, consider 4 cnv callers like so:
+ * <pre>
+ *        |--a---| |-b--|
+ *        |-c-| |----d---|
+ *               ⬇
+ *        |-a,c--| 
+ *              |--b,d---|
+ * </pre>
+ * In the above example, (a) and (d) are clearly not sufficiently overlapping to warrant combination. The 
+ * overlap criteria would likely reject this merge, which severs the link between them and
+ * causes the cluster to split into two. This turns out to be important to stop the merging from creating
+ * giant artefactual clusters through chaining of coincidental overlaps.
+ * 
+ * @author Simon Sadedin
+ */
 class CNVMerger {
     
     final Regions cnvs
