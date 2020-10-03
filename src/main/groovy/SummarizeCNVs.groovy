@@ -22,6 +22,8 @@ class SummarizeCNVs {
     
     /**
      * CNV callers to summarize results from
+     * 
+     * Keyed on caller, value is CNV result set for caller
      */
     Map<String,RangedData> results = [:]
     
