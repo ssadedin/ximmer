@@ -67,15 +67,15 @@ class CNVMerger {
     }
     
     @CompileStatic
-    List<Region> mergeCluster(Region cluster) {
+    Regions mergeCluster(final Region cluster) {
         
         List<Region> overlaps = cnvs.getOverlapRegions(cluster)
         
         // For each combination of overlapping region, determine mutual overlap
-        List<Region> finalMerge = overlaps
+        Regions finalMerge = overlaps as Regions
         while(true) {
-            List<Region> newMerge = mergeMutualOverlapping(finalMerge)
-            if(newMerge.size() == finalMerge.size())
+            Regions newMerge = mergeMutualOverlapping(finalMerge)
+            if(newMerge.numberOfRanges == finalMerge.numberOfRanges)
                 break
             finalMerge = newMerge
         }
@@ -91,29 +91,46 @@ class CNVMerger {
      * @param overlapping   List of regions to combine
      * @return  List of combined regions, or empty list if none could be combined
      */
-    List<Region> mergeMutualOverlapping(final List<Region> overlaps) {
-        List combined = []
+    @CompileStatic
+    Regions mergeMutualOverlapping(final Regions overlaps) {
+        Regions combined = new Regions()
         final Set allMerged = new HashSet<Region>()
-        for(int i=0; i<overlaps.size(); ++i) {
-            Region cnv1 = overlaps[i]
+        for(Region cnv1 : overlaps) {
             Region newCluster = findCNVCluster(cnv1, overlaps)
             
             boolean wasMerged = false
             combined = combined.collect { Region existingCluster ->
-                if(this.overlapCriteria.overlaps(existingCluster,newCluster)) {
+                boolean overlappingCluster = 
+                    this.overlapCriteria.overlaps([existingCluster],[newCluster])
+                if(overlappingCluster) {
                     wasMerged = true
-                    return existingCluster.union(newCluster)
+                    return mergeClusters(existingCluster, newCluster)
                 }
                 else
                     return existingCluster
-            }
+            } as Regions
+
             if(!wasMerged) {
                 assert newCluster != null
-                combined.add(newCluster)
+                combined.addRegion(newCluster)
             }
         }
         
-        return combined
+        return combined.uniquify()
+    }
+
+    @CompileStatic
+    private Region mergeClusters(Region existingCluster, Region newCluster) {
+        Region merged = existingCluster.union(newCluster)
+        HashSet cnvs = (HashSet)existingCluster['cnvs']
+        HashSet otherCnvs = (HashSet)newCluster['cnvs']
+        HashSet mergedCnvs = new HashSet()
+        if(cnvs)
+            mergedCnvs.addAll(cnvs)
+        if(otherCnvs)
+            mergedCnvs.addAll(otherCnvs)
+        merged['cnvs'] = mergedCnvs
+        return merged
     }
 
     /**
@@ -124,18 +141,40 @@ class CNVMerger {
      * @param overlaps
      * @return
      */
-    private Region findCNVCluster(Region cnv1, List overlaps) {
+    private Region findCNVCluster(Region cnv1, Regions overlaps) {
+        
+        String cnvCaller = cnv1.properties.getOrDefault('caller', 'all').toString()
+        Map<String,List<Region>> otherCallerCalls = overlaps.groupBy { 
+            it.properties.getOrDefault('caller','all').toString()
+        }
+        
+        List<Region> cnvCallerCalls = otherCallerCalls[cnvCaller]
+        
         Region newCluster = cnv1
-        for(int j=0; j< overlaps.size(); ++j) {
-            Region cnv2 = overlaps[j]
-            if(cnv1.is(cnv2))
+        for(Map.Entry otherCallerEntry : otherCallerCalls) {
+            String otherCaller = otherCallerEntry.key
+            List<Region> callerCNVs = otherCallerEntry.value
+
+            // We are only interested in merging across different groups, not the same
+            if(otherCaller == cnvCaller)
                 continue
             
-            if(this.overlapCriteria.overlaps(cnv1, cnv2)) {
-                newCluster = newCluster.union(cnv2)
+            if(this.overlapCriteria.overlaps(cnvCallerCalls, callerCNVs)) {
+
+                Regions newClusterRegions = 
+                    new Regions(callerCNVs)
+                        .addRegion(cnv1)
+                        .reduce()
+
+                newCluster = newClusterRegions.getSpan(cnv1.chr)
                 HashSet allCnvs = new HashSet()
-                allCnvs.addAll(cnv1.cnvs?:[cnv1])
-                allCnvs.addAll(cnv2.cnvs?:[cnv2])
+                for(Region cnv2 : cnvCallerCalls) {
+                    allCnvs.addAll(cnv2)
+                }
+
+                for(Region cnv2 : callerCNVs) {
+                    allCnvs.addAll(cnv2.cnvs?:[cnv2])
+                }
                 newCluster.cnvs = allCnvs
             }
         }

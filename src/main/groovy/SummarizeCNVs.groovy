@@ -787,6 +787,9 @@ class SummarizeCNVs {
         Regions sampleCNVs = new Regions()
         results.each { caller, calls ->
             for(Region cnv in calls.grep { it.sample == sample }) {
+                // It is required later on to know which caller produced
+                // each CNV caller in the internal logic, so we annotate it here
+                cnv.caller = caller
                 sampleCNVs.addRegion(cnv)
             }
         }

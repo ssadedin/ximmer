@@ -5,6 +5,6 @@ import groovy.transform.CompileStatic
 
 @CompileStatic
 interface OverlapCriteria {
-    boolean overlaps(Region r1, Region r2)
+    boolean overlaps(List<Region> r1, List<Region> r2)
 }
 

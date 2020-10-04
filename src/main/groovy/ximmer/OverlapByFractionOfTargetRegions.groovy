@@ -12,10 +12,15 @@ class OverlapByFractionOfTargetRegions implements OverlapCriteria {
     double minimumFraction = 0.5
 
     @Override
-    public boolean overlaps(Region r1, Region r2) {
+    public boolean overlaps(List<Region> r1, List<Region> r2) {
         
-        List<Region> r1Overlaps = targetRegions.getOverlapRegions(r1)
-        List<Region> r2Overlaps = targetRegions.getOverlapRegions(r2)
+        List<Region> r1Overlaps = r1.collectMany { Region r ->
+            targetRegions.getOverlapRegions(r)
+        }
+
+        List<Region> r2Overlaps = r2.collectMany { Region r ->
+            targetRegions.getOverlapRegions(r)
+        }
         
         int mutual = (int)r1Overlaps.count { Region r -> r in r2Overlaps }
         
