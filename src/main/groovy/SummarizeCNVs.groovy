@@ -250,7 +250,7 @@ class SummarizeCNVs {
         
         List<VCF> vcfList = parseVCFs(opts, results)
 		
-        Regions target = new BED(opts.target, withExtra:true).load()
+        Regions target = new BED(opts.target, withExtra:true).load(withExtra:true)
         
         log.info "Loaded ${Utils.humanBp(target.size())} target regions"
         
@@ -307,16 +307,6 @@ class SummarizeCNVs {
                 log.info "Regions from $opts.x50 will be excluded (${Utils.humanBp(summarizer.excludeRegions50.size())})"
             }
              
-            Regions cnvs = summarizer.run(exportSamples)
-			
-            if(opts.tsv) {
-                summarizer.writeTSV(cnvs, opts.tsv)
-            }
-            
-            if(opts.json) {
-                summarizer.writeJSON(cnvs, opts.json)
-            }
-            
             if(opts.mergefrac) {
                 summarizer.mergeOverlapThreshold = opts.mergefrac.toDouble()
             }
@@ -324,7 +314,7 @@ class SummarizeCNVs {
             if(opts.mergeby) {
                 initOverlapCriteria(opts, summarizer)
             }
-            
+
             // If there is a truth set available, for each CNV set,
             // set the true CNVs on the set
             if(results.truth) {
@@ -334,7 +324,18 @@ class SummarizeCNVs {
                     }
                 }
             }
+
+            Regions cnvs = summarizer.run(exportSamples)
+			
+            if(opts.tsv) {
+                summarizer.writeTSV(cnvs, opts.tsv)
+            }
             
+            if(opts.json) {
+                summarizer.writeJSON(cnvs, opts.json)
+            }
+           
+           
             File outputDirFile = new File(outputFileName).absoluteFile.parentFile
             summarizer.writeCallerJSON(results, new File(outputDirFile, 'cnv_calls.js'))
             
@@ -946,11 +947,13 @@ class SummarizeCNVs {
         final String sample = cnv['sample']
         
         // log.info "Find best CNV call for $caller"
-        Iterable<Region> callerCalls = results[caller].grep { Region call -> call['sample'] == sample && call.overlaps(cnv) }
+        List<Region> callerCalls = (List)results[caller].grep { Region call -> call['sample'] == sample && call.overlaps(cnv) }
+
+        List<Region> mutualOverlapCalls = callerCalls.grep { Region call -> 
+            call.mutualOverlap(cnv) > mergeOverlapThreshold 
+        }
             
-        Collection<Region> mutualOverlapCalls = callerCalls.grep { Region call -> call.mutualOverlap(cnv) > mergeOverlapThreshold }
-            
-        Region best = findBestCall(mutualOverlapCalls, caller)
+        Region best = findBestCall(callerCalls, caller)
         
         final Map props = [
             best : best,
@@ -959,8 +962,12 @@ class SummarizeCNVs {
         ]
             
         cnv[caller] = props        
-            
-        return !mutualOverlapCalls.isEmpty()
+        
+        
+        // this used to be based on mutualOverlap but now multi-call evidence
+        // is used for merging, and the same criteria (implemented in the overlapCriteria)
+        // should be applied to count the CNV callers
+        return overlapCriteria.overlaps(callerCalls, [cnv])
     }
 
     /**
