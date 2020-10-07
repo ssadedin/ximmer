@@ -366,8 +366,13 @@ class CNVDiagram {
             
             def geneExons = geneDb.getExons(gene).reduce().grep { it.chr == cnv.chr }
 
-            int geneFrom = Math.max(geneExons*.from.min(), displayRegion.from)
-            int geneTo = Math.min(geneExons*.to.max(), displayRegion.to)
+            int geneFrom = displayRegion.from
+            if(geneExons)
+                geneFrom = Math.max(geneExons*.from.min(), displayRegion.from)
+
+            int geneTo = displayRegion.to
+            if(geneExons)
+                geneTo = Math.min(geneExons*.to.max(), displayRegion.to)
             
             Map jsonGene = [
                 gene: gene,
