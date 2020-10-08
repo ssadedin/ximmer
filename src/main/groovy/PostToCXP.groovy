@@ -50,8 +50,26 @@ class PostToCXP extends ToolBase {
         File batchDir = new File('.').absoluteFile.parentFile
         String assay = opts.assay?:new File(cfg.target_regions).name.replaceAll('.bed$','')
         
+        if(cfg.containsKey('filter_to_sex') && opts.sex)  {
+            def smsFile = new File('sex_matched_samples.txt')
+            if(smsFile.exists()) {
+                log.info "Found sex_matched_samples.txt file, filtering BAM files to these samples"
+                def sexMatchedSamples = smsFile.text.trim().readLines()*.trim()
+                ximmer.bamFiles = ximmer.bamFiles.grep { it in sexMatchedSamples }
+            }
+            else
+                throw new IllegalArgumentException('The option filter_to_sex was specified in the configuration file, but -sex was specified as an argument. This combination is not supported')
+        }
+        
         // Step 1: Infer the sexes
         this.inferSexes(ximmer.bamFiles*.value)
+
+        // Filter the bam files to only use the ones matching the sample sex setting
+        if(cfg.containsKey('filter_to_sex') && !opts.sex) {
+            ximmer.bamFiles = ximmer.bamFiles.grep {
+                sampleSexes[new SAM(it).samples[0]] == cfg.filter_to_sex
+            }
+        }
         
         log.info "Inferred sexes: \n" + Utils.table(["Sample","Sex"], [ sampleSexes*.key,sampleSexes*.value].transpose())
         
