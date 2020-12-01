@@ -55,7 +55,7 @@ class PostToCXP extends ToolBase {
             if(smsFile.exists()) {
                 log.info "Found sex_matched_samples.txt file, filtering BAM files to these samples"
                 def sexMatchedSamples = smsFile.text.trim().readLines()*.trim()
-                ximmer.bamFiles = ximmer.bamFiles.grep { it in sexMatchedSamples }
+                ximmer.bamFiles = ximmer.bamFiles.grep { it.value in sexMatchedSamples }.collectEntries()
             }
             else
                 throw new IllegalArgumentException('The option filter_to_sex was specified in the configuration file, but -sex was specified as an argument. This combination is not supported')
@@ -113,6 +113,7 @@ class PostToCXP extends ToolBase {
         def requiredSex = this.cfg.getOrDefault('filter_to_sex',false)
         if(requiredSex) {
             samplesToSubmit = samplesToSubmit.grep { sampleSexes[it] == requiredSex }
+            assert !samplesToSubmit.isEmpty() : "After filtering to sample sex $requiredSex there are no samples to submit"
         }
         
         Map data = [
