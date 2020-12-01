@@ -33,7 +33,7 @@ class CNVSimulator {
      */
     public static List<String> NON_AUTOSOMES = ["chrX",  "chrY", "chrM"]
 
-    private static final int MAX_REGION_SELECTION_TRIES = 7i
+    private static final int MAX_REGION_SELECTION_TRIES = 7
     
     SAM maleBam 
     
