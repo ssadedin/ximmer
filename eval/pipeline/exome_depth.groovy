@@ -65,7 +65,7 @@ run_exome_depth = {
             library(ExomeDepth)
 
             # Reference sequence
-            hg19.fasta = "$HGFA"
+            ref.fasta = "$HGFA"
 
             # Read the target / covered region
             print(sprintf("Reading target regions for $chr from $target_region_to_use"))
@@ -77,7 +77,7 @@ run_exome_depth = {
             targets.flattened = reduce(target.regions)
 
             # ExomeDepth wants the columns named in a specific way
-            dsd.covered = data.frame(
+            target.covered = data.frame(
               chromosome=seqnames(targets.flattened),
               start=start(targets.flattened),
               end=end(targets.flattened),
@@ -85,89 +85,89 @@ run_exome_depth = {
             )
 
             # Now we need all the bam files. Generate them from sample names
-            dsd.samples = c(${sample_list.collect{'"'+it+'"'}.join(",")})
+            ed.samples = c(${sample_list.collect{'"'+it+'"'}.join(",")})
 
-            print(sprintf("Read %d samples",length(dsd.samples)))
+            print(sprintf("Read %d samples",length(ed.samples)))
 
             # Here we rely on ASSUMPTIONs:  - Single BAM file per sample
-            dsd.bam.files = c(${sample_list.collect { s -> "'$s'='${sample_info[s].files.bam[0]}'"}.join(",") })
+            ed.bam.files = c(${sample_list.collect { s -> "'$s'='${sample_info[s].files.bam[0]}'"}.join(",") })
 
-            print(sprintf("Found %d bam files",length(dsd.bam.files)))
+            print(sprintf("Found %d bam files",length(ed.bam.files)))
 
             # Finally we can call ExomeDepth
-            dsd.counts <- getBamCounts(bed.frame = dsd.covered,
-                                      bam.files = dsd.bam.files,
+            ed.counts <- getBamCounts(bed.frame = target.covered,
+                                      bam.files = ed.bam.files,
                                       include.chr = F,
-                                      referenceFasta = hg19.fasta)
+                                      referenceFasta = ref.fasta)
 
             # Old versions of ExomeDepth return IRanges here, newer versions a pure data frame
             # To be more flexible, convert to data frame here. 
-            dsd.counts = as.data.frame(dsd.counts)
+            ed.counts = as.data.frame(ed.counts)
 
-            # Note: at this point dsd.counts has column names reflecting the file names => convert to actual sample names
+            # Note: at this point ed.counts has column names reflecting the file names => convert to actual sample names
             print(sprintf("Successfully counted reads in BAM files"))
 
-            non.sample.columns = (length(colnames(dsd.counts)) - length(dsd.samples))
+            non.sample.columns = (length(colnames(ed.counts)) - length(ed.samples))
 
-            colnames(dsd.counts) = c(colnames(dsd.counts)[1:non.sample.columns], dsd.samples)
+            colnames(ed.counts) = c(colnames(ed.counts)[1:non.sample.columns], ed.samples)
 
             # Problem: sample names starting with numbers get mangled. So convert them back, but ignore the first column
             # which is actually the GC percentage
-            dsd.samples = colnames(dsd.counts)[-1:-non.sample.columns]
+            ed.samples = colnames(ed.counts)[-1:-non.sample.columns]
 
             write(paste("start.p","end.p","type","nexons","start","end","chromosome","id","BF","reads.expected","reads.observed","reads.ratio","sample",sep="\\t"), "$output.exome_depth.tsv")
 
-            for(dsd.test.sample in dsd.samples) {
+            for(ed.test.sample in ed.samples) {
 
-                print(sprintf("Processing sample %s", dsd.test.sample))
+                print(sprintf("Processing sample %s", ed.test.sample))
 
-                dsd.reference.samples = dsd.samples[-match(dsd.test.sample, dsd.samples)]
+                reference.set.samples = ed.samples[-match(ed.test.sample, ed.samples)]
 
-                dsd.counts.df = as.data.frame(dsd.counts[,dsd.reference.samples])
+                sample.reference.counts = as.data.frame(ed.counts[,reference.set.samples])
 
-                dsd.test.sample.counts = dsd.counts[,dsd.test.sample]
+                ed.test.sample.counts = ed.counts[,ed.test.sample]
 
                 assign("last.warning", NULL, envir = baseenv())
 
-                print(sprintf("Selecting reference set for %s ...", dsd.test.sample ))
-                dsd.reference = select.reference.set(
-                                         test.counts = dsd.test.sample.counts,
-                                         reference.counts = as.matrix(dsd.counts.df),
-                                         bin.length = dsd.covered$end - dsd.covered$start
+                print(sprintf("Selecting reference set for %s ...", ed.test.sample ))
+                reference.set = select.reference.set(
+                                         test.counts = ed.test.sample.counts,
+                                         reference.counts = as.matrix(sample.reference.counts),
+                                         bin.length = target.covered$end - target.covered$start
                                         )
 
                 all_warnings = data.frame(sample=c(), warning=c())
                 if(length(warnings()) > 0) {
-                    all_warnings = rbind(all_warnings, data.frame(sample=dsd.test.sample, warning=paste0(warnings(), ',', collapse = '')))
+                    all_warnings = rbind(all_warnings, data.frame(sample=ed.test.sample, warning=paste0(warnings(), ',', collapse = '')))
                 }
  
                 # Get counts just for the reference set
-                dsd.reference.counts = apply(dsd.counts.df[,dsd.reference\$reference.choice,drop=F],1,sum)
+                reference.set.counts = apply(sample.reference.counts[,reference.set\$reference.choice,drop=F],1,sum)
 
                 print(sprintf("Creating ExomeDepth object ..."))
-                dsd.ed = new("ExomeDepth",
-                              test = dsd.test.sample.counts,
-                              reference = dsd.reference.counts,
+                sample.ed = new("ExomeDepth",
+                              test = ed.test.sample.counts,
+                              reference = reference.set.counts,
                               formula = "cbind(test, reference) ~ 1")
 
 
                 print(sprintf("Calling CNVs ..."))
-                dsd.cnvs = CallCNVs(x = dsd.ed,
+                sample.cnvs = CallCNVs(x = sample.ed,
                                         transition.probability = $transition_probability,
-                                        chromosome = dsd.covered$chromosome,
-                                        start = dsd.covered$start,
-                                        end = dsd.covered$end,
-                                        name = dsd.covered$name,
+                                        chromosome = target.covered$chromosome,
+                                        start = target.covered$start,
+                                        end = target.covered$end,
+                                        name = target.covered$name,
                                         expected.CNV.length=$expected_cnv_length)
 
 
-                dsd.results = dsd.cnvs@CNV.calls
-                dsd.results$sample = rep(dsd.test.sample, nrow(dsd.results))
+                sample.results = sample.cnvs@CNV.calls
+                sample.results$sample = rep(ed.test.sample, nrow(sample.results))
 
                 print(sprintf("Writing results ..."))
-                if(nrow(dsd.results)>0) {
+                if(nrow(sample.results)>0) {
                     write.table(file="$output.exome_depth.tsv", 
-                                x=dsd.results,
+                                x=sample.results,
                                 row.names=F,
                                 col.names=F,
                                 sep="\\t",
