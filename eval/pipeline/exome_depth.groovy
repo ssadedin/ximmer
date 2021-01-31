@@ -100,6 +100,10 @@ run_exome_depth = {
                                       include.chr = F,
                                       referenceFasta = hg19.fasta)
 
+            # Old versions of ExomeDepth return IRanges here, newer versions a pure data frame
+            # To be more flexible, convert to data frame here. 
+            dsd.counts = as.data.frame(dsd.counts)
+
             # Note: at this point dsd.counts has column names reflecting the file names => convert to actual sample names
             print(sprintf("Successfully counted reads in BAM files"))
 
@@ -122,9 +126,6 @@ run_exome_depth = {
                 dsd.counts.df = as.data.frame(dsd.counts[,dsd.reference.samples])
 
                 dsd.test.sample.counts = dsd.counts[,dsd.test.sample]
-                if(R.version$major != "4") { 
-                  dsd.test.sample.counts = dsd.test.sample.counts[[1]] # this line broke when transitioning to R 4.0? 
-                } 
 
                 assign("last.warning", NULL, envir = baseenv())
 
