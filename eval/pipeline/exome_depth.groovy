@@ -199,8 +199,7 @@ run_exome_depth = {
 
             non.sample.columns = ncol(ed.counts) - length(ed.samples)
 
-            # Problem: sample names starting with numbers get mangled. So convert them back.
-            ed.samples = colnames(ed.counts)[-1:-non.sample.columns]
+            colnames(ed.counts) = c(names(ed.counts)[1:non.sample.columns], ed.samples)
 
             write(paste("start.p","end.p","type","nexons","start","end","chromosome","id","BF","reads.expected","reads.observed","reads.ratio","sample",sep="\\t"), "$output.exome_depth.tsv")
 
