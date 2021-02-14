@@ -112,7 +112,7 @@ class Ximmer {
     
     SampleIdAllocator sampleIdAllocator = SampleIdAllocator.instance
     
-    Ximmer(ConfigObject cfg, String outputDirectory, boolean simulate) {
+    Ximmer(ConfigObject cfg, String outputDirectory, boolean simulate, boolean validate=true) {
         this.outputDirectory = new File(outputDirectory)
         this.cfg = cfg
         this.random = this.seed != null ? new Random(this.seed)  : new Random()
@@ -152,7 +152,8 @@ class Ximmer {
             sampleIdAllocator.anonymise = true
         }
         
-        validateConfiguration()
+        if(validate)
+            validateConfiguration()
     }
     
     

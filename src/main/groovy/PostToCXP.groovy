@@ -38,7 +38,7 @@ class PostToCXP extends ToolBase {
         cfg = new ConfigSlurper().parse(new File(opts.c).text)
         log.info "Configuration parsed."
        
-        ximmer = new Ximmer(cfg, "cnv", false)
+        ximmer = new Ximmer(cfg, "cnv", false, false)
         ximmer.initialiseRuns()
             
         ws = new WebService(opts.cxp)
