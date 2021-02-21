@@ -95,7 +95,7 @@ class PostToCXPWGS extends ToolBase {
                 if (!bamFiles.keySet().contains(sampleId)) 
                     throw new IllegalArgumentException("Bamfile with sample: $sampleId provided without sex")
                 log.info "Adding to bamFiles: [sample:$sampleId] [bamFile:$bamFile]"
-                this.bamFiles[sampleId] << bamFile
+                this.bamFiles[sampleId] << new File(bamFile).absolutePath
             }
             this.bamFiles.each { k, v -> if(!v) throw new IllegalArgumentException("Couldn't find any bamFiles for sample: $k")}
         } 
