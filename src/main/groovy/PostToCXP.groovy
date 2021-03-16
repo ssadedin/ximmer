@@ -44,7 +44,10 @@ class PostToCXP extends ToolBase {
         ws = new WebService(opts.cxp)
         ws.autoSlash = true
         ws.credentialsPath = ".cxp/credentials"
-        
+
+        String projectGuid = opts.project
+        log.info "Target project=${projectGuid}"
+
         this.createBamService = (ws / 'dataasset/create/bam/')
         
         File batchDir = new File('.').absoluteFile.parentFile
@@ -77,7 +80,7 @@ class PostToCXP extends ToolBase {
         this.registerBAMFiles(assay)
         
         // Step 3: Register a new analysis - or can this happen automatically for a result that doesn't have an analysis?
-        this.postAnalysis(batchDir, assay)
+        this.postAnalysis(batchDir, assay, projectGuid)
     }
     
     /**
@@ -86,7 +89,7 @@ class PostToCXP extends ToolBase {
      * @param batchDir
      * @param assay
      */
-    void postAnalysis(File batchDir, String assay) {
+    void postAnalysis(File batchDir, String assay, String projectGuid) {
         
         String sequencer = ximmer.bamFiles*.value[0].withIterator { i -> 
             SAMRecord r = i.next()
@@ -118,6 +121,7 @@ class PostToCXP extends ToolBase {
         
         Map data = [
             identifier: batchDir.absolutePath,
+            project_guid: projectGuid,
             assay: assay,
             sequencer: sequencer,
             samples: samplesToSubmit.collectEntries { [ it, ximmer.bamFiles[it].samFile.absolutePath ] },
@@ -223,6 +227,7 @@ class PostToCXP extends ToolBase {
     static void main(String [] args) {
         cli('PostToCXP -c <Ximmer Config> -cxp <CXP URL> <analysis directory>', args) {
             c 'Ximmer Configuration File', args:1, required: true
+            project 'The project GUID to associate the analyses to', args: 1, required: true
             analysis 'The zip file of the analysis to import', args:1, required: true
             qc 'The zip file containing QC files to import', args:1, required: true
             cxp 'Base URL to CXP server', args:1, required: true

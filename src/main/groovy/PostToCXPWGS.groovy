@@ -36,6 +36,7 @@ class PostToCXPWGS extends ToolBase {
     
     static void main(String [] args) {
         cli('PostToCXPWGS -cxp <CXP URL> -analysis <analysis directory> -sex <sample_id:SEX> -bam <sample_id:bam_file>', args) {
+            project 'The project GUID to associate the analyses to', args: 1, required: true
             analysis 'The zip file of the analysis to import', args:1, required: true
             sex 'Provide sample_id:SEX', args:UNLIMITED, required: true
             bam 'Provide sample_id:BAM', args:UNLIMITED, required: true
@@ -53,7 +54,11 @@ class PostToCXPWGS extends ToolBase {
         String assay = new File(opts.target).name.replaceAll('.bed$', '')
         log.info "Assay: $assay"
         log.info "Analysis zip: ${opts.analysis}"
-        File batchDir;    
+        log.info "Target project: ${opts.project}"
+
+        String projectGuid = opts.project
+
+        File batchDir;
         if (opts.batch) {
             batchDir = new File(opts.batch).absoluteFile
         } else {
@@ -106,7 +111,7 @@ class PostToCXPWGS extends ToolBase {
         this.createBamService = (ws / 'dataasset/create/bam/')
         
         this.registerBAMFiles(batchDir, assay)
-        this.postAnalysis(batchDir, assay)
+        this.postAnalysis(batchDir, assay, projectGuid)
         
     }
     
@@ -116,7 +121,7 @@ class PostToCXPWGS extends ToolBase {
      * @param batchDir
      * @param assay
      */
-    void postAnalysis(File batchDir, String assay) {
+    void postAnalysis(File batchDir, String assay, String projectGuid) {
         String sequencer = new SAM(new File(this.bamFiles.values()[0][0])).withIterator { i -> 
             SAMRecord r = i.next()
             return r.readName.tokenize(':')[0].stripMargin('@')
@@ -148,6 +153,7 @@ class PostToCXPWGS extends ToolBase {
        
         Map data = [
             identifier: batchDir.absolutePath,
+            project_guid: projectGuid,
             assay: assay,
             sequencer: sequencer,
             // samples: this.bamFiles.keySet(),
