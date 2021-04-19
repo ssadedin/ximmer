@@ -35,6 +35,8 @@ class PostToCXPWGS extends ToolBase {
     private ConfigObject cfg
     
     private WebService createBamService
+
+    private WebService createVcfService
     
     static void main(String [] args) {
         cli('PostToCXPWGS -cxp <CXP URL> -analysis <analysis directory> -sex <sample_id:SEX> -bam <sample_id:bam_file>', args) {
@@ -126,8 +128,10 @@ class PostToCXPWGS extends ToolBase {
         ws.autoSlash = true
         ws.credentialsPath = ".cxp/credentials"
         this.createBamService = (ws / 'dataasset/create/bam/')
+        this.createVcfService = (ws / 'dataasset/create/vcf/')
         
         this.registerBAMFiles(batchDir, assay)
+        this.registerVCFs(batchDir, assay)
         this.postAnalysis(batchDir, assay, projectGuid)
         
     }
@@ -208,6 +212,21 @@ class PostToCXPWGS extends ToolBase {
             }
         }
     }
+
+
+    /**
+     * For each VCF file in the Ximmer analysis, register it with CXP
+     * 
+     * @param batchDir
+     * @param assay
+     */
+    void registerVCFs(File batchDir, String assay) {
+        vcfFiles.each { sampleId, vcfs -> 
+            vcfs.each { 
+                vcfFile -> registerVCF(sampleId, vcfFile, assay, batchDir) 
+            }
+        }
+    }
     
     /**
      * Register the given BAM file with CXP
@@ -243,6 +262,38 @@ class PostToCXPWGS extends ToolBase {
             createBamService.post(data)
         }
     }
+
+    /**
+     * Register the given VCF file with CXP
+     * <p>
+     * NOTE: sex is inferred from the VCF file itself
+     *
+     * @param sampleId
+     * @param vcfFile
+     * @param assay
+     * @param batchDir
+     */
+     void registerVCF(String sampleId, String vcfFile, String assay, File batchDir) {
+        Map data = [
+            'fullpath': new File(vcfFile).absolutePath,
+            'sample': sampleId,
+            'filetype': 'vcf',
+            'sex': sampleSexes[sampleId],
+            'batch': batchDir.name,
+            'assay': assay,
+        ]
+        
+        println data
+        
+        if(opts.test) {
+            log.info "Would post $data to $createVcfService.endPoint"
+        }
+        else {
+            createVcfService.post(data)
+        }
+    }
+
+    
     
     String batchDate(long timeMs) {
        new Date(timeMs).format('YYYY-MM-dd') 
