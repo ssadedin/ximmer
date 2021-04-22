@@ -1,5 +1,6 @@
 apply plugin: 'groovy'
 apply plugin: 'eclipse'
+apply plugin: 'idea'
 
 project.ext {
     VERSION="0.1.0"
@@ -36,6 +37,8 @@ dependencies {
 
      compile 'org.codehaus.gpars:gpars:0.12'
      compile files(fileTree(dir:'lib', includes:['*.jar']))
+
+     implementation files("eval/pipeline/tools/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar")
 }
 
 jar {
