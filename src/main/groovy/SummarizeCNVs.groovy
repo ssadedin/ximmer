@@ -186,43 +186,7 @@ class SummarizeCNVs {
         if(!opts)
             System.exit(1)
         
-        Map<String,RangedData> results = [:]
-        
-        if(opts.eds) 
-            parseCallerOpt("ed", opts.eds, { new ExomeDepthResults(it) }, results)
-            
-        if(opts.xhmms) 
-            parseCallerOpt("xhmm", opts.xhmms, { new XHMMResults(it) }, results)
-        
-        if(opts.cnmopss)
-            parseCallerOpt("cnmops", opts.cnmopss, { new CNMopsResults(it) }, results)
-            
-        if(opts.angelss)
-            parseCallerOpt("angel", opts.angels, { new AngelResults(it) }, results)
-            
-        if(opts.cfrs)
-            parseCallerOpt("cfr", opts.cfrs, { new ConiferResults(it) }, results)
-            
-		if(opts.cdxs)
-            parseCallerOpt("cdx", opts.cdxs, { new CodexResults(it) }, results) 
-            
-		if(opts.pxs)
-            parseCallerOpt("px", opts.pxs, { fileName -> new ParallaxResults(fileName) }, results) 
-            
-		if(opts.cnvns)
-            parseCallerOpt("cnvn", opts.cnvns, { fileName -> new CNVNatorResults(fileName) }, results) 
-			
-		if(opts.delly)
-            parseCallerOpt("delly", opts.dellys, { fileName -> new DellyResults(fileName) }, results) 
-            
-		if(opts.canv)
-            parseCallerOpt("canvas", opts.canvs, { fileName -> new CanvasResults(fileName) }, results) 
-            
-		if(opts.lumpy)
-            parseCallerOpt("lumpy", opts.lumpys, { fileName -> new LumpyResults(fileName) }, results) 
-                
-        if(opts.truth) 
-            results.truth = new PositiveControlResults(opts.truth).load() 
+        Map<String,RangedData> results = parseCallerResults(opts)
             
         List exportSamples = null
         if(opts.samples)
@@ -355,6 +319,49 @@ class SummarizeCNVs {
             e.printStackTrace()
             System.exit(1)
         }
+    }
+
+    private static Map<String,RangedData> parseCallerResults(OptionAccessor opts) {
+        
+        Map<String,RangedData> results = [:]
+        
+        if(opts.eds)
+            parseCallerOpt("ed", opts.eds, { new ExomeDepthResults(it) }, results)
+
+        if(opts.xhmms)
+            parseCallerOpt("xhmm", opts.xhmms, { new XHMMResults(it) }, results)
+
+        if(opts.cnmopss)
+            parseCallerOpt("cnmops", opts.cnmopss, { new CNMopsResults(it) }, results)
+
+        if(opts.angelss)
+            parseCallerOpt("angel", opts.angels, { new AngelResults(it) }, results)
+
+        if(opts.cfrs)
+            parseCallerOpt("cfr", opts.cfrs, { new ConiferResults(it) }, results)
+
+        if(opts.cdxs)
+            parseCallerOpt("cdx", opts.cdxs, { new CodexResults(it) }, results)
+
+        if(opts.pxs)
+            parseCallerOpt("px", opts.pxs, { fileName -> new ParallaxResults(fileName) }, results)
+
+        if(opts.cnvns)
+            parseCallerOpt("cnvn", opts.cnvns, { fileName -> new CNVNatorResults(fileName) }, results)
+
+        if(opts.delly)
+            parseCallerOpt("delly", opts.dellys, { fileName -> new DellyResults(fileName) }, results)
+
+        if(opts.canv)
+            parseCallerOpt("canvas", opts.canvs, { fileName -> new CanvasResults(fileName) }, results)
+
+        if(opts.lumpy)
+            parseCallerOpt("lumpy", opts.lumpys, { fileName -> new LumpyResults(fileName) }, results)
+
+        if(opts.truth)
+            results.truth = new PositiveControlResults(opts.truth).load()
+
+        return results
     }
     
     static private void initOverlapCriteria(OptionAccessor opts, SummarizeCNVs summarizer) {
