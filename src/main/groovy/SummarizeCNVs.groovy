@@ -458,7 +458,7 @@ class SummarizeCNVs {
             exportSamples = this.samples
 
         Regions results = new Regions()
-        for(s in exportSamples) {
+        for(String s in exportSamples) {
             Regions sampleCnvs = extractMergedSampleCnvs(s)
             for(cnv in sampleCnvs) {
                 log.info "Merging CNV $cnv for sample '$s' type = $cnv.type"
