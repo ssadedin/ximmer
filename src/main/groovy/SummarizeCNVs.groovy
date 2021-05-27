@@ -256,6 +256,7 @@ class SummarizeCNVs {
         
         try {
             
+            log.info "Parsing refgene annotations"
             RefGenes refGenes = (!opts.refgene || "download" == opts.refgene) ? RefGenes.download(opts.genome?:"hg19") : new RefGenes(opts.refgene)  
             log.info "Initialised RefGene annotations"
             Set<String> filterToGenes = null
