@@ -5,6 +5,7 @@ import gngs.*
 import graxxia.Stats
 import groovy.json.JsonOutput
 import groovy.text.SimpleTemplateEngine
+import groovy.text.StreamingTemplateEngine
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log;
 
@@ -690,7 +691,7 @@ class SummarizeCNVs {
         File outputFile = new File(fileName).absoluteFile
         log.info "Output path = " + outputFile.absolutePath
         
-        SimpleTemplateEngine templateEngine = new SimpleTemplateEngine()
+        StreamingTemplateEngine templateEngine = new StreamingTemplateEngine()
         String jsFileName = new File(reportTemplate).name.replaceAll('\\.html$','\\.js')
         InputStream templateStream 
         String jsCode = null

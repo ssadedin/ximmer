@@ -27,8 +27,6 @@
 */%>
 
 <%
-    import gngs.*
-
     new File("template.log").withWriter { log ->
 
     // Read the CNVs from the file
@@ -78,11 +76,11 @@
 
         def vcf = cnv.vcf.endsWith(".bgz") ? cnv.vcf.replaceAll('.bgz$','') : cnv.vcf
         log.println "Sample = $cnv.sample, used VCF = $vcf"
-        [ cnv.sample, new VCFIndex(vcf) ]
+        [ cnv.sample, new gngs.VCFIndex(vcf) ]
     }
 
     def sample_bams = bam_files ? bam_files.collectEntries { 
-        bam = new SAM(it)
+        bam = new gngs.SAM(it)
         [ bam.samples[0], new File(it).name ]
     } : [:]
 
@@ -165,7 +163,7 @@
             <% 
               List<String> dbIds = cnvAnnotator ? cnvAnnotator.cnvDatabases*.key : []
               List annotations = cnvs.collect { cnv -> 
-                   cnvAnnotator ? cnvAnnotator.annotate(new Region(cnv.chr, cnv.from..cnv.to), "ANY") : [:] 
+                   cnvAnnotator ? cnvAnnotator.annotate(new gngs.Region(cnv.chr, cnv.from..cnv.to), "ANY") : [:] 
               };%>
               
             var annotations = [<%=annotations.collect { ann -> groovy.json.JsonOutput.toJson(ann) }.join(',\n')%>];
