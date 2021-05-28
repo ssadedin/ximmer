@@ -954,7 +954,7 @@ class SummarizeCNVs {
         // log.info "Find best CNV call for $caller"
         Iterable<Region> callerCalls = results[caller].grep { Region call -> call['sample'] == sample && call.overlaps(cnv) }
             
-        Collection<Region> mutualOverlapCalls = callerCalls.grep { Region call -> call.mutualOverlap(cnv) > mergeOverlapThreshold }
+        Collection<Region> mutualOverlapCalls = callerCalls.grep { Region call ->  overlapCriteria.overlaps(call,cnv) }
             
         Region best = findBestCall(mutualOverlapCalls, caller)
         
