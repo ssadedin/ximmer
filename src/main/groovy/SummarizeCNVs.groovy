@@ -272,6 +272,14 @@ class SummarizeCNVs {
                 log.info "Regions from $opts.x50 will be excluded (${Utils.humanBp(summarizer.excludeRegions50.size())})"
             }
              
+            if(opts.mergefrac) {
+                summarizer.mergeOverlapThreshold = opts.mergefrac.toDouble()
+            }
+            
+            if(opts.mergeby) {
+                initOverlapCriteria(opts, summarizer)
+            }
+
             Regions cnvs = summarizer.run(exportSamples)
 			
             if(opts.tsv) {
@@ -282,14 +290,7 @@ class SummarizeCNVs {
                 summarizer.writeJSON(cnvs, opts.json)
             }
             
-            if(opts.mergefrac) {
-                summarizer.mergeOverlapThreshold = opts.mergefrac.toDouble()
-            }
-            
-            if(opts.mergeby) {
-                initOverlapCriteria(opts, summarizer)
-            }
-            
+           
             // If there is a truth set available, for each CNV set,
             // set the true CNVs on the set
             if(results.truth) {
