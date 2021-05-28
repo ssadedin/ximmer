@@ -680,7 +680,7 @@ class SummarizeCNVs {
     void writeReport(Regions cnvs, 
                      String name, 
                      String fileName, 
-                     String reportTemplate="cnv_report.html", 
+                     final String reportTemplate="cnv_report.html", 
                      boolean inlineJs=true, 
                      List bamFiles = [], 
                      def bamFilePath=false, 
@@ -691,25 +691,29 @@ class SummarizeCNVs {
         File outputFile = new File(fileName).absoluteFile
         log.info "Output path = " + outputFile.absolutePath
         
+        final File cnvReportFile = new File(reportTemplate)
+
         StreamingTemplateEngine templateEngine = new StreamingTemplateEngine()
-        String jsFileName = new File(reportTemplate).name.replaceAll('\\.html$','\\.js')
+        String jsFileName = cnvReportFile.name.replaceAll('\\.html$','\\.js')
         InputStream templateStream 
         String jsCode = null
-        
-        File cnvReportFile = new File(reportTemplate)
         
         HTMLAssetSource assetSource
         
         // Avoid using the output file as a template if it happens to exist!
         if(cnvReportFile.exists() && (cnvReportFile.canonicalPath != outputFile.canonicalPath)) {
-            File templateParentDir = new File(reportTemplate).absoluteFile.parentFile
+            File templateParentDir = cnvReportFile.absoluteFile.parentFile
             assetSource = new HTMLFileAssetSource(templateParentDir)
-            templateStream = new File(reportTemplate).newInputStream()
+            templateStream = cnvReportFile.newInputStream()
+            log.info "Located report template as local file at ${cnvReportFile.absolutePath}"
         }
         else {
             assetSource = new HTMLClassloaderAssetSource()
             templateStream = getClass().classLoader.getResourceAsStream(reportTemplate)
         }
+        
+        if(templateStream == null) 
+            throw new IllegalStateException("Could not find a template file for the CNV report in classpath or local file for a template named $reportTemplate")
         
         File outputDir = outputFile.parentFile
         HTMLAssets assets = 
