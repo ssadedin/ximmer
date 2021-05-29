@@ -4,6 +4,13 @@ import gngs.Region
 import gngs.Regions
 import groovy.transform.CompileStatic
 
+/**
+ * Overlap criteria that considers two CNV calls to be the same if they
+ * share at least a given fraction of their target regions, irrespective
+ * of how large or small the regions are.
+ * 
+ * @author Simon Sadedin
+ */
 @CompileStatic
 class OverlapByFractionOfTargetRegions implements OverlapCriteria {
     
@@ -22,6 +29,9 @@ class OverlapByFractionOfTargetRegions implements OverlapCriteria {
             r1Overlaps.size() + r2Overlaps.size()
             - mutual /* the mutual ones will have been counted twice otherwise */)
         
+        if(total == 0)
+            return false
+            
         return (mutual / total) >= minimumFraction
     }
 }
