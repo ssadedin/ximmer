@@ -136,7 +136,7 @@ class CNVDiagram {
             this.samples = samples
         }
         else  {
-            this.samples = this.cnvs*.sample 
+            this.samples = this.cnvs*.sample.unique()
             log.info "Extracted samples from CNVs: ${this.samples.join(',')}"
         }
         
