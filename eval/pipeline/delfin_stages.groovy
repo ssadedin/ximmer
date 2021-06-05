@@ -17,6 +17,7 @@ delfin = {
                 -t $input.bed ${sample_names.collect { "-s $it"}.join(" ")}
                 -o $output.cnvs.tsv
                 -lr $output.cnvs.tsv.prefix ${cov_files.collect { "-cov $it"}.join(' ')}
+                -cov $input.sample_interval_summary
         """, "delfin"
     }
     
