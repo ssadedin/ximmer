@@ -26,6 +26,7 @@ class Ximmer {
         xhmm: "xhmm",
         conifer: "cfr",
         codex: "cdx",
+        delfin: "dfn",
         savvy: "savvy"
     ]
     
