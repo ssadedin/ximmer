@@ -143,6 +143,7 @@ class SummarizeCNVs {
             angel 'Angel results', args:Cli.UNLIMITED
             ex 'Excavator results', args:Cli.UNLIMITED
             cdx 'CODEX results', args:Cli.UNLIMITED
+            dfn 'Delfin results', args:Cli.UNLIMITED
             px 'Parallax results', args:Cli.UNLIMITED
             cnvn 'CNVNator results', args:Cli.UNLIMITED
             canv 'Canvas results', args:Cli.UNLIMITED
@@ -344,6 +345,9 @@ class SummarizeCNVs {
 
         if(opts.cdxs)
             parseCallerOpt("cdx", opts.cdxs, { new CodexResults(it) }, results)
+
+        if(opts.dfn)
+            parseCallerOpt("dfn", opts.dfns, { new DelfinResults(it) }, results)
 
         if(opts.pxs)
             parseCallerOpt("px", opts.pxs, { fileName -> new ParallaxResults(fileName) }, results)

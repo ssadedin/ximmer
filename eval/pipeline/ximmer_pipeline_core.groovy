@@ -123,7 +123,9 @@ ximmer_core = segment {
        
        cfr:  (init_conifer + run_conifer),
        
-       cdx : codex_pipeline
+       cdx : codex_pipeline,
+       
+       delfin: delfin
        
        // savvy: savvy_cnv
     ]  

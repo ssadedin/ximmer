@@ -963,6 +963,7 @@ class CNVDiagram {
             cnmops 'CNV calls from CN.mops', args:Cli.UNLIMITED
             cfr 'CNV calls from Conifer', args:Cli.UNLIMITED
             cdx 'CNV calls from CODEX', args:Cli.UNLIMITED
+            dfn 'CNV calls from Delfin', args:Cli.UNLIMITED
             angel 'Deletion calls from Angel', args:Cli.UNLIMITED
             ed 'CNV calls from Exome Depth', args:Cli.UNLIMITED
             generic  'CNV calls in BED format, sample in id column', args:Cli.UNLIMITED
@@ -1017,6 +1018,9 @@ class CNVDiagram {
         if(opts.cdxs)
             parseCallerOpt("cdx", opts.cdxs, { new CodexResults(it) }, cnvCalls)
              
+        if(opts.dfn)
+            parseCallerOpt("dfn", opts.dfns, { new DelfinResults(it) }, cnvCalls)
+
         if(opts.generics) {
             opts.generics.each { cnvBedFileAndName ->
                 
