@@ -1018,7 +1018,7 @@ class CNVDiagram {
         if(opts.cdxs)
             parseCallerOpt("cdx", opts.cdxs, { new CodexResults(it) }, cnvCalls)
              
-        if(opts.dfn)
+        if(opts.dfns)
             parseCallerOpt("dfn", opts.dfns, { new DelfinResults(it) }, cnvCalls)
 
         if(opts.generics) {

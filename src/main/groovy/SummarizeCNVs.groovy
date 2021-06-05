@@ -346,7 +346,7 @@ class SummarizeCNVs {
         if(opts.cdxs)
             parseCallerOpt("cdx", opts.cdxs, { new CodexResults(it) }, results)
 
-        if(opts.dfn)
+        if(opts.dfns)
             parseCallerOpt("dfn", opts.dfns, { new DelfinResults(it) }, results)
 
         if(opts.pxs)
