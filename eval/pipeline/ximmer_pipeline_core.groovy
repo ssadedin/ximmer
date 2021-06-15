@@ -125,7 +125,7 @@ ximmer_core = segment {
        
        cdx : codex_pipeline,
        
-       delfin: delfin
+       dfn: delfin
        
        // savvy: savvy_cnv
     ]  
