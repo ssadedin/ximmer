@@ -40,7 +40,7 @@ class PostToCXP extends ToolBase {
        
         ximmer = new Ximmer(cfg, "cnv", false, false)
         ximmer.initialiseRuns()
-            
+
         ws = new WebService(opts.cxp)
         ws.autoSlash = true
         ws.credentialsPath = ".cxp/credentials"
@@ -58,7 +58,7 @@ class PostToCXP extends ToolBase {
             if(smsFile.exists()) {
                 log.info "Found sex_matched_samples.txt file, filtering BAM files to these samples"
                 def sexMatchedSamples = smsFile.text.trim().readLines()*.trim()
-                ximmer.bamFiles = ximmer.bamFiles.grep { it.value in sexMatchedSamples }.collectEntries()
+                ximmer.bamFiles = ximmer.bamFiles.grep { sexMatchedSamples.any { def smss -> smss.contains(it.key) } }.collectEntries()
             }
             else
                 throw new IllegalArgumentException('The option filter_to_sex was specified in the configuration file, but -sex was specified as an argument. This combination is not supported')
