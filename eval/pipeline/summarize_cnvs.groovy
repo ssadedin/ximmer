@@ -222,3 +222,21 @@ calc_qc_stats = {
         """, "calc_qc_stats"
     }
 }
+
+convert_to_vcf = {
+    output.dir = "vcfs"
+    
+    branch.sample = branch.name
+    
+    transform('local_cnv_report.tsv') to(sample + '.cnv.vcf') {
+        exec """
+            unset GROOVY_HOME
+
+            JAVA_OPTS="-Xmx12g -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC:$XIMMER_SRC/../resources:$XIMMER_SRC/../js $XIMMER_SRC/ximmer/TSVtoVCF.groovy
+                -i $input.tsv
+                -s $sample
+                -r $HGFA
+                -o $output.vcf
+        ""","convert_to_vcf"
+    }
+}
