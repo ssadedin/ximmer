@@ -228,7 +228,7 @@ convert_to_vcf = {
     
     branch.sample = branch.name
     
-    transform('local_cnv_report.tsv') to(sample + '.cnv.vcf') {
+    from('local_cnv_report.tsv') produce(sample + '.cnv.vcf') {
         exec """
             unset GROOVY_HOME
 
