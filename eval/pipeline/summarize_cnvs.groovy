@@ -42,7 +42,7 @@ plot_cnv_coverage = {
         return
     }
     
-    from("cnv_report.tsv", target_bed) { produce("cnv_diagrams_${chr}_created.txt") {
+    from("cnv_report.tsv", target_bed) { produce("cnv_diagrams_${chromosome}_created.txt") {
 
         def caller_opts = []
 
@@ -70,7 +70,7 @@ plot_cnv_coverage = {
                 -t $threads ${caller_opts.join(" ")} ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} ${inputs.bam.withFlag("-bam")}
                 -refseq $refgene
 
-            ls cnv_${chr}_* | wc > $output.txt
+            ls cnv_${chromosome}_* | wc > $output.txt
 
         ""","plot_cnv_coverage"
       }
