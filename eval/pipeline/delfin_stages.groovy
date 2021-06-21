@@ -13,10 +13,15 @@ delfin = {
             .listFiles()
             .findAll { it.name.endsWith('interval_summary') } 
 
+    def test_samples = sample_names
+    if(ximmer.cfg.containsKey('controls')) {
+        test_samples = test_samples.findAll { !(it in ximmer.cfg.controls) }
+    }
+            
     produce(batch_name + '.delfin.cnvs.tsv') {
         exec """
             $JAVA -Xmx${memory}g -cp $GROOVY_ALL_JAR:$GNGS_JAR gngs.tools.Delfin
-                -t $input.bed ${sample_names.collect { "-s $it"}.join(" ")}
+                -t $input.bed ${test_samples.collect { "-s $it"}.join(" ")}
                 -o $output.cnvs.tsv
                 -maxpc $delfin_max_pc_components
                 -lr $output.cnvs.tsv.prefix ${cov_files.collect { "-cov $it"}.join(' ')}
