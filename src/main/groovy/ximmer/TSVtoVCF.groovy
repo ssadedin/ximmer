@@ -5,6 +5,7 @@ import com.xlson.groovycsv.PropertyMapper
 import gngs.FASTA
 import gngs.ProgressCounter
 import gngs.ToolBase
+import gngs.XPos
 import graxxia.TSV
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log
@@ -51,6 +52,9 @@ class TSVtoVCF extends ToolBase {
         VCFEncoder encoder = new VCFEncoder(header, true, true)
        
         ProgressCounter p = new ProgressCounter(withRate: true, withTime: true, log: log)
+        
+        List<VariantContext> outputVariants = new ArrayList(10000)
+        
         for(PropertyMapper line in tsv) {
             String ref = genomeRef.basesAt(line.chr, line.start, line.start+1)[0]
             int svLen = (line.end - line.start) * (line.type == 'DEL' ? -1 : 1 )
@@ -63,29 +67,36 @@ class TSVtoVCF extends ToolBase {
 //            Genotype gt = new GenotypeBuilder().alleles(alleles).GQ(line.count)..make()
             Genotype gt = GenotypeBuilder.create(line.sample, alleles)
             
-            List<Genotype> gts = samples.collect {
-                it == line.sample ? gt : GenotypeBuilder.create(it, [refAllele, refAllele])
+            if(line.sample in samples) {
+                List<Genotype> gts = samples.collect {
+                    it == line.sample ? gt : GenotypeBuilder.create(it, [refAllele, refAllele])
+                }
+
+                VariantContext vctx = 
+                    new VariantContextBuilder()
+                        .chr(line.chr)
+                        .start(line.start)
+                        .stop(line.end)
+                        .attribute("SVTYPE", line.type)
+                        .attribute("END", line.end)
+                        .attribute("SVLEN", svLen)
+                        .alleles((Collection)alleles)
+                        .genotypes(gts)
+                        .make()
+                        
+                outputVariants.add(vctx)
             }
-
-            VariantContext vctx = 
-                new VariantContextBuilder()
-                    .chr(line.chr)
-                    .start(line.start)
-                    .stop(line.end)
-                    .attribute("SVTYPE", line.type)
-                    .attribute("END", line.end)
-                    .attribute("SVLEN", svLen)
-                    .alleles((Collection)alleles)
-                    .genotypes(gts)
-//                    .alleles([ref] + line.type.tokenize(',').collect { '<' + it + '>'})
-                    .make()
-
-
-            encoder.write(w, vctx)
-            w.write('\n')
             p.count()
         }
         p.end()
+        
+        log.info "Sorting and writing ${outputVariants.size()} output variants ..."
+        
+        List<VariantContext> sortedVariants = outputVariants.sort { XPos.computePos(it.contig, it.start)}
+        for(vctx in sortedVariants) {
+                encoder.write(w, vctx)
+                w.write('\n')
+        }
     }
 
     @CompileStatic
