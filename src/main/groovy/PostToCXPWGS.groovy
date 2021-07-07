@@ -29,10 +29,14 @@ class PostToCXPWGS extends ToolBase {
     private Map<String,String> sampleSexes = [:]
     
     private Map<String,List<String>> bamFiles = [:]
+
+    private Map<String,List<String>> vcfFiles = [:]
     
     private ConfigObject cfg
     
     private WebService createBamService
+
+    private WebService createVcfService
     
     static void main(String [] args) {
         cli('PostToCXPWGS -cxp <CXP URL> -analysis <analysis directory> -sex <sample_id:SEX> -bam <sample_id:bam_file>', args) {
@@ -45,6 +49,30 @@ class PostToCXPWGS extends ToolBase {
             target 'Provide the path to target region', args:1, required: true
             batch 'Fullpath to batch', args:1, required: false
             test 'Test mode: do not actually send requests, just print them out'
+            vcf 'Provide sample_id:VCF', args: UNLIMITED, required: false
+        }
+    }
+
+    public void getSampleFilesFromColonArgs(args, typeName, sampleFileMap, Closure filePredicate = null) {
+        if (!args) return
+        // Sample Files common in from args have the particular structure sampleId:[Fullpath]
+        for(arg in args) {
+            if (!arg.contains(':')) {
+                throw new IllegalArgumentException("Please provide -${typeName} sample_id:${typeName.toUpperCase()}")
+            } 
+            def parts = arg.tokenize(':')
+            def sampleId = parts[0]
+            def fullpath = parts[1]
+            if (!new File(fullpath).exists()) {
+                throw new IllegalArgumentException("${typeName}file: [$fullpath] doesn't exist")
+            }
+            if (filePredicate)
+                filePredicate(fullpath)
+            // Only accept if sampleId has already been inserted into bamFiles
+            if (!sampleFileMap.keySet().contains(sampleId)) 
+                throw new IllegalArgumentException("${typeName}file with sample: $sampleId provided without sex")
+            log.info "Adding to ${typeName}files: [sample:$sampleId] [${typeName}File:$fullpath]"
+            sampleFileMap[sampleId] << new File(fullpath).absolutePath
         }
     }
 
@@ -82,26 +110,17 @@ class PostToCXPWGS extends ToolBase {
                 log.info "Adding to sampleSexes: [sample:$sampleId] [sex:$sex]"
                 this.sampleSexes[sampleId] = sex
                 this.bamFiles[sampleId] = []
+                this.vcfFiles[sampleId] = []
             }
-            for(bamArg in opts.bams) {
-                if (!bamArg.contains(':')) {
-                    throw new IllegalArgumentException("Please provide -bam sample_id:BAM")
-                } 
-                def parts = bamArg.tokenize(':')
-                def sampleId = parts[0]
-                def bamFile = parts[1]
-                if (!new File(bamFile).exists()) {
-                    throw new IllegalArgumentException("Bamfile: [$bamFile] doesn't exist")
-                }
-                if (!new File(bamFile + '.bai').exists()) {
-                    throw new IllegalArgumentException("Bam Index file for: [$bamFile] doesn't exist")
-                }
-                // Only accept if sampleId has already been inserted into bamFiles
-                if (!bamFiles.keySet().contains(sampleId)) 
-                    throw new IllegalArgumentException("Bamfile with sample: $sampleId provided without sex")
-                log.info "Adding to bamFiles: [sample:$sampleId] [bamFile:$bamFile]"
-                this.bamFiles[sampleId] << new File(bamFile).absolutePath
+
+            getSampleFilesFromColonArgs(opts.bams, 'bam', this.bamFiles) { bamFile -> 
+                if (!new File(bamFile + ".bai").exists()) {
+                   throw new IllegalArgumentException("Bam Index file for: [$bamFile] doesn't exist")
+               }
             }
+
+            getSampleFilesFromColonArgs(opts.vcfs, 'vcf', this.vcfFiles)
+
             this.bamFiles.each { k, v -> if(!v) throw new IllegalArgumentException("Couldn't find any bamFiles for sample: $k")}
         } 
         
@@ -109,8 +128,10 @@ class PostToCXPWGS extends ToolBase {
         ws.autoSlash = true
         ws.credentialsPath = ".cxp/credentials"
         this.createBamService = (ws / 'dataasset/create/bam/')
+        this.createVcfService = (ws / 'dataasset/create/vcf/')
         
         this.registerBAMFiles(batchDir, assay)
+        this.registerVCFs(batchDir, assay)
         this.postAnalysis(batchDir, assay, projectGuid)
         
     }
@@ -191,6 +212,21 @@ class PostToCXPWGS extends ToolBase {
             }
         }
     }
+
+
+    /**
+     * For each VCF file in the Ximmer analysis, register it with CXP
+     * 
+     * @param batchDir
+     * @param assay
+     */
+    void registerVCFs(File batchDir, String assay) {
+        vcfFiles.each { sampleId, vcfs -> 
+            vcfs.each { 
+                vcfFile -> registerVCF(sampleId, vcfFile, assay, batchDir) 
+            }
+        }
+    }
     
     /**
      * Register the given BAM file with CXP
@@ -226,6 +262,38 @@ class PostToCXPWGS extends ToolBase {
             createBamService.post(data)
         }
     }
+
+    /**
+     * Register the given VCF file with CXP
+     * <p>
+     * NOTE: sex is inferred from the VCF file itself
+     *
+     * @param sampleId
+     * @param vcfFile
+     * @param assay
+     * @param batchDir
+     */
+     void registerVCF(String sampleId, String vcfFile, String assay, File batchDir) {
+        Map data = [
+            'fullpath': new File(vcfFile).absolutePath,
+            'sample': sampleId,
+            'filetype': 'vcf',
+            'sex': sampleSexes[sampleId],
+            'batch': batchDir.name,
+            'assay': assay,
+        ]
+        
+        println data
+        
+        if(opts.test) {
+            log.info "Would post $data to $createVcfService.endPoint"
+        }
+        else {
+            createVcfService.post(data)
+        }
+    }
+
+    
     
     String batchDate(long timeMs) {
        new Date(timeMs).format('YYYY-MM-dd') 
