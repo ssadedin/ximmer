@@ -24,6 +24,7 @@ delfin = {
                 -t $input.bed ${test_samples.collect { "-s $it"}.join(" ")}
                 -o $output.cnvs.tsv
                 -maxpc $delfin_max_pc_components
+                -lrt 3.3
                 -lr $output.cnvs.tsv.prefix ${cov_files.collect { "-cov $it"}.join(' ')}
                 -cov $input.sample_interval_summary
         """, "delfin"
