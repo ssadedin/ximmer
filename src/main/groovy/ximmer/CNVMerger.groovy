@@ -70,6 +70,9 @@ class CNVMerger {
     List<Region> mergeCluster(Region cluster) {
         
         List<Region> overlaps = cnvs.getOverlapRegions(cluster)
+        for(Region ol in overlaps) {
+            ol['cnvs'] = [ol]
+        }
         
         // For each combination of overlapping region, determine mutual overlap
         List<Region> finalMerge = overlaps
