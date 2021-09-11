@@ -805,6 +805,7 @@ class SummarizeCNVs {
         Regions sampleCNVs = new Regions()
         results.each { caller, calls ->
             for(Region cnv in calls.grep { it.sample == sample }) {
+                cnv.caller = caller
                 sampleCNVs.addRegion(cnv)
             }
         }
@@ -963,7 +964,12 @@ class SummarizeCNVs {
         // log.info "Find best CNV call for $caller"
         Iterable<Region> callerCalls = results[caller].grep { Region call -> call['sample'] == sample && call.overlaps(cnv) }
             
-        Collection<Region> mutualOverlapCalls = callerCalls.grep { Region call ->  overlapCriteria.overlaps(call,cnv) }
+        // Used to use the mutualOverlap logic here directly but that does not reflect complex merging
+        // within the CNVMerger so now we rely on the CNVMerger to add each CNV that is merged into a 
+        // cluster in here directly
+        Collection<Region> mutualOverlapCalls = ((Set<Region>)cnv['cnvs']).findAll { Region call ->  
+            call['caller'] == caller
+        }
             
         Region best = findBestCall(mutualOverlapCalls, caller)
         
