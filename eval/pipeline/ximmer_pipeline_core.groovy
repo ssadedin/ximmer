@@ -125,9 +125,9 @@ ximmer_core = segment {
        
        cdx : codex_pipeline,
        
-       dfn: delfin
+       dfn: delfin,
        
-       // savvy: savvy_cnv
+       savvy: savvy_cnv
     ]  
 
     caller_stages = cnv_callers.collect { caller ->
