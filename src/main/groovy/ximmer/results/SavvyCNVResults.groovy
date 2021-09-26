@@ -4,6 +4,12 @@ class SavvyCNVResults extends CNVResults {
     
     String sourceFile
     String sample
+
+    final static CN_TO_TYPE = [ 
+            "Deletion": "DEL", 
+            "Duplication" :"DUP",
+    ]
+ 
     
     SavvyCNVResults(String sourceFile, String sample=null) {
         super(sourceFile, 0, 1, 2);
@@ -14,11 +20,9 @@ class SavvyCNVResults extends CNVResults {
     
     SavvyCNVResults load(Map options=[:], Closure c=null) {
         super.load(options+[separator:"\t"]) { r ->
-            r.sample = this.sample.replaceAll('\\.coverageBinner$','')
-            r.type = r.type
-            r.start = r.start
-            r.end = r.end
-            r.qual = r.qual
+            r.sample = new File(r.sample).name.replaceAll('\\.coverageBinner$','')
+            r.type = CN_TO_TYPE[r.type] ?: 'OTHER'
+            r.quality = r.qual
         }
     }
 }
