@@ -960,6 +960,7 @@ class CNVDiagram {
             cnvs 'Consolidated CNV summary report', args:1
             region 'A single region to plot, alternative to providing -cnvs', args:1
             xhmm 'CNV calls from XHMM', args:Cli.UNLIMITED
+            savvy 'CNV calls from SavvyCNV', args:Cli.UNLIMITED
             cnmops 'CNV calls from CN.mops', args:Cli.UNLIMITED
             cfr 'CNV calls from Conifer', args:Cli.UNLIMITED
             cdx 'CNV calls from CODEX', args:Cli.UNLIMITED
@@ -1021,6 +1022,9 @@ class CNVDiagram {
         if(opts.dfns)
             parseCallerOpt("dfn", opts.dfns, { new DelfinResults(it) }, cnvCalls)
 
+        if(opts.savvys)
+            parseCallerOpt("savvys", opts.savvys, { new SavvyCNVResults(it) }, cnvCalls)
+
         if(opts.generics) {
             opts.generics.each { cnvBedFileAndName ->
                 
@@ -1043,7 +1047,7 @@ class CNVDiagram {
         }
             
         if(cnvCalls.isEmpty() && !opts.region) {
-            System.err.println "\nERROR: Please give at least one of the xhmm, ed, cnmops, angel or generic arguments\n"
+            System.err.println "\nERROR: Please give at least one of the xhmm, ed, cnmops, savvy, angel or generic arguments\n"
             System.exit(1)
         }
         
