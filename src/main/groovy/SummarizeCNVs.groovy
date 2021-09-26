@@ -147,6 +147,7 @@ class SummarizeCNVs {
             px 'Parallax results', args:Cli.UNLIMITED
             cnvn 'CNVNator results', args:Cli.UNLIMITED
             canv 'Canvas results', args:Cli.UNLIMITED
+            savvy 'Savvy CNV results', args:Cli.UNLIMITED
             delly 'Delly results', args:Cli.UNLIMITED
             lumpy 'Lumpy results', args:Cli.UNLIMITED
             truth 'Postiive control CNVs', args:1
@@ -363,6 +364,9 @@ class SummarizeCNVs {
 
         if(opts.lumpy)
             parseCallerOpt("lumpy", opts.lumpys, { fileName -> new LumpyResults(fileName) }, results)
+
+        if(opts.savvy)
+            parseCallerOpt("savvy", opts.savvys, { fileName -> new SavvyCNVResults(fileName) }, results)
 
         if(opts.truth)
             results.truth = new PositiveControlResults(opts.truth).load()
