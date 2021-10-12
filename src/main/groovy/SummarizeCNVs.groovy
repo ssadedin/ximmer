@@ -922,7 +922,7 @@ class SummarizeCNVs {
         if(variants[sample]) 
             sample = annotateVariants(sample, cnv)
             
-        log.info "$cnv.count callers found $cnv of type $cnv.type in sample $sample covering genes $cnv.genes with ${cnv.variants?.size()} variants"
+        log.info "$cnv.count callers found $cnv of type $cnv.type in sample $sample covering genes $cnv.genes with ${cnv.variants?.size()} variants and ${cnv.cdsOverlap}bp CDS overlap"
     }
 
     private void annotateGenes(Region cnv) {
@@ -939,7 +939,7 @@ class SummarizeCNVs {
             
             cnv.cdsOverlap = refGenes.getCDS(cnv)*.value?.sum()?:0
             
-            log.info "CDS Overlap for $cnv is $cnv.cdsOverlap"
+            log.fine "CDS Overlap for $cnv is $cnv.cdsOverlap"
         }
         else {
             genes = targetRegions.getOverlaps(cnv)*.extra.unique()
