@@ -928,7 +928,7 @@ class SummarizeCNVs {
             if(!cnv.chr.startsWith('chr'))
                 annotationRegion = new Region('chr' + cnv.chr, cnv.range)
 
-            log.info "Annotating $cnv using RefGene database"
+            log.fine "Annotating $cnv using RefGene database"
             
             genes = refGenes.getGenes(annotationRegion)
             
