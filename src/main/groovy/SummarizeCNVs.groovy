@@ -596,12 +596,17 @@ class SummarizeCNVs {
             
         cnvs.eachWithIndex { Region cnv, int i ->
                 
-            if(i>0)
-                w.println(',')
-                    
             Map cnvData = cnvToMap(cnvCallers, dbIds, columnNames, cnv)
-			
-            w.print(JsonOutput.toJson(cnvData))
+            try {
+                if(i>0)
+                    w.println(',')
+                        
+                w.print(JsonOutput.toJson(cnvData))
+            }
+            catch(Exception e) {
+                log.severe("Failed to write CNV $cnvData : error $e")
+                throw e
+            }
         }
         w.println('\n]')        
     }
