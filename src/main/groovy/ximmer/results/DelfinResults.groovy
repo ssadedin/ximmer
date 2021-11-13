@@ -25,7 +25,8 @@ class DelfinResults extends CNVResults {
             if(Double.isInfinite(qual))
                 qual = Double.MAX_VALUE
             r.quality = qual
-            r.type = 'DEL'
+            if(!r.hasProperty('type'))
+                r.type = 'DEL'
         }
     }
 }
