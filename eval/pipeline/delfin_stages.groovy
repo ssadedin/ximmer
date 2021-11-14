@@ -4,7 +4,10 @@ delfin = {
     requires DELFIN_CONTROL_DIR : "Directory containing interval files of samples to use as controls",
              sample_names : "The names of the samples to analyse"
 
-    var delfin_max_pc_components : 30
+    var delfin_max_pc_components : 30,
+        delfin_cnv_prior : 0.004,
+        delfin_deletion_emit_threshold : 3.3,
+        delfin_duplication_emit_threshold: 5.5
     
     output.dir = "analysis/delfin"
     
@@ -24,7 +27,9 @@ delfin = {
                 -t $input.bed ${test_samples.collect { "-s $it"}.join(" ")}
                 -o $output.cnvs.tsv
                 -maxpc $delfin_max_pc_components
-                -lrt 3.3
+                -prior $delfin_cnv_prior
+                -del_lrt $delfin_deletion_emit_threshold
+                -dup_lrt $delfin_duplication_emit_threshold
                 -lr $output.cnvs.tsv.prefix ${cov_files.collect { "-cov $it"}.join(' ')}
                 -cov $input.sample_interval_summary
         """, "delfin"
