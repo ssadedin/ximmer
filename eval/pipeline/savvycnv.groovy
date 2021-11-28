@@ -22,8 +22,8 @@ savvy_bin_coverage = {
 
 savvy_call_cnvs = {
     
-    var savvy_chunk_size : 30000,
-        savvy_transition_probability : 0.01
+    var savvy_chunk_size : 5000,
+        savvy_transition_probability : 0.001
     
     produce('savvy.cnvs.tsv') {
         exec """
