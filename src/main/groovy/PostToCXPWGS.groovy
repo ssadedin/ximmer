@@ -144,6 +144,7 @@ class PostToCXPWGS extends ToolBase {
 
             if(opts.test) {
                 log.info "Would post:\n\n$data\n\n to ${ws/'batch'}"
+                batch = [['id': -1]]
             }
             else {
                 batch = [(ws / 'batch').post(data)]
