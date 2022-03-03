@@ -3,3 +3,8 @@
 build
 .bpipe
 *.bak
+*.log
+*.gz
+*.orig
+
+eval/pipeline/tools
