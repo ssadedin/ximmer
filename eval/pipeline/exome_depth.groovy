@@ -41,9 +41,11 @@ exome_depth_count_fragments = {
         println "Analysing $chr with ExomeDepth"
     }
     
-    def sample_list = filtered_sample_names
+    def sample_list = []
     if(filtered_sample_names instanceof String) {
-        sample_list = filtered_sample_names.split(",")
+        sample_list = filtered_sample_names.split(",").findAll {it in sample_info}
+    } else {
+        sample_list = filtered_sample_names.findAll {it in sample_info}
     }
     
     def outputFile = exome_depth_split_chrs ? 
@@ -51,6 +53,9 @@ exome_depth_count_fragments = {
        :
         batch_name + '.counts.tsv.gz' 
        
+
+    println("sample_list = ${sample_list}");
+    println("missing samples: ${sample_list.findAll { s -> !(s in sample_info) }}")
 
     produce(batch_name + '.' + chr + '.counts.tsv.gz') {
         R({"""
@@ -161,6 +166,7 @@ run_exome_depth = {
    
     produce(outputFiles) {
         R({"""
+            options(traceback=TRUE)
             source("$TOOLS/r-utils/cnv_utils.R")
 
             library(ExomeDepth)
@@ -191,6 +197,7 @@ run_exome_depth = {
             print(sprintf("Read %d samples",length(ed.samples)))
 
 
+            print("Reading counts from: $input.counts.tsv.gz")
             count.file = gzfile('$input.counts.tsv.gz','r')
             ed.counts = read.table(count.file, header=TRUE, stringsAsFactors=FALSE)
             close(count.file)
