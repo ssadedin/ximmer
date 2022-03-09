@@ -70,6 +70,9 @@ class CNVMerger {
     List<Region> mergeCluster(Region cluster) {
         
         List<Region> overlaps = cnvs.getOverlapRegions(cluster)
+        for(Region ol in overlaps) {
+            ol['cnvs'] = [ol]
+        }
         
         // For each combination of overlapping region, determine mutual overlap
         List<Region> finalMerge = overlaps
@@ -102,7 +105,9 @@ class CNVMerger {
             combined = combined.collect { Region existingCluster ->
                 if(this.overlapCriteria.overlaps(existingCluster,newCluster)) {
                     wasMerged = true
-                    return existingCluster.union(newCluster)
+                    Region mergedCluster = existingCluster.union(newCluster)
+                    mergedCluster.cnvs = (existingCluster.cnvs + newCluster.cnvs).unique()
+                    return mergedCluster
                 }
                 else
                     return existingCluster
@@ -132,15 +137,21 @@ class CNVMerger {
                 continue
             
             if(this.overlapCriteria.overlaps(cnv1, cnv2)) {
-                newCluster = newCluster.union(cnv2)
-                HashSet allCnvs = new HashSet()
-                allCnvs.addAll(cnv1.cnvs?:[cnv1])
-                allCnvs.addAll(cnv2.cnvs?:[cnv2])
-                newCluster.cnvs = allCnvs
+                newCluster = mergeCNVClusters(newCluster,cnv1,cnv2)
             }
         }
         return newCluster
     }
+    
+    private Region mergeCNVClusters(Region cluster, Region cnv1, Region cnv2) {
+        Region newCluster = cluster.union(cnv2)
+        HashSet allCnvs = new HashSet()
+        allCnvs.addAll(cnv1.cnvs?:[cnv1])
+        allCnvs.addAll(cnv2.cnvs?:[cnv2])
+        newCluster.cnvs = allCnvs        
+        return newCluster
+    }
+    
         
         
 //        // Algorithm: iterate through the cnvs, accumulating the set of merged regions as we go,

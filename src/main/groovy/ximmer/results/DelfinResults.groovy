@@ -21,8 +21,12 @@ class DelfinResults extends CNVResults {
         return super.load(options) { Region r ->
             r.sample = r.sample
             r.size = r.to - r.from
-            r.quality = r.lr
-            r.type = 'DEL'
+            double qual = r.lr
+            if(Double.isInfinite(qual))
+                qual = Double.MAX_VALUE
+            r.quality = qual
+            if(!r.properties.containsKey('type'))
+                r.type = 'DEL'
         }
     }
 }

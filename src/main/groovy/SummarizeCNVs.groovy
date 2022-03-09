@@ -147,6 +147,7 @@ class SummarizeCNVs {
             px 'Parallax results', args:Cli.UNLIMITED
             cnvn 'CNVNator results', args:Cli.UNLIMITED
             canv 'Canvas results', args:Cli.UNLIMITED
+            savvy 'Savvy CNV results', args:Cli.UNLIMITED
             delly 'Delly results', args:Cli.UNLIMITED
             lumpy 'Lumpy results', args:Cli.UNLIMITED
             truth 'Postiive control CNVs', args:1
@@ -363,6 +364,9 @@ class SummarizeCNVs {
 
         if(opts.lumpy)
             parseCallerOpt("lumpy", opts.lumpys, { fileName -> new LumpyResults(fileName) }, results)
+
+        if(opts.savvy)
+            parseCallerOpt("savvy", opts.savvys, { fileName -> new SavvyCNVResults(fileName) }, results)
 
         if(opts.truth)
             results.truth = new PositiveControlResults(opts.truth).load()
@@ -592,12 +596,17 @@ class SummarizeCNVs {
             
         cnvs.eachWithIndex { Region cnv, int i ->
                 
-            if(i>0)
-                w.println(',')
-                    
             Map cnvData = cnvToMap(cnvCallers, dbIds, columnNames, cnv)
-			
-            w.print(JsonOutput.toJson(cnvData))
+            try {
+                if(i>0)
+                    w.println(',')
+                        
+                w.print(JsonOutput.toJson(cnvData))
+            }
+            catch(Exception e) {
+                log.severe("Failed to write CNV $cnvData : error $e")
+                throw e
+            }
         }
         w.println('\n]')        
     }
@@ -805,6 +814,7 @@ class SummarizeCNVs {
         Regions sampleCNVs = new Regions()
         results.each { caller, calls ->
             for(Region cnv in calls.grep { it.sample == sample }) {
+                cnv.caller = caller
                 sampleCNVs.addRegion(cnv)
             }
         }
@@ -912,7 +922,7 @@ class SummarizeCNVs {
         if(variants[sample]) 
             sample = annotateVariants(sample, cnv)
             
-        log.info "$cnv.count callers found $cnv of type $cnv.type in sample $sample covering genes $cnv.genes with ${cnv.variants?.size()} variants"
+        log.info "$cnv.count callers found $cnv of type $cnv.type in sample $sample covering genes $cnv.genes with ${cnv.variants?.size()} variants and ${cnv.cdsOverlap}bp CDS overlap"
     }
 
     private void annotateGenes(Region cnv) {
@@ -923,13 +933,13 @@ class SummarizeCNVs {
             if(!cnv.chr.startsWith('chr'))
                 annotationRegion = new Region('chr' + cnv.chr, cnv.range)
 
-            log.info "Annotating $cnv using RefGene database"
+            log.fine "Annotating $cnv using RefGene database"
             
             genes = refGenes.getGenes(annotationRegion)
             
             cnv.cdsOverlap = refGenes.getCDS(cnv)*.value?.sum()?:0
             
-            log.info "CDS Overlap for $cnv is $cnv.cdsOverlap"
+            log.fine "CDS Overlap for $cnv is $cnv.cdsOverlap"
         }
         else {
             genes = targetRegions.getOverlaps(cnv)*.extra.unique()
@@ -963,7 +973,12 @@ class SummarizeCNVs {
         // log.info "Find best CNV call for $caller"
         Iterable<Region> callerCalls = results[caller].grep { Region call -> call['sample'] == sample && call.overlaps(cnv) }
             
-        Collection<Region> mutualOverlapCalls = callerCalls.grep { Region call ->  overlapCriteria.overlaps(call,cnv) }
+        // Used to use the mutualOverlap logic here directly but that does not reflect complex merging
+        // within the CNVMerger so now we rely on the CNVMerger to add each CNV that is merged into a 
+        // cluster in here directly
+        Collection<Region> mutualOverlapCalls = ((Set<Region>)cnv['cnvs']).findAll { Region call ->  
+            call['caller'] == caller
+        }
             
         Region best = findBestCall(mutualOverlapCalls, caller)
         

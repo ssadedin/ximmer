@@ -42,7 +42,7 @@ plot_cnv_coverage = {
         return
     }
     
-    from("cnv_report.tsv", target_bed) { produce("cnv_${chromosome}_*.js") {
+    from("cnv_report.tsv", target_bed) { produce("cnv_diagrams_${chromosome}_created.txt") {
 
         def caller_opts = []
 
@@ -69,6 +69,9 @@ plot_cnv_coverage = {
                 -o ${output.dir+"/cnv.png"} $reportSamplesFlag
                 -t $threads ${caller_opts.join(" ")} ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} ${inputs.bam.withFlag("-bam")}
                 -refseq $refgene
+
+            ls cnv_${chromosome}_* | wc > $output.txt
+
         ""","plot_cnv_coverage"
       }
     }
@@ -79,27 +82,29 @@ create_cnv_report = {
     requires refgene : 'Path to RefGene database',
              DGV_CNVS : 'Path to dgvMerged file downloaded from UCSC'
 
-    var ([ angel_quality_threshold : 8.0f,
-        batch_name : false,
-        bam_file_path : "http://172.16.56.202/$batch_name/",
-        sample_info : false,
-        simulation: false,
-        imgpath: false,
-        genome_build : false,
-        sample_id_mask : false,
-        gene_filter: '',
-        exclude_genes: '',
-        minimum_category: false,
-        sample_map: false,
-        DDD_CNVS: false,
-        file_name_prefix : "",
-        mergeOverlapFraction: 0.4,
-        cnvMergeMode: "sharedtargets"
-         ] + 
-            batch_cnv_results*.key.collectEntries {  caller_label ->
-                [ caller_label + '_quality_filter', false ]
-            }
-     ) 
+    var ([ 
+            angel_quality_threshold : 8.0f,
+            batch_name : false,
+            bam_file_path : "http://172.16.56.202/$batch_name/",
+            sample_info : false,
+            simulation: false,
+            imgpath: false,
+            genome_build : false,
+            sample_id_mask : false,
+            gene_filter: '',
+            exclude_genes: '',
+            minimum_category: false,
+            sample_map: false,
+            DDD_CNVS: false,
+            file_name_prefix : "",
+            mergeOverlapFraction: 0.4,
+            cnvMergeMode: "sharedtargets",
+            control_samples : false
+        ] + 
+        batch_cnv_results*.key.collectEntries {  caller_label ->
+            [ caller_label + '_quality_filter', false ]
+        }
+     )
     
     String refGeneOpts = ""
     if(genome_build != false) {
@@ -134,6 +139,12 @@ create_cnv_report = {
     String idMaskOpt = sample_id_mask ? "-idmask '$sample_id_mask'" : ""
     
     String dddOpt = DDD_CNVS ? "-ddd $DDD_CNVS" : ""
+
+    String samplesOption = ""
+    if(control_samples) {
+        def test_samples = sample_names.grep { !(it in control_samples) }
+        samplesOption = "-samples ${test_samples.join(',')}"
+    }
     
     produce("${file_name_prefix}cnv_report.html", "${file_name_prefix}cnv_report.tsv", "${file_name_prefix}combined_cnvs.json") {
 
@@ -150,7 +161,7 @@ create_cnv_report = {
                 ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} -bampath "$bam_file_path"
                 -tsv $output.tsv -json $output.json ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""} -mergefrac $mergeOverlapFraction
                 -dgv $DGV_CNVS $dddOpt $true_cnvs $idMaskOpt $geneFilterOpts $excludeGenesOpts $geneListOpts $minCatOpt $sampleMapParam 
-                -mergeby $cnvMergeMode
+                -mergeby $cnvMergeMode $samplesOption
                 ${batch_quality_params.join(" ")} -o $output.html 
                 ${batch_name ? "-name $batch_name" : ""} ${inputs.bam.withFlag('-bam')}
         """, "create_cnv_report"
@@ -220,5 +231,23 @@ calc_qc_stats = {
                     -co $output.correlations.js
                     -bed $target_bed $inputs.bam | gzip -c > $output.gz; 
         """, "calc_qc_stats"
+    }
+}
+
+convert_to_vcf = {
+    output.dir = "vcfs"
+    
+    branch.sample = branch.name
+    
+    from('local_cnv_report.tsv') produce(sample + '.cnv.vcf') {
+        exec """
+            unset GROOVY_HOME
+
+            JAVA_OPTS="-Xmx12g -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC:$XIMMER_SRC/../resources:$XIMMER_SRC/../js $XIMMER_SRC/ximmer/TSVtoVCF.groovy
+                -i $input.tsv
+                -s $sample
+                -r $HGFA
+                -o $output.vcf
+        ""","convert_to_vcf"
     }
 }
