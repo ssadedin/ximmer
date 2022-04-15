@@ -3,3 +3,4 @@
 build
 .bpipe
 *.bak
+/eclipse-build/
