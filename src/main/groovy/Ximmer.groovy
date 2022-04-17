@@ -129,7 +129,7 @@ class Ximmer {
         this.cfg = cfg
         this.random = this.seed != null ? new Random(this.seed)  : new Random()
         
-        this.enableSimulation = simulate && (cfg.simulation_type != 'none') && (cfg.get('simulation_enabled') in [null,true])
+        this.enableSimulation = simulate && (cfg.simulation_type != 'none') && (cfg.getOrDefault('simulation_enabled',null) in [null,true])
         if(enableSimulation) {
             log.info "Simulation enabled in ${cfg.simulation_type} mode"
         }
@@ -182,7 +182,7 @@ class Ximmer {
         assert ximmerBase != null : "Ximmer was launched without setting the ximmer.base system property. Please set this property or launch Ximmer using the provided script."
         
         // Check the pipeline configuration
-        File pipelineConfigFile = new File("$ximmerBase/eval/pipeline/config.groovy")
+        File pipelineConfigFile = new File("$ximmerBase/pipeline/config.groovy")
         if(!pipelineConfigFile.exists())
             throw new IllegalStateException("The analysis pipeline configuration file could not be found at the expected location: $pipelineConfigFile\n\nHave you run the installer?")
         
@@ -221,8 +221,13 @@ class Ximmer {
         if(analyse) {
             List<AnalysisConfig> analyses = this.runAnalysis()
         
-            for(AnalysisConfig analysis in analyses) {
-                this.generateReport(analysis)
+            if(this.enableTruePositives) {
+                for(AnalysisConfig analysis in analyses) {
+                    this.generateReport(analysis)
+                }
+            }
+            else {
+                log.info "Not generating summary report because no true positives were provided"
             }
         }
         else {
@@ -490,7 +495,7 @@ class Ximmer {
         String sampleIdMask = cfg.get('sample_id_mask','')
         
         File bpipe = new File(pipelineCfg.BPIPE)
-        String toolsPath = new File("$ximmerBase/eval/pipeline/tools").absolutePath
+        String toolsPath = new File("$ximmerBase/tools").absolutePath
         String ximmerSrc = new File("$ximmerBase/src/main/groovy").absolutePath
         
         List minCatOpt = []
@@ -518,7 +523,7 @@ class Ximmer {
             ] + dddParam + this.geneListParameters + minCatOpt + 
                 excludeRegionsParam + geneFilterParam + excludeGenesParam +
                 exome_depth_split_chrs_param + codex_split_chrs_param + drawCnvsParam + [
-                "$ximmerBase/eval/pipeline/exome_cnv_pipeline.groovy"
+                "$ximmerBase/pipeline/exome_cnv_pipeline.groovy"
             ]  + bamFiles + vcfFiles + (enableTruePositives ? ["true_cnvs.bed"] : [])
             
         log.info("Executing Bpipe command: " + bpipeCommand.join(" "))
@@ -529,15 +534,15 @@ class Ximmer {
         
         Process p
         try {
-            StringBuilder out = new StringBuilder()
-            StringBuilder err = new StringBuilder()
+//            StringBuilder out = new StringBuilder()
+//            StringBuilder err = new StringBuilder()
             p = pb.start()
             
-            p.waitForProcessOutput(out, err)
+            p.waitForProcessOutput(System.out, System.err)
             int exitValue = p.waitFor()
             
-            println out.toString()
-            
+            log.info "Exit code from bpipe for $runDir was $exitValue"
+
             if(exitValue != 0) 
                 throw new RuntimeException("Analysis failed for $runDir: " + err.toString())
             

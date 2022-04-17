@@ -1,0 +1,55 @@
+
+BASE=new File(bpipe.Config.config.script).parentFile.parentFile.absolutePath
+
+libs=[BASE + '/tools/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar']
+
+R {
+    executable="Rscript"
+}
+
+groovy {
+    executable="$BASE/tools/groovy/2.5.13/bin/groovy"
+}
+
+install {
+    title = "Ximmer"
+    tools {
+        bwa = "0.9.7"
+        xhmm = "1.0"
+        ExomeDepth = "0.2.2"
+        conifer = "0.2.2"
+        'cn.mops' {
+            version="0.3.4"
+        }
+        CODEX = "0.0"
+        pandas = '0.18.0'
+        pysam = '0.14.1'
+        VariantAnnotation = '*'
+        matplotlib='*'
+        seaborn='*'
+    }
+}
+
+commands {
+    plot_cnv_coverage {
+        // Enable to use multiple procs for plotting CNVs
+        procs=1
+    }
+
+    exome_depth {
+        // walltime="24:00:00"
+        // queue="long"
+    }
+
+    cnmops {
+    }
+    
+    calc_qc_stats {
+        procs=2
+        memory="20g"
+    }
+
+    delfin {
+        memory="8g"
+    }
+}
