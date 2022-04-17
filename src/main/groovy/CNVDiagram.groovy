@@ -291,8 +291,6 @@ class CNVDiagram {
         
         File jsonFile
         Writer json = new StringWriter()
-        
-        log.info "Write types are: " + writeTypes
         if('json' in writeTypes) {
             log.info "Enabling JSON output"
             jsonFile = new File(jsonFileName)
