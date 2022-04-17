@@ -139,7 +139,7 @@ ximmer_core = segment {
         batch_dirs * [
             init_batch + caller_stages + reset_bams +
                  cnv_reports +
-                 INCLUDE_CHROMOSOMES * [ plot_cnv_coverage ]  
+                 chromosomes * [ plot_cnv_coverage ]  
          ]
      ]
 } 
