@@ -1,4 +1,5 @@
 import gngs.*
+import gngs.sample.SampleInfo
 
 println "=" * 100
 println "CNV Simulator " + (new Date().toString())

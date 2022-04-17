@@ -3,10 +3,8 @@ R {
 }
 
 groovy {
-    executable="./tools/groovy/2.4.6/bin/groovy"
+    executable="./tools/groovy/2.5.13/bin/groovy"
 }
-
-
 
 install {
     title = "Ximmer"
@@ -42,7 +40,7 @@ commands {
     }
     
     calc_qc_stats {
-        procs=8
+        procs=2
         memory="20g"
     }
 }

@@ -6,6 +6,12 @@ import groovy.util.logging.Log
 import groovyx.gpars.GParsPool;
 import ximmer.*
 
+import SampleIdAllocator
+import MiscUtils
+import SimulationRun
+import CNVSimulator
+import SummaryReport
+
 /**
  * The main entry point for the Ximmer CNV Framework
  * 
@@ -97,7 +103,7 @@ class Ximmer {
     
     File dgvMergedFile
     
-    File hg19RefGeneFile
+    File refGeneFile
     
     DGV dgv
     
@@ -112,7 +118,12 @@ class Ximmer {
     String ximmerBase
     
     SampleIdAllocator sampleIdAllocator = SampleIdAllocator.instance
-    
+
+    /**
+     * Global pipeline configuration. Initialised in {@link #validateConfiguration}.
+     */
+    ConfigObject pipelineCfg = null
+
     Ximmer(ConfigObject cfg, String outputDirectory, boolean simulate, boolean validate=true) {
         this.outputDirectory = new File(outputDirectory)
         this.cfg = cfg
@@ -133,7 +144,7 @@ class Ximmer {
             
         this.callerIds = ((Map<String,Object>)cfg.callers).keySet().collect { 
             if(callerIdMap[it] == null)
-                throw new RuntimeException("Unknown CNV caller " + it + " referenced in configuration.")
+                throw new RuntimeException("Unknown CNV caller " + it + " referenced in configuration. Known CNV callers are " + callerIdMap*.key.join(', '))
             callerIdMap[it]
         }
         
@@ -183,7 +194,18 @@ class Ximmer {
         if(!hgfa.exists())
             throw new IllegalArgumentException("The configured reference file $hgfa does not exist. Please check the HGFA entry in $pipelineConfigFile")
             
+        String bpipeLocation = pipelineCfg.getOrDefault('BPIPE',null)
+        if(!bpipeLocation)
+            throw new IllegalArgumentException("The location of BPIPE was not configured. Please check this variable is set to an existing Bpipe installation in $pipelineConfigFile")
+            
+        if(!new File(bpipeLocation).exists())
+            throw new IllegalArgumentException("The location configured for BPIPE ($bpipeLocation) was not an existing directory. Please check this variable is set to an existing Bpipe installation in $pipelineConfigFile")
+
+        log.info("Using Bpipe at $bpipeLocation")
+
         log.info "Configuration validated!"
+            
+        this.pipelineCfg = new ConfigSlurper().parse(pipelineConfigFile.text)
     }
     
     void run(analyse=true) {
@@ -267,6 +289,16 @@ class Ximmer {
     
     void cacheReferenceData() {
         
+        // To pick the right reference data, we need to know the genome
+        int buildVersion = new FASTA(pipelineCfg.HGFA).humanGenomeCoordinateVersion()
+        String ucscGenomeId = [
+            36 : 'hg18',
+            37 : 'hg19',
+            38 : 'hg38'
+        ][buildVersion]
+        
+        log.info "Detected genome version $ucscGenomeId"
+        
         File sharedCache = new File(ximmerBase,'cache')
         if(sharedCache.exists()) {
             cacheDirectory = sharedCache
@@ -280,7 +312,7 @@ class Ximmer {
             try {
                 dgvMergedFile.withOutputStream { o -> 
                     log.info("Downloading DGV database from UCSC ...")
-                    o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/dgvMerged.txt.gz").openStream() 
+                    o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/$ucscGenomeId/database/dgvMerged.txt.gz").openStream() 
                 }
             }
             catch(Exception e) {
@@ -291,16 +323,16 @@ class Ximmer {
         
         dgv = new DGV(dgvMergedFile.absolutePath).parse()
         
-        hg19RefGeneFile = new File(cacheDirectory, "refGene.txt.gz")    
-        if(!hg19RefGeneFile.exists()) {
+        refGeneFile = new File(cacheDirectory, "refGene.${ucscGenomeId}.txt.gz")    
+        if(!refGeneFile.exists()) {
             try {
-                hg19RefGeneFile.withOutputStream { o -> 
+                refGeneFile.withOutputStream { o -> 
                     log.info("Downloading DGV database from UCSC ...")
-                    o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/refGene.txt.gz").openStream() 
+                    o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/$ucscGenomeId/database/refGene.txt.gz").openStream() 
                 }
             }
             catch(Exception e) {
-                hg19RefGeneFile.delete() // otherwise we can leave behind a corrupt partial download
+                refGeneFile.delete() // otherwise we can leave behind a corrupt partial download
                 throw e
             }
         }
@@ -457,7 +489,7 @@ class Ximmer {
         
         String sampleIdMask = cfg.get('sample_id_mask','')
         
-        File bpipe = new File("$ximmerBase/eval/bpipe")
+        File bpipe = new File(pipelineCfg.BPIPE)
         String toolsPath = new File("$ximmerBase/eval/pipeline/tools").absolutePath
         String ximmerSrc = new File("$ximmerBase/src/main/groovy").absolutePath
         
@@ -476,7 +508,7 @@ class Ximmer {
                 "-p", "DGV_CNVS=${dgvMergedFile.absolutePath}",
                 "-p", "XIMMER_SRC=$ximmerSrc",
                 "-p", "callers=${callerIds.join(',')}",
-                "-p", "refgene=${hg19RefGeneFile.absolutePath}",
+                "-p", "refgene=${refGeneFile.absolutePath}",
                 "-p", "simulation=${enableTruePositives}",
                 "-p", "batches=${batches*.analysisName.join(',')}",
                 "-p", "target_bed=$targetRegionsPath", 

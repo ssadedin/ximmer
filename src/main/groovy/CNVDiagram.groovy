@@ -1,4 +1,5 @@
 import java.awt.BasicStroke;
+
 import java.text.NumberFormat
 import java.util.logging.Level
 
@@ -15,7 +16,7 @@ import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 import org.codehaus.groovy.runtime.StackTraceUtils
 
 import gngs.*
-
+import gngs.sample.SampleInfo
 import graxxia.Matrix
 import graxxia.Stats
 import groovy.json.JsonOutput

@@ -9,6 +9,7 @@
 // heterozygosity information and other annotation based information.
 //
 ///////////////////////////////////////////////////////////////////
+import gngs.sample.*
 
 inputs "bam" : "Bam files for analysis"
 
@@ -28,6 +29,8 @@ requires batches : """
                       """
 // Basic configuration
 load 'config.groovy'
+
+XIMMER_SRC="$BASE/src/main/groovy"
 
 // A flag indicating whether this run is analysing simulated deletions or not.
 // When analysing simulated data, only the X chromosome results are reported,
@@ -131,6 +134,9 @@ callers = "xhmm,ed,cnmops,truth"
 
 cnv_callers = callers.split(",") as List
 
+println "cnv_callers=$cnv_callers"
+
+println "CNV Callers are: \n" + cnv_callers.collect { '- ' + it }.join('\n')  + '\n'
 
 bpipe.Config.userConfig.autoFilter = "false"
 

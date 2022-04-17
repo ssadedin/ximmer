@@ -1,7 +1,7 @@
 
 
 // WGS_MODE changes some of the downstream steps, esp. how coverage is calculated for XHMM
-var WGS_MODE : false
+var WGS_MODE : true
 
 if(!WGS_MODE) {
     println "Running in exome / targeted mode"
