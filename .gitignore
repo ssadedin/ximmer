@@ -4,3 +4,5 @@ build
 .bpipe
 *.bak
 /eclipse-build/
+batches
+pipeline/tools/xhmm/trunk/
