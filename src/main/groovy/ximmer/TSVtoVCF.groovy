@@ -80,6 +80,7 @@ class TSVtoVCF extends ToolBase {
                         .attribute("SVTYPE", line.type)
                         .attribute("END", line.end)
                         .attribute("SVLEN", svLen)
+                        .attribute("CALLERS", line.count)
                         .alleles((Collection)alleles)
                         .genotypes(gts)
                         .make()
