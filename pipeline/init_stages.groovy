@@ -112,11 +112,10 @@ select_controls = {
     List all_remaining_samples = filtered_control_samples + test_samples
 
     println "All remaining samples are: " + all_remaining_samples.join(',')
-     branch.filtered_bams = all_bams.grep {
+    branch.filtered_bams = all_bams.grep {
         new gngs.SAM(it).samples[0] in all_remaining_samples
     }
-
-   
+    
     branch.sample_info = sample_info.grep { it.key in filtered_control_samples }.collectEntries()
     
     branch.sample_names = branch.sample_names.grep { (it in all_remaining_samples) }
@@ -125,7 +124,9 @@ select_controls = {
 
     println "Sample names after filtering are : $branch.sample_names"
     
-    forward(filtered_bams)
+    def stats_files = branch.sample_names.collect { s -> sample_to_control_cov_files[s] }
+    
+    forward(filtered_bams + stats_files.flatten())
 }
 
 

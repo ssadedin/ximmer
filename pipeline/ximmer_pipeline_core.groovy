@@ -1,14 +1,4 @@
 
-
-// WGS_MODE changes some of the downstream steps, esp. how coverage is calculated for XHMM
-var WGS_MODE : true
-
-if(!WGS_MODE) {
-    println "Running in exome / targeted mode"
-}
-
-println "WGS_MODE: $WGS_MODE"
-
 set_sample = {
     branch.sample = branch.name
 }
@@ -87,9 +77,6 @@ register_caller_result = {
     batch_cnv_results[caller_label] = caller_result
 }
 
-init_common = {
-    println "Running Common Stages"
-}
 
 init = {
     branch.all_bams = inputs.bam.collect { it.toString() } // clone
@@ -109,15 +96,13 @@ ximmer_core = segment {
     
     cnv_reports << create_cnv_report.using(file_name_prefix:"local_", imgpath: "") 
     
-    common_stages = WGS_MODE ? init_common : [ init_common, "%.bam" * [ gatk_depth_of_coverage  ] ]
-       
     caller_pipelines = [
 
        ex  :  (init_excavator + excavator_pipeline),
        
        ed  : (init_exome_depth + exome_depth_pipeline),
        
-       xhmm: (init_xhmm + (WGS_MODE ? xhmm_wgs_pipeline : xhmm_pipeline)),
+       xhmm: (init_xhmm + xhmm_pipeline),
        
        cnmops: (init_cn_mops + cn_mops_call_cnvs),
        
@@ -127,15 +112,15 @@ ximmer_core = segment {
        
        dfn: delfin,
        
-       savvy: savvy_cnv
+       savvy: savvy_cnv,
     ]  
 
     caller_stages = cnv_callers.collect { caller ->
         (caller + '.%.params.txt') * [ init_caller_params.using(caller:caller) + caller_pipelines[caller] + register_caller_result ]
     }
     
-    init + create_analysable_target + calc_qc_stats.using(type:'rawqc') +  select_controls + common_stages + [
-        calc_qc_stats.using(type:'qc'),
+    init + create_analysable_target + '%.bam' * [ calc_target_covs ] >>> calc_combined_correlations.using(type:'rawqc') + select_controls + [
+        calc_combined_correlations.using(type:'qc') + // + calc_qc_stats.using(type:'qc'),
         batch_dirs * [
             init_batch + caller_stages + reset_bams +
                  cnv_reports +

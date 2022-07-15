@@ -203,6 +203,48 @@ cnv_report = {
     }
 }
 
+calc_target_covs = {
+
+    output.dir = "common/rawqc/individual"
+
+    exec """
+        unset GROOVY_HOME;  
+
+        $JAVA -Xmx${memory}g -cp $GROOVY_ALL_JAR:$GNGS_JAR
+            gngs.tools.Cov 
+            -L $target_bed
+            -o /dev/null 
+            -samplesummary $output.stats.tsv
+            -intervalsummary $output.sample_interval_summary
+            $input.bam
+    """
+    
+    def sample = new gngs.SAM(input.bam.toString()).samples[0]
+    
+    sample_to_control_cov_files[sample] = [output.stats.tsv, output.sample_interval_summary]
+}
+
+calc_combined_correlations = {
+    
+    var batch: 'ximmer',
+        type: 'qc'
+
+    output.dir = "common/$type"
+    
+    produce([batch +'.combined.correlations.tsv', batch + '.combined.correlations.js', batch + '.combined.cov.js', batch + '.combined.coeffv.js', batch + '.combined.sample_interval_summary']) {
+        exec """
+            JAVA_OPTS="-Xmx8g -Djava.awt.headless=true -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/ximmer/CalculateCombinedStatistics.groovy
+            -corrTSV $output1
+            -corrJS $output2
+            -covJS $output3
+            -coeffvJS $output3
+            -stats $output4
+            $inputs.sample_interval_summary
+            $inputs.stats.tsv
+        """
+    }
+}
+
 calc_qc_stats = {
     
     var batch: 'ximmer',

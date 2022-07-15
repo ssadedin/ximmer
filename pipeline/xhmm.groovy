@@ -63,41 +63,6 @@ xhmm_init = {
     }
 }
 
-gatk_depth_of_coverage = {
-    
-    
-    var WGS_MODE : false
-    
-    if(WGS_MODE) {
-        println "Skipping GATK coverage because running in WGS mode"
-        return
-    }
-    
-    output.dir = "common/xhmm"
-    
-    from('bam', analysable_target) transform("sample_interval_summary") {
-        exec """
-            $JAVA -Xmx2g -Djava.io.tmpdir=$TMPDIR -jar $GATK/GenomeAnalysisTK.jar 
-                 -T DepthOfCoverage -I $input.bam
-                 -L $input.bed
-                 -R $HGFA
-                 -dt BY_SAMPLE 
-                 -dcov 5000 
-                 -l INFO 
-                 --omitDepthOutputAtEachBase 
-                 --omitLocusTable 
-                 --minBaseQuality 0 
-                 --minMappingQuality 20 
-                 --start 1 
-                 --stop 5000 
-                 --nBins 200 
-                 --includeRefNSites 
-                 --countType COUNT_FRAGMENTS 
-                 -o $output.prefix
-        """, "gatk_doc_smp"
-    }
-}
-
 find_extreme_gc_content = {
 
     // requires target_bed : "BED file containing regions to calculate coverage depth for"
@@ -116,6 +81,7 @@ find_extreme_gc_content = {
     }
 }
 
+/*
 xhmm_count_reads = {
     
     var batch: 'xhmm'
@@ -134,6 +100,7 @@ xhmm_count_reads = {
         """, "calc_qc_stats"
     }
 }
+*/
 
 xhmm_mean_center = {
 
@@ -218,10 +185,10 @@ xhmm_filter_normalized = {
 
 xhmm_filter_orig = {
     doc "Filters original read-depth data to be the same as filtered, normalized data"
-    from( "merged.sample_interval_summary", 
-          "merged.excluded.targets", 
+    from( "sample_interval_summary", 
+          "combined.excluded.targets", 
           "norm.excluded.targets", 
-          "merged.excluded.samples", 
+          "combined.excluded.samples", 
           "norm.excluded.samples") {
         filter("filt") {
             exec """
@@ -265,23 +232,9 @@ xhmm_discover = {
     branch.caller_result = output.xcnv
 }
 
-xhmm_wgs_pipeline = segment {
-             xhmm_init + 
-             find_extreme_gc_content + 
-             xhmm_count_reads + 
-             xhmm_mean_center +
-             xhmm_pca +
-             xhmm_normalize + 
-             xhmm_filter_normalized + 
-             xhmm_filter_orig + 
-             xhmm_discover
-}
-
-
 xhmm_pipeline = segment {
              xhmm_init + 
              find_extreme_gc_content + 
-             xhmm_merge_coverage + 
              xhmm_mean_center +
              xhmm_pca +
              xhmm_normalize + 

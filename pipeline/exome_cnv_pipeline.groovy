@@ -146,6 +146,8 @@ TMPDIR=tmpFile.path
 
 batch_dirs = batches.tokenize(",")
 
+sample_to_control_cov_files = Collections.synchronizedMap([:])
+
 load 'ximmer_pipeline_core.groovy'
 
 run { ximmer_core } 
