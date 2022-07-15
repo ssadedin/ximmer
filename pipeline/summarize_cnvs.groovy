@@ -237,8 +237,8 @@ calc_combined_correlations = {
             -corrTSV $output1
             -corrJS $output2
             -covJS $output3
-            -coeffvJS $output3
-            -stats $output4
+            -coeffvJS $output4
+            -stats $output5
             $inputs.sample_interval_summary
             $inputs.stats.tsv
         """
