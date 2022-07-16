@@ -108,10 +108,10 @@ class CalculateCombinedStatistics extends ToolBase {
         Map data = [
             means:  cov_stats.collect {
                 [sample, delegate['Mean Coverage']]
-            },
+            }.collectEntries(),
             medians: cov_stats.collect {
                 [sample, delegate['Median Coverage']]
-            },
+            }.collectEntries(),
         ]
 
         new File(path).withWriter { w ->
