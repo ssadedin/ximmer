@@ -7,6 +7,7 @@ import graxxia.Stats
 import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log
+import groovyx.gpars.GParsPool
 
 @Log
 class CalculateCombinedStatistics extends ToolBase {
@@ -22,7 +23,11 @@ class CalculateCombinedStatistics extends ToolBase {
         
         log.info "Loaded ${intervalStats.size()} summary files ..."
 
-        Matrix allCovs = Matrix.concat(intervalStats.collect { loadCovs(it) })
+        int threads = opts.threads?:2
+        log.info "Loading ${intervalStats.size()} summary files using concurrency $threads..."
+        Matrix allCovs = GParsPool.withPool(threads) {
+             Matrix.concat(intervalStats.collectParallel { loadCovs(it) })
+        }
         
         assert allCovs.sample.every { s -> stats.count { new File(it).name.startsWith(s + '.') } == 1 } :
              'One or more files provided as a sample interval summary did not have an associated coverage file or files were ambiguous'
@@ -34,7 +39,7 @@ class CalculateCombinedStatistics extends ToolBase {
         log.info "Computing row correlations ..."
         Matrix correlations = allCovs.rowCorrelations
         
-        log.info "Computing coefficient of variant statistics ..."
+        log.info "Computing coefficient of variation statistics ..."
         Matrix norm = allCovs.normaliseRows().normaliseColumns()
         List<Stats> targetRegionStats = norm.columns.collect { Stats.from(it) }
         
@@ -117,7 +122,7 @@ class CalculateCombinedStatistics extends ToolBase {
     }
     
     Matrix loadCovs(String path) {
-        println "Load $path"
+        log.info "Load $path"
         def controls = Matrix.load(path)
         
         if(controls.properties.containsKey('Mean')) { // gngs bug
@@ -137,6 +142,7 @@ class CalculateCombinedStatistics extends ToolBase {
             covJS 'Output file to write combined coverage JS to', args:1, required: true
             stats 'Output file to write combined target coverage file to', args:1, required: true
             coeffvJS 'Output file to write the coefficient of variation percentiles to', args:1, required: true
+            threads 'Number of threads to use in loading data', args:1, required: false, type: Integer
         }
     }
 }

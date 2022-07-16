@@ -238,17 +238,20 @@ calc_combined_correlations = {
 
     output.dir = "common/$type"
     
-    produce([batch +'.combined.correlations.tsv', batch + '.combined.correlations.js', batch + '.combined.cov.js', batch + '.combined.coeffv.js', batch + '.combined.sample_interval_summary']) {
-        exec """
-            JAVA_OPTS="-Xmx8g -Djava.awt.headless=true -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/ximmer/CalculateCombinedStatistics.groovy
-            -corrTSV $output1
-            -corrJS $output2
-            -covJS $output3
-            -coeffvJS $output4
-            -stats $output5
-            $inputs.sample_interval_summary
-            $inputs.stats.tsv
-        """
+    uses(threads:1..4) {
+        produce([batch +'.combined.correlations.tsv', batch + '.combined.correlations.js', batch + '.combined.cov.js', batch + '.combined.coeffv.js', batch + '.combined.sample_interval_summary']) {
+            exec """
+                JAVA_OPTS="-Xmx8g -Djava.awt.headless=true -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/ximmer/CalculateCombinedStatistics.groovy
+                -corrTSV $output1
+                -corrJS $output2
+                -covJS $output3
+                -coeffvJS $output4
+                -stats $output5
+                -threads $threads
+                $inputs.sample_interval_summary
+                $inputs.stats.tsv
+            """, "calc_combined_correlations"
+        }
     }
 }
 
