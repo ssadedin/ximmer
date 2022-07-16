@@ -991,8 +991,11 @@ class CNVDiagram {
             chr 'Limit drawing to CNVs overlapping given chromosome (eg: chrX)', args:1
             json 'Include JSON in output'
             nopng 'Suppress writing of PNG files'
+            autoFilter 'Auto-filter the CNVs to be drawn to include only those likely to be of interest (ie: low population frequency, non-artefacts)'
+            autoFilterSampleCount 'Max sample count to apply when auto-filtering CNVs', args:1, type: Integer
+            autoFilterMaxFreq 'Max frequency to allow when applying auto-filtering of CNVs', args: 1, type: Double
         }
-        
+
         def opts = cli.parse(args)
         if(!opts) {
             System.exit(1)
@@ -1173,6 +1176,19 @@ class CNVDiagram {
         if(opts.chr) {
             String altChr = 'chr' + opts.chr
             cnvs = cnvs.grep { it.chr == opts.chr || it.chr == altChr } as Regions
+        }
+        
+        if(opts.autoFilter) {
+            if(opts.region || opts.cnvs.endsWith('.bed'))
+                throw new IllegalArgumentException("The -autoFilter option can only be used when CNVs are loaded using the -cnvs option")
+
+            final int maxSampleCount = (opts.autoFilterSampleCount?:3)
+            final double maxFreq = (opts.autoFilterMaxFreq?:0.2)
+            
+            log.info "Filtering CNVs to draw to sample count < $maxSampleCount, population freq < $maxFreq, and dups with > 1 caller"
+
+            // Filter high freq, high within-batch calls and dups called by a single caller
+            cnvs = cnvs.grep { it.sampleCount > maxSampleCount || it.DDDFreq>maxFreq || it.DGVFreq>0.2 || (it.type == 'DUP' && it.count == 1)   }
         }
         
         return cnvs

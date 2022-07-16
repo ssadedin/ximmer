@@ -29,6 +29,8 @@ plot_cnv_coverage = {
     requires target_bed : "Flattened, sorted BED file describing target regions, with ID column containing gene",
              refgene : "UCSC refGene database (usually named refGene.txt)"
 
+    var autoFilter : true
+    
     def chromosome = branch.name
     
     output.dir="$branch.dir/report"
@@ -40,6 +42,11 @@ plot_cnv_coverage = {
     if(!draw_cnvs) {
         println "Skip drawing CNVs because disabled by setting"
         return
+    }
+    
+    def autoFilterOption = ''
+    if(autoFilter) {
+        autoFilterOption = '-autoFilter'
     }
     
     from("cnv_report.tsv", target_bed) { produce("cnv_diagrams_${chromosome}_created.txt") {
@@ -68,7 +75,7 @@ plot_cnv_coverage = {
                 -json -nopng
                 -o ${output.dir+"/cnv.png"} $reportSamplesFlag
                 -t $threads ${caller_opts.join(" ")} ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} ${inputs.bam.withFlag("-bam")}
-                -refseq $refgene
+                -refseq $refgene $autoFilterOption
 
             ls cnv_${chromosome}_* | wc > $output.txt
 
