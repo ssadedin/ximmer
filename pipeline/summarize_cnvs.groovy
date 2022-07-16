@@ -29,7 +29,7 @@ plot_cnv_coverage = {
     requires target_bed : "Flattened, sorted BED file describing target regions, with ID column containing gene",
              refgene : "UCSC refGene database (usually named refGene.txt)"
 
-    var autoFilter : true
+    var autoFilterCNVDiagrams : false
     
     def chromosome = branch.name
     
@@ -45,7 +45,7 @@ plot_cnv_coverage = {
     }
     
     def autoFilterOption = ''
-    if(autoFilter) {
+    if(autoFilterCNVDiagrams) {
         autoFilterOption = '-autoFilter'
     }
     
