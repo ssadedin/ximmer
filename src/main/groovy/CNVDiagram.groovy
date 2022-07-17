@@ -1208,7 +1208,7 @@ class CNVDiagram {
             // Filter high freq, high within-batch calls and dups called by a single caller
             cnvs = cnvs.grep { it.sampleCount > maxSampleCount || it.DDDFreq>maxFreq || it.DGVFreq>0.2 || (it.type == 'DUP' && it.count == 1)   } as Regions
             
-            log.info "Filtering reduced CNVs from $oldCNVCount to ${cnvs.numberOfRanges} (" + Utils.perc(cnvs.numberOfRanges/oldCNVCount) + '%)'
+            log.info "Filtering reduced CNVs from $oldCNVCount to ${cnvs.numberOfRanges} (" + Utils.perc(cnvs.numberOfRanges/(oldCNVCount+1)) + '%)'
         }
         
         return cnvs
