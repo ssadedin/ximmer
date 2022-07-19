@@ -18,9 +18,6 @@ class CalculateCombinedStatistics extends ToolBase {
 
         List<String> stats = opts.arguments().grep { it.endsWith('.stats.tsv') }
         
-        assert stats.size() == intervalStats.size() :
-             'One or more files provided as a sample interval summary did not have an associated coverage file or files were ambiguous'
-        
         log.info "Loaded ${intervalStats.size()} summary files ..."
 
         int threads = opts.threads?:2
@@ -28,7 +25,14 @@ class CalculateCombinedStatistics extends ToolBase {
         Matrix allCovs = GParsPool.withPool(threads) {
              Matrix.concat(intervalStats.collectParallel { loadCovs(it) })
         }
-        
+
+        def inconsistentSamples = allCovs.sample.find { s -> stats.count { new File(it).name.startsWith(s + '.') } != 1 }
+
+        log.info "The inconsistent samples are: $inconsistentSamples"
+        if(inconsistentSamples) {
+            log.info "The following samples had incorrect number of stats files: $inconsistentSamples"
+        }
+       
         assert allCovs.sample.every { s -> stats.count { new File(it).name.startsWith(s + '.') } == 1 } :
              'One or more files provided as a sample interval summary did not have an associated coverage file or files were ambiguous'
         
