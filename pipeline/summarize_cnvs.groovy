@@ -214,19 +214,21 @@ calc_target_covs = {
 
     output.dir = "common/rawqc/individual"
 
-    exec """
-        unset GROOVY_HOME;  
-
-        $JAVA -Xmx${memory}g -cp $GROOVY_ALL_JAR:$GNGS_JAR
-            gngs.tools.Cov 
-            -L $target_bed
-            -o /dev/null 
-            -samplesummary $output.stats.tsv
-            -intervalsummary $output.sample_interval_summary
-            $input.bam
-    """
-    
     def sample = new gngs.SAM(input.bam.toString()).samples[0]
+
+    produce(sample + '.stats.tsv', sample + '.calc_target_covs.sample_interval_summary') {
+        exec """
+            unset GROOVY_HOME;  
+
+            $JAVA -Xmx${memory}g -cp $GROOVY_ALL_JAR:$GNGS_JAR
+                gngs.tools.Cov 
+                -L $target_bed
+                -o /dev/null 
+                -samplesummary $output.stats.tsv
+                -intervalsummary $output.sample_interval_summary
+                $input.bam
+        """
+    }
     
     sample_to_control_cov_files[sample] = [output.stats.tsv, output.sample_interval_summary]
 }
