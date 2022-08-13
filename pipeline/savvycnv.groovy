@@ -3,6 +3,8 @@
 //
 
 init_savvycnv = {
+
+   requires batch_name : 'The directory to which the savvy results should be output'
     
     def CONFIG_FILE = "pipeline/config.groovy"
     
@@ -16,7 +18,7 @@ init_savvycnv = {
     if(!file(SAVVYCNV_JAR).exists())
         throw new bpipe.PipelineError("SavvyCNV jar file $SAVVYCNV_JAR was not found.  Please check SavvySuite was built successfully")
 
-    branch.dir = "analysis/savvy"
+    branch.dir = "$batch_name/savvy"
 }
 
 savvy_bin_coverage = {
