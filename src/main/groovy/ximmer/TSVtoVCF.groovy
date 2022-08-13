@@ -6,6 +6,7 @@ import gngs.FASTA
 import gngs.ProgressCounter
 import gngs.ToolBase
 import gngs.XPos
+import gngs.Region
 import graxxia.TSV
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log
@@ -57,6 +58,11 @@ class TSVtoVCF extends ToolBase {
         
         for(PropertyMapper line in tsv) {
             String ref = genomeRef.basesAt(line.chr, line.start, line.start+1)[0]
+
+            // Ignore non-primary assembly contigs because they can return blank reference sequence
+            if(Region.isMinorContig(line.chr) && !ref.trim())
+                continue
+                                         
             int svLen = (line.end - line.start) * (line.type == 'DEL' ? -1 : 1 )
             Allele refAllele = Allele.create(ref, true)
             List<Allele> alleles = [
