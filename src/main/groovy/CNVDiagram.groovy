@@ -1206,7 +1206,11 @@ class CNVDiagram {
             int oldCNVCount = cnvs.numberOfRanges
 
             // Filter high freq, high within-batch calls and dups called by a single caller
-            cnvs = cnvs.grep { it.sampleCount > maxSampleCount || it.DDDFreq>maxFreq || it.DGVFreq>0.2 || (it.type == 'DUP' && it.count == 1)   } as Regions
+            cnvs = cnvs.grep { 
+                (it.sampleCount < maxSampleCount) &&  // Do not include if found in more than (default 3) samples in the batch
+                (it.DDDFreq<maxFreq) && (it.DGVFreq<maxFreq) &&  // Do not include if spanning population freq too high 
+                (it.type.contains('DEL') || (it.count > 1))  // Only include non-deletions if count > 1
+            } as Regions
             
             log.info "Filtering reduced CNVs from $oldCNVCount to ${cnvs.numberOfRanges} (" + Utils.perc(cnvs.numberOfRanges/(oldCNVCount+1)) + '%)'
         }
