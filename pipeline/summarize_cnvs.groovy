@@ -71,11 +71,11 @@ plot_cnv_coverage = {
                 -cnvs $input.tsv
                 -ref $HGFA
                 -covjs $input.cov.js
-                -targets $input.bed
+                -targets $input.bed $autoFilterOption
                 -json -nopng
                 -o ${output.dir+"/cnv.png"} $reportSamplesFlag
                 -t $threads ${caller_opts.join(" ")} ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} ${inputs.bam.withFlag("-bam")}
-                -refseq $refgene $autoFilterOption
+                -refseq $refgene 
 
             ls cnv_${chromosome}_* | wc > $output.txt
 
