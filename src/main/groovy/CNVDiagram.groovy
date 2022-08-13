@@ -267,7 +267,11 @@ class CNVDiagram {
             }
         }
         
-        log.info "Finished drawing.  Executed ${coverageReads}/${coverageCachedReads} coverage read operations (caching hit rate = ${Utils.perc(coverageReads/coverageCachedReads)})"
+        
+        if(coverageCachedReads>0) 
+            log.info "Finished drawing.  Executed ${coverageReads}/${coverageCachedReads} coverage read operations (caching hit rate = ${Utils.perc(coverageReads/coverageCachedReads)})"
+        else
+            log.info "Finished drawing (no coverage reads)"
     }
     
     @CompileStatic
