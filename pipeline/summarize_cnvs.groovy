@@ -153,6 +153,8 @@ create_cnv_report = {
         samplesOption = "-samples ${test_samples.join(',')}"
     }
     
+    def dgvFlag = DGV_CNVS ? "-dgv $DGV_CNVS" : ""
+    
     produce("${file_name_prefix}cnv_report.html", "${file_name_prefix}cnv_report.tsv", "${file_name_prefix}combined_cnvs.json") {
 
         def true_cnvs = ""
@@ -167,8 +169,7 @@ create_cnv_report = {
                 -target $target_bed ${caller_opts.join(" ")} $refGeneOpts
                 ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} -bampath "$bam_file_path"
                 -tsv $output.tsv -json $output.json ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""} -mergefrac $mergeOverlapFraction
-                -dgv $DGV_CNVS $dddOpt $true_cnvs $idMaskOpt $geneFilterOpts $excludeGenesOpts $geneListOpts $minCatOpt $sampleMapParam 
-                -mergeby $cnvMergeMode $samplesOption
+                -mergeby $cnvMergeMode $dgvFlag $dddOpt $true_cnvs $idMaskOpt $geneFilterOpts $excludeGenesOpts $geneListOpts $minCatOpt $sampleMapParam $samplesOption
                 ${batch_quality_params.join(" ")} -o $output.html 
                 ${batch_name ? "-name $batch_name" : ""} ${inputs.bam.withFlag('-bam')}
         """, "create_cnv_report"
