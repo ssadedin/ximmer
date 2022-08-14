@@ -544,7 +544,7 @@ class Ximmer {
             log.info "Exit code from bpipe for $runDir was $exitValue"
 
             if(exitValue != 0) 
-                throw new RuntimeException("Analysis failed for $runDir: " + err.toString())
+                throw new RuntimeException("Analysis failed for $runDir - see error in stderr")
             
         }
         finally {
