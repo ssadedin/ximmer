@@ -62,9 +62,14 @@ create_analysable_target = {
        branch.analysable_target = output.bed
     }
        
-   // Overwrite global variable
-   branch.analysable_chromosomes = new BED(branch.analysable_target.toString()).load()*.chr.unique().grep { it in INCLUDE_CHROMOSOMES }
-   
+   // Overwrite branch variable
+   branch.analysable_chromosomes = 
+       new graxxia.TSV(branch.analysable_target.toString(), columnNames:['chr','start','end','id'])
+            .stream()
+            .map { it.chr }
+            .distinct()
+            .collect()
+            .grep { it in INCLUDE_CHROMOSOMES }
 }
 
 select_controls = {
