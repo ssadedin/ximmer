@@ -227,7 +227,7 @@ calc_target_covs = {
                 -samplesummary $output.stats.tsv
                 -intervalsummary $output.sample_interval_summary
                 $input.bam
-        """
+        """, "calc_single_cov"
     }
     
     sample_to_control_cov_files[sample] = [output.stats.tsv, output.sample_interval_summary]

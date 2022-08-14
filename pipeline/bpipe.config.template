@@ -52,4 +52,8 @@ commands {
     delfin {
         memory="8g"
     }
+    
+    calc_single_cov {
+        memory="2g"
+    }
 }
