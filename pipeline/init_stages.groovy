@@ -1,3 +1,5 @@
+import java.util.stream.StreamSupport
+
 import gngs.*
 
 init_excavator = { branch.excavator_batch=batch_name }
@@ -61,11 +63,12 @@ create_analysable_target = {
        }
        branch.analysable_target = output.bed
     }
+    
+    def tsv = new graxxia.TSV(branch.analysable_target.toString(), columnNames:['chr','start','end','id'])
        
-   // Overwrite branch variable
-   branch.analysable_chromosomes = 
-       new graxxia.TSV(branch.analysable_target.toString(), columnNames:['chr','start','end','id'])
-            .stream()
+    // Overwrite branch variable
+    branch.analysable_chromosomes = 
+       StreamSupport.stream(tsv.spliterator(), false)
             .map { it.chr }
             .distinct()
             .collect()
