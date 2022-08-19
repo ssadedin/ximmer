@@ -106,7 +106,8 @@ create_cnv_report = {
             file_name_prefix : "",
             mergeOverlapFraction: 0.4,
             cnvMergeMode: "sharedtargets",
-            control_samples : false
+            control_samples : false,
+            report_chr : false
         ] + 
         batch_cnv_results*.key.collectEntries {  caller_label ->
             [ caller_label + '_quality_filter', false ]
@@ -139,6 +140,8 @@ create_cnv_report = {
         "-genelist $name=${file(f).absolutePath}"
     }.join(' ')
     
+    def reportChrFlag = report_chr ? "-chr $report_chr" : ""
+    
     String sampleMapParam = sample_map ? "-samplemap $sample_map" : "" 
     
     String minCatOpt = minimum_category ? "-mincat $minimum_category " : ""
@@ -166,7 +169,7 @@ create_cnv_report = {
             unset GROOVY_HOME
 
             JAVA_OPTS="-Xmx12g -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC:$XIMMER_SRC/../resources:$XIMMER_SRC/../js $XIMMER_SRC/SummarizeCNVs.groovy
-                -target $target_bed ${caller_opts.join(" ")} $refGeneOpts
+                -target $target_bed ${caller_opts.join(" ")} $refGeneOpts $reportChrFlag
                 ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} -bampath "$bam_file_path"
                 -tsv $output.tsv -json $output.json ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""} -mergefrac $mergeOverlapFraction
                 -mergeby $cnvMergeMode $dgvFlag $dddOpt $true_cnvs $idMaskOpt $geneFilterOpts $excludeGenesOpts $geneListOpts $minCatOpt $sampleMapParam $samplesOption
