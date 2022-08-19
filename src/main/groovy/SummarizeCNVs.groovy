@@ -66,6 +66,11 @@ class SummarizeCNVs {
     Set<String> excludeGenes = null
     
     /**
+     * If set, only include calls on this chromosome
+     */
+    String filterToChromosome
+    
+    /**
      * Global gene categories (applied to all samples without a gene list)
      */
     Map<String, Integer> geneCategories = [:]
@@ -246,6 +251,10 @@ class SummarizeCNVs {
             )
             
             initFrequencyAnnotator(opts, target, summarizer)
+            
+            if(opts.chr) {
+                summarizer.filterToChromosome = opts.chr
+            }
             
             if(opts.refgene == "download") {
                 summarizer.refGenes = refGenes
@@ -837,6 +846,9 @@ class SummarizeCNVs {
             log.info "CNV $cnv filtered out by low quality score in $qualityFiltering"
             return true
         }
+        
+        if(this.filterToChromosome && (cnv.chr != this.filterToChromosome))
+            return true
             
         // If a list of genes to filter to is set, include the CNV only if it
         // overlaps the gene list
