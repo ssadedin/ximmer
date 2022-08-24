@@ -92,7 +92,7 @@ create_cnv_report = {
     var ([ 
             angel_quality_threshold : 8.0f,
             batch_name : false,
-            bam_file_path : "http://172.16.56.202/$batch_name/",
+            bam_file_path : false,
             sample_info : false,
             simulation: false,
             imgpath: false,
@@ -169,8 +169,7 @@ create_cnv_report = {
             unset GROOVY_HOME
 
             JAVA_OPTS="-Xmx12g -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC:$XIMMER_SRC/../resources:$XIMMER_SRC/../js $XIMMER_SRC/SummarizeCNVs.groovy
-                -target $target_bed ${caller_opts.join(" ")} $refGeneOpts $reportChrFlag
-                ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")} -bampath "$bam_file_path"
+                -target $target_bed ${caller_opts.join(" ")} $refGeneOpts $reportChrFlag ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")}
                 -tsv $output.tsv -json $output.json ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""} -mergefrac $mergeOverlapFraction
                 -mergeby $cnvMergeMode $dgvFlag $dddOpt $true_cnvs $idMaskOpt $geneFilterOpts $excludeGenesOpts $geneListOpts $minCatOpt $sampleMapParam $samplesOption
                 ${batch_quality_params.join(" ")} -o $output.html 
