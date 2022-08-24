@@ -81,7 +81,8 @@ select_controls = {
     
     var control_correlation_threshold : 0.9,
         control_samples : false,
-        control_correlation_split_threshold : 0.83
+        control_correlation_split_threshold : 0.83,
+        minimum_analysis_group_size : 20
         
     if(!control_samples) {
         
@@ -108,14 +109,17 @@ select_controls = {
     
     produce('filtered_controls.txt') {
         exec """
+            mkdir -p control_sets
+
             JAVA_OPTS="-Xmx8g -Djava.awt.headless=true -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/ximmer/FilterControls.groovy
                 -corr $input.correlations.js
                 --outputDirectory control_sets
+                -splitThreshold $control_correlation_split_threshold
+                -minimumGroupSize $minimum_analysis_group_size
                 -thresh $control_correlation_threshold ${control_samples.collect { '-control ' + it}.join(' ')}
                 > $output.txt
         ""","local"
     }
-        
     
     List filtered_control_samples = file(output.txt).readLines()*.trim()
     
