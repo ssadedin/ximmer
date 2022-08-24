@@ -80,7 +80,8 @@ select_controls = {
     doc "Selects a subset of controls to use from the supplied controls based on correlation with test samples"
     
     var control_correlation_threshold : 0.9,
-        control_samples : false
+        control_samples : false,
+        control_correlation_split_threshold : 0.83
         
     if(!control_samples) {
         
@@ -109,6 +110,7 @@ select_controls = {
         exec """
             JAVA_OPTS="-Xmx8g -Djava.awt.headless=true -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/ximmer/FilterControls.groovy
                 -corr $input.correlations.js
+                --outputDirectory control_sets
                 -thresh $control_correlation_threshold ${control_samples.collect { '-control ' + it}.join(' ')}
                 > $output.txt
         ""","local"
