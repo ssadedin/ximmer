@@ -7,81 +7,6 @@ import graxxia.Stats
 import groovy.json.JsonSlurper
 import groovy.util.logging.Log
 
-
-class Sample {
-    String sample
-    
-    Map<String,Double> correlations
-    
-    Map.Entry<String,Double> getWorst() {
-        correlations.min { it.value }
-    }
-    
-    String toString() { "Sample $sample"}
-}
-
-class SampleSet {
-   Map<String, Sample> samples
-   
-   /**
-    * Add the given other sample to this sample set.
-    * 
-    * Adjusts the correlation maps of the existing samples to include the control
-    * and adds the control itself as a new {@link Sample} object with correlations
-    * narrowed to the existing samples in this set.
-    * 
-    * @param control
-    */
-   void addSample(Sample sampleToAdd) {
-       
-       String controlId = sampleToAdd.sample
-       
-        def controlCorrelations = this.samples.keySet().collectEntries { s ->
-           [s, sampleToAdd.correlations[s]]
-        }
-        controlCorrelations[controlId] = 1.0d
-        
-        this.samples.each { String id, Sample sample ->
-            sample.correlations[controlId] = sampleToAdd.correlations[id]
-        }
-
-        this.samples[controlId] = 
-            new Sample(sample:controlId, correlations: controlCorrelations)
-   }
-       
-    
-    Stats getCorrelationStats() {
-        Stats.from(samples.collectMany { it.value.correlations*.value })
-    }
-    
-    Sample worst() {
-        return samples.min { e ->
-            e.value.correlations*.value.min()
-        }.value
-    }
-    
-    List<SampleSet> splitSet(String seed, Double targetCorrelation) {
-        
-        List<Map<String,Sample>> partitions = samples.split { e ->
-            e.value.correlations[seed] > targetCorrelation
-        }*.collectEntries()
-        .collect { Map<String,Sample> partitionSamples ->
-            partitionSamples.collectEntries { e ->
-                Sample sample = e.value
-                def matchingCorrelations = sample.correlations.grep { it.key in partitionSamples}.collectEntries()
-                [sample.sample, new Sample(sample: sample.sample, correlations: matchingCorrelations)]
-            }
-        }
-       
-        return partitions.collect { p ->
-            new SampleSet(samples: p)
-        }
-    }
-    
-    String toString() { "${samples.size()} samples min corr=${String.format('%.2f',this.worst().worst.value)}: ${samples*.key.join(', ')}" }
-}
-
-
 /**
  * A tool that analyses correlation output (see MultiCov) to identify controls where all samples
  * have correlation is smaller than a set threshold.
@@ -277,3 +202,77 @@ class FilterControls {
         fc.run()
     }
 }
+
+class Sample {
+    String sample
+    
+    Map<String,Double> correlations
+    
+    Map.Entry<String,Double> getWorst() {
+        correlations.min { it.value }
+    }
+    
+    String toString() { "Sample $sample"}
+}
+
+class SampleSet {
+   Map<String, Sample> samples
+   
+   /**
+    * Add the given other sample to this sample set.
+    * 
+    * Adjusts the correlation maps of the existing samples to include the control
+    * and adds the control itself as a new {@link Sample} object with correlations
+    * narrowed to the existing samples in this set.
+    * 
+    * @param control
+    */
+   void addSample(Sample sampleToAdd) {
+       
+       String controlId = sampleToAdd.sample
+       
+        def controlCorrelations = this.samples.keySet().collectEntries { s ->
+           [s, sampleToAdd.correlations[s]]
+        }
+        controlCorrelations[controlId] = 1.0d
+        
+        this.samples.each { String id, Sample sample ->
+            sample.correlations[controlId] = sampleToAdd.correlations[id]
+        }
+
+        this.samples[controlId] = 
+            new Sample(sample:controlId, correlations: controlCorrelations)
+   }
+       
+    
+    Stats getCorrelationStats() {
+        Stats.from(samples.collectMany { it.value.correlations*.value })
+    }
+    
+    Sample worst() {
+        return samples.min { e ->
+            e.value.correlations*.value.min()
+        }.value
+    }
+    
+    List<SampleSet> splitSet(String seed, Double targetCorrelation) {
+        
+        List<Map<String,Sample>> partitions = samples.split { e ->
+            e.value.correlations[seed] > targetCorrelation
+        }*.collectEntries()
+        .collect { Map<String,Sample> partitionSamples ->
+            partitionSamples.collectEntries { e ->
+                Sample sample = e.value
+                def matchingCorrelations = sample.correlations.grep { it.key in partitionSamples}.collectEntries()
+                [sample.sample, new Sample(sample: sample.sample, correlations: matchingCorrelations)]
+            }
+        }
+       
+        return partitions.collect { p ->
+            new SampleSet(samples: p)
+        }
+    }
+    
+    String toString() { "${samples.size()} samples min corr=${String.format('%.2f',this.worst().worst.value)}: ${samples*.key.join(', ')}" }
+}
+
