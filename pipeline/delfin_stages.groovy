@@ -11,7 +11,7 @@ delfin = {
         delfin_deletion_emit_threshold : 3.3,
         delfin_duplication_emit_threshold: 5.5
     
-    output.dir = "analysis/delfin"
+    output.dir = "$batch_name/delfin"
     
     def cov_files = []
     
