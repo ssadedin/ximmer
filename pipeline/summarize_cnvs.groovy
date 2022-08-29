@@ -215,11 +215,32 @@ cnv_report = {
 
 calc_target_covs = {
 
+    var coverage_cache_dir : false
+
     output.dir = "common/rawqc/individual"
 
     def sample = new gngs.SAM(input.bam.toString()).samples[0]
+    
+    
+        
+    def intervalSummaryPath = sample + '.calc_target_covs.sample_interval_summary'
+    def statsPath = sample + '.stats.tsv'
+    produce(statsPath, intervalSummaryPath) {
 
-    produce(sample + '.stats.tsv', sample + '.calc_target_covs.sample_interval_summary') {
+        if(coverage_cache_dir) {
+            def cachedPath = new File(coverage_cache_dir, intervalSummaryPath) 
+            def statsFile = new File(coverage_cache_dir, statsPath) 
+            if(cachedPath.exists()) {
+                exec """
+                    ln -s $cachedPath.absolutePath $output.sample_interval_summary
+
+                    ln -s $statsFile.absolutePath $output.tsv
+                ""","local"
+            }
+            println "Using cached path $cachedPath for coverage values for $sample"
+            return
+        }
+
         exec """
             unset GROOVY_HOME;  
 
