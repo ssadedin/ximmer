@@ -56,4 +56,8 @@ commands {
     calc_single_cov {
         memory="2g"
     }
+
+    calc_combined_correlations {
+        memory="26g"
+    }
 }
