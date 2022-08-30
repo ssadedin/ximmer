@@ -17,6 +17,7 @@ import org.codehaus.groovy.runtime.StackTraceUtils
 
 import gngs.*
 import gngs.sample.SampleInfo
+import gngs.tools.ShearingKmerCounter
 import graxxia.Matrix
 import graxxia.Stats
 import groovy.json.JsonOutput
@@ -909,6 +910,10 @@ class CNVDiagram {
     @Memoized(maxCacheSize=200000)
     short[] readSampleCoverage(final String s, String chr, int from, int to) {
         
+        double [] kmerFactors = null
+        if(this.allKmerFactors)
+            kmerFactors = allKmerFactors[allKmerFactors.sample.indexOf(s)]
+        
         ++coverageReads
 
         if(readers.get() == null)
@@ -923,7 +928,17 @@ class CNVDiagram {
         PileupIterator pileup
         try {
             pileup = bams[s].pileup(reader, chr, from, to)
-            def sampleCov = pileup.collect { PileupIterator.Pileup pi -> pi.alignments.size() } as short[]
+
+            short[] sampleCov
+            if(kmerFactors == null)  {
+                sampleCov = pileup.collect { PileupIterator.Pileup pi -> 
+                    pi.alignments.size() 
+                } as short[]
+            }
+            else {
+                sampleCov = calculateKmerAdjustedCoverage(kmerFactors, pileup)
+            }
+
             return sampleCov
         }
         finally {
@@ -931,6 +946,20 @@ class CNVDiagram {
                 pileup.readIterator.close()
             }
         }
+    }
+    
+    @CompileStatic
+    short [] calculateKmerAdjustedCoverage(double [] kmerFactors, PileupIterator pileup) {
+        return pileup.collect { PileupIterator.Pileup pi ->
+            double cov = 0.0d
+            final List<PileupState> alignments = pi.alignments
+            final int n = alignments.size()
+            for(int i=0; i<n; ++i) {
+                int kmerIndex = ShearingKmerCounter.computeKmer(alignments[i].read)
+                cov += kmerFactors[kmerIndex]
+            }
+            return (short)cov
+        } as short[]
     }
     
     boolean validate(boolean ignoreMissing=false) {
@@ -986,6 +1015,7 @@ class CNVDiagram {
             dfn 'CNV calls from Delfin', args:Cli.UNLIMITED
             angel 'Deletion calls from Angel', args:Cli.UNLIMITED
             ed 'CNV calls from Exome Depth', args:Cli.UNLIMITED
+            kmer 'Enables kmer normalisation via supplied kmer profile', args: 1
             generic  'CNV calls in BED format, sample in id column', args:Cli.UNLIMITED
             vcf 'VCF files containing variant calls for samples (optional) for annotation', args:Cli.UNLIMITED
             bam 'BAM file, one for each sample', args:Cli.UNLIMITED
@@ -1220,6 +1250,25 @@ class CNVDiagram {
         }
         
         return cnvs
+    }
+    
+    Matrix allKmerFactors
+    
+    private void initKmerProfile() {
+        
+       log.info "Calculating kmer weightings based on kmer profile: $opts.kmer"
+       Matrix kmerCounts = Matrix.load(opts.kmer) 
+       Matrix norm = kmerCounts.normaliseRows().normaliseColumns()
+       this.allKmerFactors = norm.transform { double value ->
+           if(value != 0) {
+               return 1.0d / value
+           }
+           else {
+               return 1.0d // multiplier will be 1.0d when factor cannot be calculated
+           }
+       }.fillna(1.0)
+       
+       log.info "Calculated kmer profile matrix:\n" + this.allKmerFactors
     }
     
     private Regions findLiteMeanRegions() {

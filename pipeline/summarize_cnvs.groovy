@@ -29,7 +29,8 @@ plot_cnv_coverage = {
     requires target_bed : "Flattened, sorted BED file describing target regions, with ID column containing gene",
              refgene : "UCSC refGene database (usually named refGene.txt)"
 
-    var autoFilterCNVDiagrams : false
+    var autoFilterCNVDiagrams : false,
+        enable_kmer_normalisation : false
     
     def chromosome = branch.name
     
@@ -49,6 +50,10 @@ plot_cnv_coverage = {
         autoFilterOption = '-autoFilter'
     }
     
+    def kmerFlag = ""
+    if(enable_kmer_normalisation)
+        kmerFlag = "-kmer $input.combined.kmers.tsv"
+
     from("cnv_report.tsv", target_bed) { produce("cnv_diagrams_${chromosome}_created.txt") {
 
         def caller_opts = []
@@ -69,7 +74,7 @@ plot_cnv_coverage = {
             JAVA_OPTS="-Xmx8g -Djava.awt.headless=true -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC $XIMMER_SRC/CNVDiagram.groovy
                 -chr $chromosome
                 -cnvs $input.tsv
-                -ref $HGFA
+                -ref $HGFA $kmerFlag
                 -covjs $input.cov.js
                 -targets $input.bed $autoFilterOption
                 -json -nopng
@@ -213,9 +218,38 @@ cnv_report = {
     }
 }
 
+@Transform('kmer.tsv')
+calc_kmer_profile = {
+    output.dir = "common/kmers"
+    exec """
+        unset GROOVY_HOME;  
+
+        $JAVA -Xmx${memory}g -cp $GROOVY_ALL_JAR:$GNGS_JAR
+            gngs.tools.ShearingKmerCounter 
+            -i $input.bam
+            -o $output.tsv
+    """, "calc_single_cov"
+}
+
+merge_kmer_profiles = {
+    output.dir="common/kmers"
+    produce(batch + '.combined.kmers.tsv') {
+        exec """
+            unset GROOVY_HOME;  
+
+            $JAVA -Xmx${memory}g -cp $GROOVY_ALL_JAR:$GNGS_JAR
+                gngs.tools.HeaderCat 
+                -c NONE
+                -o $output.tsv
+                $inputs.kmer.tsv
+        """, "calc_single_cov"
+    }
+}
+
 calc_target_covs = {
 
-    var coverage_cache_dir : false
+    var coverage_cache_dir : false,
+        enable_kmer_normalisation : false
 
     output.dir = "common/rawqc/individual"
 
@@ -231,17 +265,15 @@ calc_target_covs = {
             forward(cachedPath.absolutePath, statsFile.absolutePath) 
 
             sample_to_control_cov_files[sample] = [statsFile.absolutePath, cachedPath.absolutePath]
-                /*
-            exec """
-                ln -s $cachedPath.absolutePath $output.sample_interval_summary
 
-                ln -s $statsFile.absolutePath $output.tsv
-            ""","local"
-            */
             println "Using cached path $cachedPath for coverage values for $sample"
             return
         }
     }
+    
+    def kmerFlag = ""
+    if(enable_kmer_normalisation)
+        kmerFlag = "-kmer $input.combined.kmers.tsv"
 
     produce(statsPath, intervalSummaryPath) {
 
@@ -250,9 +282,9 @@ calc_target_covs = {
 
             $JAVA -Xmx${memory}g -cp $GROOVY_ALL_JAR:$GNGS_JAR
                 gngs.tools.Cov 
-                -L $target_bed
+                -L $target_bed $kmerFlag
                 -o /dev/null 
-                -samplesummary $output.stats.tsv
+                -samplesummary $output.stats.tsv 
                 -intervalsummary $output.sample_interval_summary
                 $input.bam
         """, "calc_single_cov"

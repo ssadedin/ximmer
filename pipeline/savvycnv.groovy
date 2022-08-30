@@ -28,16 +28,17 @@ savvy_bin_coverage = {
     def sample = new gngs.SAM(input.bam.toString()).samples[0]
 
     def outputPath = sample + '.coverageBinner'
-    produce(outputPath) {
+    
         
-        if(savvy_coverage_cache_dir) {
-            File cachedCoverage = new File(savvy_coverage_cache_dir, outputPath)
-            if(cachedCoverage.exists()) {
-                println "Using cached SavvyCNV binned coverage file $cachedCoverage.absolutePath"
-                forward(cachedCoverage.absolutePath)
-            }
+    if(savvy_coverage_cache_dir) {
+        File cachedCoverage = new File(savvy_coverage_cache_dir, outputPath)
+        if(cachedCoverage.exists()) {
+            println "Using cached SavvyCNV binned coverage file $cachedCoverage.absolutePath"
+            forward(cachedCoverage.absolutePath)
         }
-        
+    }
+            
+    produce(outputPath) {
         exec """
             export CLASSPATH="$SAVVYCNV_JAR"
 
