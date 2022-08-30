@@ -220,26 +220,30 @@ calc_target_covs = {
     output.dir = "common/rawqc/individual"
 
     def sample = new gngs.SAM(input.bam.toString()).samples[0]
-    
-    
-        
     def intervalSummaryPath = sample + '.calc_target_covs.sample_interval_summary'
     def statsPath = sample + '.stats.tsv'
-    produce(statsPath, intervalSummaryPath) {
 
-        if(coverage_cache_dir) {
-            def cachedPath = new File(coverage_cache_dir, intervalSummaryPath) 
-            def statsFile = new File(coverage_cache_dir, statsPath) 
-            if(cachedPath.exists()) {
-                exec """
-                    ln -s $cachedPath.absolutePath $output.sample_interval_summary
+    if(coverage_cache_dir) {
+        def cachedPath = new File(coverage_cache_dir, intervalSummaryPath) 
+        def statsFile = new File(coverage_cache_dir, statsPath) 
+        if(cachedPath.exists()) {
 
-                    ln -s $statsFile.absolutePath $output.tsv
-                ""","local"
-            }
+            forward(cachedPath.absolutePath, statsFile.absolutePath) 
+
+            sample_to_control_cov_files[sample] = [statsFile.absolutePath, cachedPath.absolutePath]
+                /*
+            exec """
+                ln -s $cachedPath.absolutePath $output.sample_interval_summary
+
+                ln -s $statsFile.absolutePath $output.tsv
+            ""","local"
+            */
             println "Using cached path $cachedPath for coverage values for $sample"
             return
         }
+    }
+
+    produce(statsPath, intervalSummaryPath) {
 
         exec """
             unset GROOVY_HOME;  
@@ -255,6 +259,10 @@ calc_target_covs = {
     }
     
     sample_to_control_cov_files[sample] = [output.stats.tsv, output.sample_interval_summary]
+}
+
+forward_all_cov_files = {
+    forward(sample_to_control_cov_files*.value.flatten())
 }
 
 calc_combined_correlations = {

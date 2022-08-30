@@ -34,9 +34,7 @@ savvy_bin_coverage = {
             File cachedCoverage = new File(savvy_coverage_cache_dir, outputPath)
             if(cachedCoverage.exists()) {
                 println "Using cached SavvyCNV binned coverage file $cachedCoverage.absolutePath"
-                exec """
-                    ln -s $cachedCoverage.absolutePath $output.coverageBinner
-                """
+                forward(cachedCoverage.absolutePath)
             }
         }
         
