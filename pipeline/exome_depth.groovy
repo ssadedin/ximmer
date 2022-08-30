@@ -187,6 +187,7 @@ run_exome_depth = {
 
             # Now we need all the bam files. Generate them from sample names
             ed.samples = c(${sample_list.collect{'"'+it+'"'}.join(",")})
+            ed.test.samples = c(${test_samples.collect{'"'+it+'"'}.join(",")})
 
             print(sprintf("Read %d samples",length(ed.samples)))
 
@@ -207,7 +208,7 @@ run_exome_depth = {
 
             all.reference.stats = NA
 
-            for(ed.test.sample in ed.samples) {
+            for(ed.test.sample in ed.test.samples) {
 
                 print(sprintf("Processing sample %s", ed.test.sample))
 

@@ -92,6 +92,8 @@ select_controls = {
         
         branch.filtered_bams = all_bams
         filtered_sample_names = branch.sample_names ?: sample_names
+        branch.test_samples = branch.sample_names
+
         println "No control samples are specified: skipping control selection, samples are: " + filtered_sample_names.join(',')
         return
     }
@@ -135,6 +137,8 @@ select_controls = {
     branch.sample_names = branch.sample_names.grep { (it in all_remaining_samples) }
     
     filtered_sample_names = branch.sample_names.grep { (it in test_samples) || (it in filtered_control_samples) }
+    
+    branch.test_samples = test_samples
 
     println "Sample names after filtering are : $branch.sample_names"
     
