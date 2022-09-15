@@ -1075,7 +1075,7 @@ class CNVDiagram {
             parseCallerOpt("dfn", opts.dfns, { new DelfinResults(it) }, cnvCalls)
 
         if(opts.savvys)
-            parseCallerOpt("savvys", opts.savvys, { new SavvyCNVResults(it) }, cnvCalls)
+            parseCallerOpt("savvys", opts.savvys, { new SavvyCNVResults(it, null) }, cnvCalls)
 
         if(opts.generics) {
             opts.generics.each { cnvBedFileAndName ->
