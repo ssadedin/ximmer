@@ -876,6 +876,9 @@ class SummarizeCNVs {
                 return true
         }
         
+        if(cnv.isMinorContig())
+            return true
+        
         return false
     }
     
