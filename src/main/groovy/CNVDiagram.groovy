@@ -1051,8 +1051,9 @@ class CNVDiagram {
             System.exit(1)
         }
         
+        Regions targetRegions = new BED(opts.targets).load().reduce()
+
         Map<String,RangedData> cnvCalls = [:]
-           
         if(opts.eds) 
             parseCallerOpt("ed", opts.eds, { new ExomeDepthResults(it) }, cnvCalls)
             
@@ -1075,7 +1076,7 @@ class CNVDiagram {
             parseCallerOpt("dfn", opts.dfns, { new DelfinResults(it) }, cnvCalls)
 
         if(opts.savvys)
-            parseCallerOpt("savvys", opts.savvys, { new SavvyCNVResults(it, null) }, cnvCalls)
+            parseCallerOpt("savvys", opts.savvys, { new SavvyCNVResults(it, targetRegions) }, cnvCalls)
 
         if(opts.generics) {
             opts.generics.each { cnvBedFileAndName ->
@@ -1118,8 +1119,7 @@ class CNVDiagram {
             }
         }
         
-        Regions targetRegions = new BED(opts.targets).load().reduce()
-        
+       
         def sampleInfo = null
         if(opts.sampleinfo) {
             log.info "Parsing sample info from $opts.sampleinfo"
