@@ -55,7 +55,7 @@ class PostToCXP extends ToolBase {
         if(!analysisFile.exists())
             throw new FileNotFoundException(analysisFile.absolutePath, "Provided analysis file does not exist")
             
-        File qcFile = new File(opts.qc)
+        qcFile = new File(opts.qc)
         if(!qcFile.exists())
             throw new FileNotFoundException(qcFile.absolutePath, "Provided qc file does not exist")
 
