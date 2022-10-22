@@ -1,6 +1,7 @@
 import java.util.regex.Pattern
 
 import gngs.*
+import groovy.json.JsonOutput
 import groovy.util.logging.Log
 import htsjdk.samtools.SAMRecord
 import Ximmer
@@ -130,6 +131,19 @@ class PostToCXP extends ToolBase {
             assert !samplesToSubmit.isEmpty() : "After filtering to sample sex $requiredSex there are no samples to submit"
         }
         
+        if(cfg?.containsKey('controls'))
+            log.info "${cfg.controls.size()} samples are specified as controls"
+        
+        List<String> all_samples = ximmer.bamFiles*.key
+        List<String> analysis_samples = cfg?.containsKey('test_samples') ?  all_samples.grep { it in cfg.test_samples } : all_samples
+        List<String> control_samples = []
+        if(cfg?.containsKey('controls')) {
+             control_samples = all_samples.grep { it in cfg.controls }
+             if(!cfg?.containsKey('test_samples')) {
+                 // The test samples are everything that isn't a control
+                 analysis_samples = all_samples.grep { !(it in control_samples) }
+             }
+        }
        
         Map data = [
             identifier: batchDir.absolutePath,
@@ -139,15 +153,15 @@ class PostToCXP extends ToolBase {
             samples: samplesToSubmit.collectEntries { [ it, ximmer.bamFiles[it].samFile.absolutePath ] },
             batch_id: batch[0].id,
             results: analysisFile.absolutePath,
-            control_samples: [],
-            analysis_samples: ximmer.bamFiles*.key,
+            control_samples: control_samples,
+            analysis_samples: analysis_samples,
             qc: qcFile.absolutePath
         ]
         
         WebService importService = ws / 'analysis/import'
         
         if(opts.test) {
-            log.info "Would post $data to $createBamService.endPoint"
+            log.info "Would post:\n ${JsonOutput.prettyPrint(JsonOutput.toJson(data))}\nto $createBamService.endPoint"
         } 
         else {
             importService.post(data) 
