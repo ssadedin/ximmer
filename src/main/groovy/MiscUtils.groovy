@@ -2,7 +2,8 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler
 import java.util.logging.Level;
 import java.util.regex.Pattern
-
+import java.nio.file.FileSystems
+import java.nio.file.PathMatcher
 import java.text.DateFormat;
 import java.text.SimpleDateFormat
 import java.util.logging.ConsoleHandler;
@@ -97,7 +98,13 @@ class MiscUtils {
      * @see http://www.faqs.org/docs/abs/HTML/globbingref.html
      * @author Karol Bucek
      */
-    static List<String> glob(pattern) {
+    static List<String> glob(rawPattern) {
+
+        log.info "Globbing $rawPattern .... "
+
+        if(System.properties['os.name'].toLowerCase().contains('windows')) {
+            return windowsGlob(rawPattern)
+        }
         
         if(pattern instanceof Pattern)
             return regexGlob(pattern)
@@ -210,13 +217,33 @@ class MiscUtils {
         }
         return fnames.sort()
     }
-    
-       static List<String> regexGlob(Pattern globPattern) {
+
+    static List<String> regexGlob(Pattern globPattern) {
         File f = new File(globPattern.toString())
         File dir = f.parentFile != null ? f.parentFile : new File(".")
         Pattern pattern = Pattern.compile(f.name)
         def result = dir.listFiles().grep { pattern.matcher(it.name).matches() }*.path        
         return result
+    }
+
+    static List<String> windowsGlob(String rawPattern) {
+        File parent = new File('.')
+        File patternFile = new File(rawPattern)
+        File start = parent
+        String pattern = rawPattern
+
+        if(patternFile.absolute) {
+            start = patternFile.absoluteFile.parentFile
+            pattern = patternFile.name
+            return new FileNameFinder().getFileNames(start.absolutePath, pattern)
+        }
+
+        PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+        List results = []
+        start.eachFileMatch(matcher) { 
+            results.add(it.path)
+        }
+        return results 
     }
        /**
     * Set up simple logging to work in a sane way
