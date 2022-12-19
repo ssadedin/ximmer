@@ -102,6 +102,7 @@ class MiscUtils {
 
         log.info "Globbing $rawPattern .... "
 
+        String pattern = rawPattern
         if(System.properties['os.name'].toLowerCase().contains('windows')) {
             return windowsGlob(rawPattern)
         }
