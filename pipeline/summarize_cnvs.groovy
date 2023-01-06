@@ -224,7 +224,7 @@ calc_kmer_profile = {
     exec """
         unset GROOVY_HOME;  
 
-        $JAVA -Xmx${memory}g -cp $GROOVY_ALL_JAR:$GNGS_JAR
+        $JAVA -Xmx${memory}g -cp '$GROOVY_HOME/lib/*:$GNGS_JAR'
             gngs.tools.ShearingKmerCounter 
             -i $input.bam
             -o $output.tsv
@@ -237,7 +237,7 @@ merge_kmer_profiles = {
         exec """
             unset GROOVY_HOME;  
 
-            $JAVA -Xmx${memory}g -cp $GROOVY_ALL_JAR:$GNGS_JAR
+            $JAVA -Xmx${memory}g -cp '$GROOVY_HOME/lib/*:$GNGS_JAR'
                 gngs.tools.HeaderCat 
                 -c NONE
                 -o $output.tsv
@@ -280,7 +280,7 @@ calc_target_covs = {
         exec """
             unset GROOVY_HOME;  
 
-            $JAVA -Xmx${memory}g -cp $GROOVY_ALL_JAR:$GNGS_JAR
+            $JAVA -Xmx${memory}g -cp '$GROOVY_HOME/lib/*:$GNGS_JAR'
                 gngs.tools.Cov 
                 -L $target_bed $kmerFlag
                 -o /dev/null 
@@ -337,7 +337,7 @@ calc_qc_stats = {
 
             unset GROOVY_HOME
 
-            $JAVA -Xmx${memory}g -cp $GROOVY_ALL_JAR:$GNGS_JAR gngs.tools.MultiCov
+            $JAVA -Xmx${memory}g -cp '$GROOVY_HOME/lib/*:$GNGS_JAR' gngs.tools.MultiCov
                     -cvj $output.js
                     -stats 
                     -cv  

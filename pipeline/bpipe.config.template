@@ -8,7 +8,7 @@ R {
 }
 
 groovy {
-    executable="$BASE/tools/groovy/2.5.13/bin/groovy"
+    executable="$BASE/tools/groovy/3.0.10/bin/groovy"
 }
 
 install {
