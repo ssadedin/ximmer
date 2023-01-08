@@ -2,13 +2,6 @@
 
 BASE=`cd $(dirname $0 | xargs dirname); pwd`
 
-# Workaround for docker install not finding Java
-if [ -e /.dockerenv ];
-then
-    export JAVA_HOME=/root/.sdkman/candidates/java/current
-    export PATH="$JAVA_HOME/bin:$PATH"
-fi
-
 unset GROOVY_HOME
 
 # Set JAVA_HOME based on java location
