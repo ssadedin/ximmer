@@ -227,7 +227,6 @@ class MiscUtils {
         return result
     }
 
-<<<<<<< HEAD
     static List<String> windowsGlob(String rawPattern) {
         File parent = new File('.')
         File patternFile = new File(rawPattern)
