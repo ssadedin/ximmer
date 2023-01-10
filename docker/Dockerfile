@@ -7,6 +7,9 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
 RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/'
 RUN apt update && apt install -y libcurl4-openssl-dev libxml2-dev libmariadbclient-dev r-base-core
 RUN apt install -y openjdk-11-jre libfreetype6-dev pkg-config python2 python2-dev python3 python3-dev python3-pip
+RUN echo 'local({r <- getOption("repos"); r["CRAN"] <- "http://cran.r-project.org"; options(repos=r); }); install.packages("BiocManager"); BiocManager::install("ExomeDepth");' | Rscript -
+RUN echo 'local({r <- getOption("repos"); r["CRAN"] <- "http://cran.r-project.org"; options(repos=r); }); install.packages("BiocManager"); BiocManager::install("CODEX");' | Rscript -
+
 RUN mkdir -p /usr/local/ximmer
 ADD bin /usr/local/ximmer/bin 
 ADD src /usr/local/ximmer/src
