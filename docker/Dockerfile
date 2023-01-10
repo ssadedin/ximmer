@@ -11,6 +11,10 @@ RUN apt-get update && \
 RUN apt-get update && apt-get install -y libcurl4-openssl-dev && apt-get install -y libxml2-dev && apt-get install -y libmariadbclient-dev && apt-get install -y r-base-core
 RUN add-apt-repository ppa:openjdk-r/ppa && apt-get update 
 RUN apt-get install -y openjdk-8-jre && apt-get install -y libfreetype6-dev pkg-config python-dev python-pip
+
+RUN echo 'local({r <- getOption("repos"); r["CRAN"] <- "http://cran.r-project.org"; options(repos=r); }); install.packages("BiocManager"); BiocManager::install("ExomeDepth");' | Rscript -
+RUN echo 'local({r <- getOption("repos"); r["CRAN"] <- "http://cran.r-project.org"; options(repos=r); }); install.packages("BiocManager"); BiocManager::install("CODEX");' | Rscript -
+
 RUN mkdir -p /usr/local/ximmer
 ADD bin /usr/local/ximmer/bin 
 ADD src /usr/local/ximmer/src
