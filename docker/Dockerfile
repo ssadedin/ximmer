@@ -10,6 +10,9 @@ RUN apt install -y openjdk-11-jre libfreetype6-dev pkg-config python2 python2-de
 RUN echo 'local({r <- getOption("repos"); r["CRAN"] <- "http://cran.r-project.org"; options(repos=r); }); install.packages("BiocManager"); BiocManager::install("ExomeDepth");' | Rscript -
 RUN echo 'local({r <- getOption("repos"); r["CRAN"] <- "http://cran.r-project.org"; options(repos=r); }); install.packages("BiocManager"); BiocManager::install("CODEX");' | Rscript -
 
+COPY README* *build.d /build.d/
+RUN bash -c 'for i in $(ls /build.d/*.sh 2>/dev/null | sort) ; do source $i ; done'
+
 RUN mkdir -p /usr/local/ximmer
 ADD bin /usr/local/ximmer/bin 
 ADD src /usr/local/ximmer/src
