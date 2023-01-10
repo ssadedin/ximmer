@@ -22,6 +22,8 @@ RUN bash -c 'for i in $(ls /build.d/*.sh 2>/dev/null | sort) ; do source $i ; do
 
 RUN apt update && apt install -y libcurl4-openssl-dev libxml2-dev libmariadbclient-dev r-base-core
 RUN apt install -y openjdk-11-jre libfreetype6-dev pkg-config python2 python2-dev python3 python3-dev python3-pip
+RUN echo 'local({r <- getOption("repos"); r["CRAN"] <- "http://cran.r-project.org"; options(repos=r); }); install.packages("BiocManager"); BiocManager::install("ExomeDepth");' | Rscript -
+RUN echo 'local({r <- getOption("repos"); r["CRAN"] <- "http://cran.r-project.org"; options(repos=r); }); install.packages("BiocManager"); BiocManager::install("CODEX");' | Rscript -
 
 RUN mkdir -p /usr/local/ximmer
 ADD bin /usr/local/ximmer/bin 
