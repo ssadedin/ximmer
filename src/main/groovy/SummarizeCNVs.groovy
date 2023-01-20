@@ -66,6 +66,11 @@ class SummarizeCNVs {
     Set<String> excludeGenes = null
     
     /**
+     * If set, only include calls on this chromosome
+     */
+    String filterToChromosome
+    
+    /**
      * Global gene categories (applied to all samples without a gene list)
      */
     Map<String, Integer> geneCategories = [:]
@@ -189,7 +194,11 @@ class SummarizeCNVs {
         if(!opts)
             System.exit(1)
         
-        Map<String,RangedData> results = parseCallerResults(opts)
+        Regions target = new BED(opts.target, withExtra:true).load()
+        
+        log.info "Loaded ${Utils.humanBp(target.size())} target regions"
+
+         Map<String,RangedData> results = parseCallerResults(opts, target)
             
         List exportSamples = null
         if(opts.samples)
@@ -217,10 +226,7 @@ class SummarizeCNVs {
         
         List<VCF> vcfList = parseVCFs(opts, results)
 		
-        Regions target = new BED(opts.target, withExtra:true).load()
-        
-        log.info "Loaded ${Utils.humanBp(target.size())} target regions"
-        
+       
         try {
             
             log.info "Parsing refgene annotations"
@@ -246,6 +252,10 @@ class SummarizeCNVs {
             )
             
             initFrequencyAnnotator(opts, target, summarizer)
+            
+            if(opts.chr) {
+                summarizer.filterToChromosome = opts.chr
+            }
             
             if(opts.refgene == "download") {
                 summarizer.refGenes = refGenes
@@ -325,7 +335,7 @@ class SummarizeCNVs {
         }
     }
 
-    private static Map<String,RangedData> parseCallerResults(OptionAccessor opts) {
+    private static Map<String,RangedData> parseCallerResults(OptionAccessor opts, Regions targetRegions) {
         
         Map<String,RangedData> results = [:]
         
@@ -366,7 +376,7 @@ class SummarizeCNVs {
             parseCallerOpt("lumpy", opts.lumpys, { fileName -> new LumpyResults(fileName) }, results)
 
         if(opts.savvy)
-            parseCallerOpt("savvy", opts.savvys, { fileName -> new SavvyCNVResults(fileName) }, results)
+            parseCallerOpt("savvy", opts.savvys, { fileName -> new SavvyCNVResults(fileName, targetRegions) }, results)
 
         if(opts.truth)
             results.truth = new PositiveControlResults(opts.truth).load()
@@ -837,6 +847,9 @@ class SummarizeCNVs {
             log.info "CNV $cnv filtered out by low quality score in $qualityFiltering"
             return true
         }
+        
+        if(this.filterToChromosome && (cnv.chr != this.filterToChromosome))
+            return true
             
         // If a list of genes to filter to is set, include the CNV only if it
         // overlaps the gene list
@@ -863,6 +876,9 @@ class SummarizeCNVs {
             if(cnv.category<this.minimumCategory)
                 return true
         }
+        
+        if(cnv.isMinorContig())
+            return true
         
         return false
     }

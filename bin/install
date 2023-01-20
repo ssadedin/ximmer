@@ -24,20 +24,20 @@ function init_config() {
             echo 'HGFA="'"$REF"'"' >> $CONFIG
         }
 
-        cat $BASE/eval/pipeline/config.groovy.template >> $CONFIG
+        cat $BASE/pipeline/config.groovy.template >> $CONFIG
     fi
 }
 
 function init_bpipe_config() {
-    BPIPE_CONFIG="eval/pipeline/bpipe.config"
+    BPIPE_CONFIG="pipeline/bpipe.config"
 
     if [ ! -e $BPIPE_CONFIG ];
     then
         echo
         echo "Creating $BPIPE_CONFIG"
-        echo 'libs="'"$BASE"'/eval/pipeline/tools/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar"' > $BPIPE_CONFIG
+        echo 'libs="'"$BASE"'/pipeline/tools/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar"' > $BPIPE_CONFIG
 
-        cat eval/pipeline/bpipe.config.template >> $BPIPE_CONFIG
+        cat pipeline/bpipe.config.template >> $BPIPE_CONFIG
     fi
 
 }
@@ -104,8 +104,7 @@ then
 fi
 
 
-CONFIG="$BASE/eval/pipeline/config.groovy"
-
+CONFIG="$BASE/pipeline/config.groovy"
 
 if [ "$1" == "--set-reference" ];
 then 
@@ -115,8 +114,6 @@ else
 
     init_bpipe_config
 
-    ./eval/bpipe install $QUIET_FLAG  ./eval/pipeline/exome_cnv_pipeline.groovy
-
+    ./tools/bpipe/0.9.11/bin/bpipe install $QUIET_FLAG  ./pipeline/exome_cnv_pipeline.groovy
 fi
-
 

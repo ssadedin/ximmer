@@ -2,17 +2,10 @@
 
 BASE=`cd $(dirname $0 | xargs dirname); pwd`
 
-# Workaround for docker install not finding Java
-if [ -e /.dockerenv ];
-then
-    export JAVA_HOME=/root/.sdkman/candidates/java/current
-    export PATH="$JAVA_HOME/bin:$PATH"
-fi
-
 unset GROOVY_HOME
 
 # Set JAVA_HOME based on java location
-if [ ! -z "$JAVA_HOME" ];
+if [ -z "$JAVA_HOME" ];
 then
     export JAVA_HOME=`dirname $(which java) | xargs dirname`
 fi
@@ -22,7 +15,7 @@ JAVA_OPTS="-Xmx$XIMMER_MEM -noverify -Dsamjdk.reference_fasta=$XIMMER_REF -Dsnap
 
 export JAVA_OPTS
 
-$BASE/eval/pipeline/tools/groovy/2.5.13/bin/groovy \
--cp $BASE/src/main/groovy:$BASE/src/main/resources:$BASE/eval/pipeline/tools/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar \
+$BASE/tools/groovy/2.5.13/bin/groovy \
+-cp $BASE/src/main/groovy:$BASE/src/main/resources:$BASE/tools/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar \
     $BASE/src/main/groovy/PostToCXP.groovy $*
 

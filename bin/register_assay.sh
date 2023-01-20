@@ -16,7 +16,7 @@ FULLPATH="$2"
 XIMMER_HOME="$(realpath $(dirname $0 | xargs dirname))"
 
 echo "$XIMMER_HOME"
-CP="$XIMMER_HOME/eval/pipeline/tools/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar:$XIMMER_HOME/src/main/groovy:$XIMMER_HOME/src/main/resources:$XIMMER_HOME/src/main/js"
+CP="$XIMMER_HOME/tools/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar:$XIMMER_HOME/src/main/groovy:$XIMMER_HOME/src/main/resources:$XIMMER_HOME/src/main/js"
 
 echo '{
     "id": null,
@@ -26,5 +26,5 @@ echo '{
     "fullpath": "'$FULLPATH'",
     "version": 1,
     "default_reference_panel": null
-}' | "$XIMMER_HOME/eval/pipeline/tools/groovy/2.5.13/bin/groovy" -cp "$CP" "$XIMMER_HOME/src/main/groovy/RawPostToCXP.groovy" \
+}' | "$XIMMER_HOME/tools/groovy/2.5.13/bin/groovy" -cp "$CP" "$XIMMER_HOME/src/main/groovy/RawPostToCXP.groovy" \
     -url "$3/assay/"

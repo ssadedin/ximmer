@@ -6,6 +6,12 @@ import groovy.util.logging.Log
 import groovyx.gpars.GParsPool;
 import ximmer.*
 
+import SampleIdAllocator
+import MiscUtils
+import SimulationRun
+import CNVSimulator
+import SummaryReport
+
 /**
  * The main entry point for the Ximmer CNV Framework
  * 
@@ -97,7 +103,7 @@ class Ximmer {
     
     File dgvMergedFile
     
-    File hg19RefGeneFile
+    File refGeneFile
     
     DGV dgv
     
@@ -112,13 +118,18 @@ class Ximmer {
     String ximmerBase
     
     SampleIdAllocator sampleIdAllocator = SampleIdAllocator.instance
-    
+
+    /**
+     * Global pipeline configuration. Initialised in {@link #validateConfiguration}.
+     */
+    ConfigObject pipelineCfg = null
+
     Ximmer(ConfigObject cfg, String outputDirectory, boolean simulate, boolean validate=true) {
         this.outputDirectory = new File(outputDirectory)
         this.cfg = cfg
         this.random = this.seed != null ? new Random(this.seed)  : new Random()
         
-        this.enableSimulation = simulate && (cfg.simulation_type != 'none') && (cfg.get('simulation_enabled') in [null,true])
+        this.enableSimulation = simulate && (cfg.simulation_type != 'none') && (cfg.getOrDefault('simulation_enabled',null) in [null,true])
         if(enableSimulation) {
             log.info "Simulation enabled in ${cfg.simulation_type} mode"
         }
@@ -133,7 +144,7 @@ class Ximmer {
             
         this.callerIds = ((Map<String,Object>)cfg.callers).keySet().collect { 
             if(callerIdMap[it] == null)
-                throw new RuntimeException("Unknown CNV caller " + it + " referenced in configuration.")
+                throw new RuntimeException("Unknown CNV caller " + it + " referenced in configuration. Known CNV callers are " + callerIdMap*.key.join(', '))
             callerIdMap[it]
         }
         
@@ -171,7 +182,7 @@ class Ximmer {
         assert ximmerBase != null : "Ximmer was launched without setting the ximmer.base system property. Please set this property or launch Ximmer using the provided script."
         
         // Check the pipeline configuration
-        File pipelineConfigFile = new File("$ximmerBase/eval/pipeline/config.groovy")
+        File pipelineConfigFile = new File("$ximmerBase/pipeline/config.groovy")
         if(!pipelineConfigFile.exists())
             throw new IllegalStateException("The analysis pipeline configuration file could not be found at the expected location: $pipelineConfigFile\n\nHave you run the installer?")
         
@@ -183,7 +194,18 @@ class Ximmer {
         if(!hgfa.exists())
             throw new IllegalArgumentException("The configured reference file $hgfa does not exist. Please check the HGFA entry in $pipelineConfigFile")
             
+        String bpipeLocation = pipelineCfg.getOrDefault('BPIPE',null)
+        if(!bpipeLocation)
+            throw new IllegalArgumentException("The location of BPIPE was not configured. Please check this variable is set to an existing Bpipe installation in $pipelineConfigFile")
+            
+        if(!new File(bpipeLocation).exists())
+            throw new IllegalArgumentException("The location configured for BPIPE ($bpipeLocation) was not an existing directory. Please check this variable is set to an existing Bpipe installation in $pipelineConfigFile")
+
+        log.info("Using Bpipe at $bpipeLocation")
+
         log.info "Configuration validated!"
+            
+        this.pipelineCfg = new ConfigSlurper().parse(pipelineConfigFile.text)
     }
     
     void run(analyse=true) {
@@ -199,8 +221,13 @@ class Ximmer {
         if(analyse) {
             List<AnalysisConfig> analyses = this.runAnalysis()
         
-            for(AnalysisConfig analysis in analyses) {
-                this.generateReport(analysis)
+            if(this.enableTruePositives) {
+                for(AnalysisConfig analysis in analyses) {
+                    this.generateReport(analysis)
+                }
+            }
+            else {
+                log.info "Not generating summary report because no true positives were provided"
             }
         }
         else {
@@ -267,6 +294,16 @@ class Ximmer {
     
     void cacheReferenceData() {
         
+        // To pick the right reference data, we need to know the genome
+        int buildVersion = new FASTA(pipelineCfg.HGFA).humanGenomeCoordinateVersion()
+        String ucscGenomeId = [
+            36 : 'hg18',
+            37 : 'hg19',
+            38 : 'hg38'
+        ][buildVersion]
+        
+        log.info "Detected genome version $ucscGenomeId"
+        
         File sharedCache = new File(ximmerBase,'cache')
         if(sharedCache.exists()) {
             cacheDirectory = sharedCache
@@ -280,7 +317,7 @@ class Ximmer {
             try {
                 dgvMergedFile.withOutputStream { o -> 
                     log.info("Downloading DGV database from UCSC ...")
-                    o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/dgvMerged.txt.gz").openStream() 
+                    o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/$ucscGenomeId/database/dgvMerged.txt.gz").openStream() 
                 }
             }
             catch(Exception e) {
@@ -291,16 +328,16 @@ class Ximmer {
         
         dgv = new DGV(dgvMergedFile.absolutePath).parse()
         
-        hg19RefGeneFile = new File(cacheDirectory, "refGene.txt.gz")    
-        if(!hg19RefGeneFile.exists()) {
+        refGeneFile = new File(cacheDirectory, "refGene.${ucscGenomeId}.txt.gz")    
+        if(!refGeneFile.exists()) {
             try {
-                hg19RefGeneFile.withOutputStream { o -> 
+                refGeneFile.withOutputStream { o -> 
                     log.info("Downloading DGV database from UCSC ...")
-                    o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/refGene.txt.gz").openStream() 
+                    o << new URL("http://hgdownload.soe.ucsc.edu/goldenPath/$ucscGenomeId/database/refGene.txt.gz").openStream() 
                 }
             }
             catch(Exception e) {
-                hg19RefGeneFile.delete() // otherwise we can leave behind a corrupt partial download
+                refGeneFile.delete() // otherwise we can leave behind a corrupt partial download
                 throw e
             }
         }
@@ -457,8 +494,8 @@ class Ximmer {
         
         String sampleIdMask = cfg.get('sample_id_mask','')
         
-        File bpipe = new File("$ximmerBase/eval/bpipe")
-        String toolsPath = new File("$ximmerBase/eval/pipeline/tools").absolutePath
+        File bpipe = new File(pipelineCfg.BPIPE)
+        String toolsPath = new File("$ximmerBase/tools").absolutePath
         String ximmerSrc = new File("$ximmerBase/src/main/groovy").absolutePath
         
         List minCatOpt = []
@@ -476,7 +513,7 @@ class Ximmer {
                 "-p", "DGV_CNVS=${dgvMergedFile.absolutePath}",
                 "-p", "XIMMER_SRC=$ximmerSrc",
                 "-p", "callers=${callerIds.join(',')}",
-                "-p", "refgene=${hg19RefGeneFile.absolutePath}",
+                "-p", "refgene=${refGeneFile.absolutePath}",
                 "-p", "simulation=${enableTruePositives}",
                 "-p", "batches=${batches*.analysisName.join(',')}",
                 "-p", "target_bed=$targetRegionsPath", 
@@ -486,7 +523,7 @@ class Ximmer {
             ] + dddParam + this.geneListParameters + minCatOpt + 
                 excludeRegionsParam + geneFilterParam + excludeGenesParam +
                 exome_depth_split_chrs_param + codex_split_chrs_param + drawCnvsParam + [
-                "$ximmerBase/eval/pipeline/exome_cnv_pipeline.groovy"
+                "$ximmerBase/pipeline/exome_cnv_pipeline.groovy"
             ]  + bamFiles + vcfFiles + (enableTruePositives ? ["true_cnvs.bed"] : [])
             
         log.info("Executing Bpipe command: " + bpipeCommand.join(" "))
@@ -497,17 +534,17 @@ class Ximmer {
         
         Process p
         try {
-            StringBuilder out = new StringBuilder()
-            StringBuilder err = new StringBuilder()
+//            StringBuilder out = new StringBuilder()
+//            StringBuilder err = new StringBuilder()
             p = pb.start()
             
-            p.waitForProcessOutput(out, err)
+            p.waitForProcessOutput(System.out, System.err)
             int exitValue = p.waitFor()
             
-            println out.toString()
-            
+            log.info "Exit code from bpipe for $runDir was $exitValue"
+
             if(exitValue != 0) 
-                throw new RuntimeException("Analysis failed for $runDir: " + err.toString())
+                throw new RuntimeException("Analysis failed for $runDir - see error in stderr")
             
         }
         finally {

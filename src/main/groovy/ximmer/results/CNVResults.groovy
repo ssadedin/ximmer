@@ -16,7 +16,9 @@ abstract class CNVResults extends RangedData {
         'xhmm' : { new XHMMResults(it) },
         'cnmops' : { new CNMopsResults(it) },
         'ex' : { new ExcavatorResults(it) },
-        'truth' : { new AngelResults(it) }
+        'cdx' : { new CodexResults(it) },
+        'truth' : { new AngelResults(it) },
+        'savvy' : { new SavvyCNVResults(it) }
 	]
     
 	CNVResults(String fileName, int chrCol, int startCol, int endCol) {

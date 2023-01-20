@@ -44,7 +44,13 @@ class SimulationRun {
         }
         else 
         if(bamFiles instanceof List) {
-            bamFiles = bamFiles.collect { MiscUtils.glob(it) }.flatten()
+            bamFiles = bamFiles.collect { 
+                def result = MiscUtils.glob(it) 
+                if(result.isEmpty()) {
+                    System.err.println("WARNING: Glob pattern $it did not match any files")
+                }
+                return result
+            }.flatten()
         }
         
         log.info("Resolved BAM files for run $id: " + bamFiles)

@@ -1,4 +1,5 @@
 import java.awt.BasicStroke;
+
 import java.text.NumberFormat
 import java.util.logging.Level
 
@@ -15,11 +16,13 @@ import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 import org.codehaus.groovy.runtime.StackTraceUtils
 
 import gngs.*
-
+import gngs.sample.SampleInfo
+import gngs.tools.ShearingKmerCounter
 import graxxia.Matrix
 import graxxia.Stats
 import groovy.json.JsonOutput
 import groovy.transform.CompileStatic;
+import groovy.transform.Memoized
 import groovy.util.logging.Log;
 import groovy.xml.Namespace;
 import groovyx.gpars.GParsPool;
@@ -243,7 +246,7 @@ class CNVDiagram {
         def colors = [ callers, palette[0..<callers.size()] ].transpose().collectEntries()
         
         Closure processCnv = { cnv ->
-            Utils.time("Draw CNV $cnv.chr:$cnv.from-$cnv.to") {
+            Utils.time("rendering of CNV $cnv.chr:$cnv.from-$cnv.to", log: log, suppressStartMessage:true ) {
                 try {
                     drawCNV(cnv, outputFileBase, width, height, callers, colors)
                 }
@@ -254,14 +257,22 @@ class CNVDiagram {
             }
         }
 
-        if(concurrency > 1) {
-            GParsPool.withPool(concurrency) {
-                cnvs.eachParallel(processCnv)
+        Utils.time("Draw all CNVs", log:log) {
+            if(concurrency > 1) {
+                GParsPool.withPool(concurrency) {
+                    cnvs.eachParallel(processCnv)
+                }
+            }
+            else {
+                cnvs.each(processCnv)
             }
         }
-        else {
-            cnvs.each(processCnv)
-        }
+        
+        
+        if(coverageCachedReads>0) 
+            log.info "Finished drawing.  Executed ${coverageReads}/${coverageCachedReads} coverage read operations (caching hit rate = ${Utils.perc(coverageReads/coverageCachedReads)})"
+        else
+            log.info "Finished drawing (no coverage reads)"
     }
     
     @CompileStatic
@@ -279,7 +290,7 @@ class CNVDiagram {
         log.info "Drawing cnv $cnv in sample $cnv.sample"
         
         if(this.samples && !(cnv.sample in this.samples)) {
-            println "Skip CNV $cnv.chr:$cnv.from-$cnv.to for sample $cnv.sample"
+            log.info "Skip CNV $cnv.chr:$cnv.from-$cnv.to for sample $cnv.sample"
             return
         }
         
@@ -290,8 +301,6 @@ class CNVDiagram {
         
         File jsonFile
         Writer json = new StringWriter()
-        
-        log.info "Write types are: " + writeTypes
         if('json' in writeTypes) {
             log.info "Enabling JSON output"
             jsonFile = new File(jsonFileName)
@@ -299,8 +308,7 @@ class CNVDiagram {
         
         File imageFile = new File(imageFileName)
         if(imageFile.exists() && (imageFile.length() > 0) && (jsonFile != null && jsonFile.exists()) && !redraw) {
-            log.info "$jsonFile.absolutePath exists" 
-            println "Skip $imageFileName because file already exists"
+            log.info "Skip $imageFileName because file jsonFile.absolutePath already exists"
             return
         }
         
@@ -322,12 +330,11 @@ class CNVDiagram {
         def tos = targets*.to
         
         if(froms.size()==0 || tos.size()==0) {
-            println  "ERROR: no targets overlapped by $cnv.chr:$cnv.from-$cnv.to"
+            log.warning  "ERROR: no targets overlapped by $cnv.chr:$cnv.from-$cnv.to"
             return
         }
         
         Region displayRegion = new Region(cnv.chr, froms[0]..tos[-1])
-        
         
         boolean drawPNG = 'png' in writeTypes 
 
@@ -427,7 +434,7 @@ class CNVDiagram {
             
             def callerCnvs = cnvCalls[caller].getOverlaps(cnv).grep { it.extra.sample == cnv.sample }
             if(!callerCnvs) {
-                println "No overlapping calls for $caller"
+                log.info "No overlapping calls of $cnv for $caller"
                 continue
             }
             
@@ -639,8 +646,9 @@ class CNVDiagram {
      * @return   a list of intervals to be plotted
      */
     List<IntRange> determineCnvTargets(Region rawCNV, List<String> genes) {
-        
-        println "Genes are $genes"
+
+        log.info "Genes overlapped by $rawCNV are $genes"
+
         List targets = null
         
         // We assume later on that the CNV call boundaries line up with the 
@@ -666,7 +674,7 @@ class CNVDiagram {
             // Find all the target regions that overlap these exons
             targets = targetRegions.getOverlaps(cnv.chr, geneExonsRange.from, geneExonsRange.to)
             
-            println "Overlapping targets are " + targets.collect { it.from+"-"+it.to }.join(",")
+            log.info "Identified ${targets.size()} overlapping targets for $cnv" 
             
             // If there are too many targets, clip at a fixed number upstream and downstream
             // from the actual CNV
@@ -741,12 +749,12 @@ class CNVDiagram {
         
         Regions geneExons = genes.sum { geneDb.getExons(it) }.reduce().grep { it.chr == cnv.chr } as Regions
     
-        log.info "Exons are " + geneExons.collect { it.from + "-" + it.to }.join(",")
+//        log.info "Exons are " + geneExons.collect { it.from + "-" + it.to }.join(",")
             
         int exonsStart = geneExons[0].from 
         int exonsEnd = geneExons[-1].to 
             
-        log.info "Overlapping exons are " + geneExons + " from " + exonsStart + " to " + exonsEnd
+        log.info "Overlapping exons of $genes are " + geneExons + " from " + exonsStart + " to " + exonsEnd
             
         // Problem: if CNV starts / ends in target region that is prior to begin / end 
         // of gene then this puts the targets chosen as *smaller* than the CNV
@@ -821,12 +829,12 @@ class CNVDiagram {
     Matrix getStandardisedCoverage(Region region, String sample, List excludeSamples) {
         
         if(allSamples.size() - excludeSamples.size() < minDiagramSamples)  {
-            log.info "Cannot exclude ${excludeSamples.size()}/${allSamples.size()} samples from CNV diagram because it woudl leave < $minDiagramSamples remaining samples"
+            log.info "Cannot exclude ${excludeSamples.size()}/${allSamples.size()} samples from CNV diagram because it would leave < $minDiagramSamples remaining samples"
             excludeSamples = []
         }
         else {
             if(excludeSamples.size()>0)
-                log.info "Excluding ${excludeSamples.size()}/${allSamples.size()} samples from standardised coverage of $sample due to overlapping CNV calls: " + excludeSamples.join(',')
+                log.info "Excluding ${excludeSamples.size()}/${allSamples.size()} samples from standardised coverage of $sample due to overlapping CNV calls" // + excludeSamples.join(',')
         }
             
         Matrix normCovs = normaliseCoverage(region)
@@ -888,30 +896,70 @@ class CNVDiagram {
     Matrix getCoverageMatrix(Region region) {
         
         Matrix sampleCovs = new Matrix(allSamples.collectEntries { s ->
-            //            println "Querying coverage for sample $s"
-            
-            if(readers.get() == null)
-                readers.set([:])
-                
-            SamReader reader = readers.get().get(s)
-            if(reader == null) {
-                reader = bams[s].newReader()
-                readers.get().put(s, reader)
-            }
-            
-            PileupIterator pileup
-            try {
-                pileup = bams[s].pileup(reader, region.chr, region.from, region.to)
-                def sampleCov = pileup.collect { PileupIterator.Pileup pi -> pi.alignments.size() }
-                [s, sampleCov ]
-            }
-            finally {
-                if(pileup != null) {
-                    pileup.readIterator.close()
-                }
-            }
+            ++coverageCachedReads
+            short[] sampleCov = readSampleCoverage(s,region.chr, region.from, region.to)
+            return [s, sampleCov ]
         })
         return sampleCovs
+    }
+    
+    int coverageCachedReads = 0
+    
+    int coverageReads = 0
+    
+    @Memoized(maxCacheSize=200000)
+    short[] readSampleCoverage(final String s, String chr, int from, int to) {
+        
+        double [] kmerFactors = null
+        if(this.allKmerFactors)
+            kmerFactors = allKmerFactors[allKmerFactors.sample.indexOf(s)]
+        
+        ++coverageReads
+
+        if(readers.get() == null)
+            readers.set([:])
+            
+        SamReader reader = readers.get().get(s)
+        if(reader == null) {
+            reader = bams[s].newReader()
+            readers.get().put(s, reader)
+        }
+        
+        PileupIterator pileup
+        try {
+            pileup = bams[s].pileup(reader, chr, from, to)
+
+            short[] sampleCov
+            if(kmerFactors == null)  {
+                sampleCov = pileup.collect { PileupIterator.Pileup pi -> 
+                    pi.alignments.size() 
+                } as short[]
+            }
+            else {
+                sampleCov = calculateKmerAdjustedCoverage(kmerFactors, pileup)
+            }
+
+            return sampleCov
+        }
+        finally {
+            if(pileup != null) {
+                pileup.readIterator.close()
+            }
+        }
+    }
+    
+    @CompileStatic
+    short [] calculateKmerAdjustedCoverage(double [] kmerFactors, PileupIterator pileup) {
+        return pileup.collect { PileupIterator.Pileup pi ->
+            double cov = 0.0d
+            final List<PileupState> alignments = pi.alignments
+            final int n = alignments.size()
+            for(int i=0; i<n; ++i) {
+                int kmerIndex = ShearingKmerCounter.computeKmer(alignments[i].read)
+                cov += kmerFactors[kmerIndex]
+            }
+            return (short)cov
+        } as short[]
     }
     
     boolean validate(boolean ignoreMissing=false) {
@@ -967,6 +1015,7 @@ class CNVDiagram {
             dfn 'CNV calls from Delfin', args:Cli.UNLIMITED
             angel 'Deletion calls from Angel', args:Cli.UNLIMITED
             ed 'CNV calls from Exome Depth', args:Cli.UNLIMITED
+            kmer 'Enables kmer normalisation via supplied kmer profile', args: 1
             generic  'CNV calls in BED format, sample in id column', args:Cli.UNLIMITED
             vcf 'VCF files containing variant calls for samples (optional) for annotation', args:Cli.UNLIMITED
             bam 'BAM file, one for each sample', args:Cli.UNLIMITED
@@ -992,15 +1041,19 @@ class CNVDiagram {
             chr 'Limit drawing to CNVs overlapping given chromosome (eg: chrX)', args:1
             json 'Include JSON in output'
             nopng 'Suppress writing of PNG files'
+            autoFilter 'Auto-filter the CNVs to be drawn to include only those likely to be of interest (ie: low population frequency, non-artefacts)'
+            autoFilterSampleCount 'Max sample count to apply when auto-filtering CNVs', args:1, type: Integer
+            autoFilterMaxFreq 'Max frequency to allow when applying auto-filtering of CNVs', args: 1, type: Double
         }
-        
+
         def opts = cli.parse(args)
         if(!opts) {
             System.exit(1)
         }
         
+        Regions targetRegions = new BED(opts.targets).load().reduce()
+
         Map<String,RangedData> cnvCalls = [:]
-           
         if(opts.eds) 
             parseCallerOpt("ed", opts.eds, { new ExomeDepthResults(it) }, cnvCalls)
             
@@ -1023,7 +1076,7 @@ class CNVDiagram {
             parseCallerOpt("dfn", opts.dfns, { new DelfinResults(it) }, cnvCalls)
 
         if(opts.savvys)
-            parseCallerOpt("savvys", opts.savvys, { new SavvyCNVResults(it) }, cnvCalls)
+            parseCallerOpt("savvys", opts.savvys, { new SavvyCNVResults(it, targetRegions) }, cnvCalls)
 
         if(opts.generics) {
             opts.generics.each { cnvBedFileAndName ->
@@ -1066,8 +1119,7 @@ class CNVDiagram {
             }
         }
         
-        Regions targetRegions = new BED(opts.targets).load().reduce()
-        
+       
         def sampleInfo = null
         if(opts.sampleinfo) {
             log.info "Parsing sample info from $opts.sampleinfo"
@@ -1176,7 +1228,47 @@ class CNVDiagram {
             cnvs = cnvs.grep { it.chr == opts.chr || it.chr == altChr } as Regions
         }
         
+        if(opts.autoFilter) {
+            if(opts.region || opts.cnvs.endsWith('.bed'))
+                throw new IllegalArgumentException("The -autoFilter option can only be used when CNVs are loaded using the -cnvs option")
+
+            final int maxSampleCount = (opts.autoFilterSampleCount?:3)
+            final double maxFreq = (opts.autoFilterMaxFreq?:0.2)
+            
+            log.info "Filtering CNVs to draw to sample count < $maxSampleCount, population freq < $maxFreq, and dups with > 1 caller"
+            
+            int oldCNVCount = cnvs.numberOfRanges
+
+            // Filter high freq, high within-batch calls and dups called by a single caller
+            cnvs = cnvs.grep { 
+                (it.sampleCount < maxSampleCount) &&  // Do not include if found in more than (default 3) samples in the batch
+                (it.DDDFreq<maxFreq) && (it.DGVFreq<maxFreq) &&  // Do not include if spanning population freq too high 
+                (it.type.contains('DEL') || (it.count > 1))  // Only include non-deletions if count > 1
+            } as Regions
+            
+            log.info "Filtering reduced CNVs from $oldCNVCount to ${cnvs.numberOfRanges} (" + Utils.perc(cnvs.numberOfRanges/(oldCNVCount+1)) + '%)'
+        }
+        
         return cnvs
+    }
+    
+    Matrix allKmerFactors
+    
+    private void initKmerProfile() {
+        
+       log.info "Calculating kmer weightings based on kmer profile: $opts.kmer"
+       Matrix kmerCounts = Matrix.load(opts.kmer) 
+       Matrix norm = kmerCounts.normaliseRows().normaliseColumns()
+       this.allKmerFactors = norm.transform { double value ->
+           if(value != 0) {
+               return 1.0d / value
+           }
+           else {
+               return 1.0d // multiplier will be 1.0d when factor cannot be calculated
+           }
+       }.fillna(1.0)
+       
+       log.info "Calculated kmer profile matrix:\n" + this.allKmerFactors
     }
     
     private Regions findLiteMeanRegions() {

@@ -11,7 +11,7 @@ import sys
 cnv_file = sys.argv[1]
 output_file = sys.argv[2]
 
-print "Plotting size of cnvs from %s" % str(cnv_file)
+print("Plotting size of cnvs from %s" % str(cnv_file))
 
 all_truth = pd.read_table(cnv_file)
 all_truth['span'] = np.log10(all_truth.end - all_truth.start)

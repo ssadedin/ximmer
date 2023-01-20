@@ -8,3 +8,6 @@ build
 *.orig
 
 eval/pipeline/tools
+/eclipse-build/
+batches
+pipeline/tools/xhmm/trunk/

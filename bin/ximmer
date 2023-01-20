@@ -11,8 +11,6 @@ fi
 
 unset GROOVY_HOME
 
-# : ${XIMMER_REF:="/group/bioi1/shared/genomes/GRCh37/broad/Homo_sapiens_assembly19.fasta"}
-
 if [ ! -z "$XIMMER_REF" ];
 then
     echo "Using reference sequence: $XIMMER_REF"
@@ -20,7 +18,7 @@ then
 fi
 
 # Set JAVA_HOME based on java location
-if [ ! -z "$JAVA_HOME" ];
+if [ -z "$JAVA_HOME" ];
 then
     export JAVA_HOME=`dirname $(which java) | xargs dirname`
 fi
@@ -34,10 +32,10 @@ mkdir -p .ximmertmp
 
 if [ "$1" == "install" ];
 then
-    $BASE/eval/tools/bpipe/0.9.9.6/bin/bpipe install $BASE/eval/pipeline/exome_cnv_pipeline.groovy 
+    $BASE/tools/bpipe/0.9.11/bin/bpipe install $BASE/pipeline/exome_cnv_pipeline.groovy 
 else
-        $BASE/eval/pipeline/tools/groovy/2.4.6/bin/groovy \
-        -cp $BASE/src/main/groovy:$BASE/src/main/resources:$BASE/eval/pipeline/tools/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar \
+        $BASE/tools/groovy/2.5.13/bin/groovy \
+        -cp $BASE/src/main/groovy:$BASE/src/main/resources:$BASE/tools/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar \
             $BASE/src/main/groovy/Ximmer.groovy $*
 fi
 

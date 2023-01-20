@@ -1,16 +1,16 @@
 import java.util.regex.Pattern
 
-import com.github.scribejava.core.builder.api.DefaultApi10a
-
 import gngs.*
+import groovy.json.JsonOutput
 import groovy.util.logging.Log
 import htsjdk.samtools.SAMRecord
+import Ximmer
 
 /**
  * Utility to load analysis results from Ximmer into a CXP API end point
  * <p>
- * Expects to find OAuth credentials in a file called <code>.cxp/credentials</code>
- * which should have the form:
+ * Expects to find OAuth or basic auth credentials in a file called 
+ * <code>.cxp/credentials</code> which should have the form:
  * 
  * <pre>
  * apiKey:  anapikey
@@ -31,6 +31,10 @@ class PostToCXP extends ToolBase {
     private ConfigObject cfg
     
     private WebService createBamService
+    
+    private File analysisFile
+    
+    private File qcFile
 
     @Override
     public void run() {
@@ -47,6 +51,14 @@ class PostToCXP extends ToolBase {
 
         String projectGuid = opts.project
         log.info "Target project=${projectGuid}"
+        
+        analysisFile = new File(opts.analysis)
+        if(!analysisFile.exists())
+            throw new FileNotFoundException(analysisFile.absolutePath, "Provided analysis file does not exist")
+            
+        qcFile = new File(opts.qc)
+        if(!qcFile.exists())
+            throw new FileNotFoundException(qcFile.absolutePath, "Provided qc file does not exist")
 
         this.createBamService = (ws / 'dataasset/create/bam/')
         
@@ -91,7 +103,7 @@ class PostToCXP extends ToolBase {
      */
     void postAnalysis(File batchDir, String assay, String projectGuid) {
         
-        String sequencer = ximmer.bamFiles*.value[0].withIterator { i -> 
+         String sequencer = ximmer.bamFiles*.value[0].withIterator { i -> 
             SAMRecord r = i.next()
             return r.readName.tokenize(':')[0].stripMargin('@')
         }
@@ -119,6 +131,20 @@ class PostToCXP extends ToolBase {
             assert !samplesToSubmit.isEmpty() : "After filtering to sample sex $requiredSex there are no samples to submit"
         }
         
+        if(cfg?.containsKey('controls'))
+            log.info "${cfg.controls.size()} samples are specified as controls"
+        
+        List<String> all_samples = ximmer.bamFiles*.key
+        List<String> analysis_samples = cfg?.containsKey('test_samples') ?  all_samples.grep { it in cfg.test_samples } : all_samples
+        List<String> control_samples = []
+        if(cfg?.containsKey('controls')) {
+             control_samples = all_samples.grep { it in cfg.controls }
+             if(!cfg?.containsKey('test_samples')) {
+                 // The test samples are everything that isn't a control
+                 analysis_samples = all_samples.grep { !(it in control_samples) }
+             }
+        }
+       
         Map data = [
             identifier: batchDir.absolutePath,
             project_guid: projectGuid,
@@ -126,16 +152,16 @@ class PostToCXP extends ToolBase {
             sequencer: sequencer,
             samples: samplesToSubmit.collectEntries { [ it, ximmer.bamFiles[it].samFile.absolutePath ] },
             batch_id: batch[0].id,
-            results: new File(opts.analysis).absolutePath,
-            control_samples: [],
-            analysis_samples: ximmer.bamFiles*.key,
-            qc: new File(opts.qc).absolutePath
+            results: analysisFile.absolutePath,
+            control_samples: control_samples,
+            analysis_samples: analysis_samples,
+            qc: qcFile.absolutePath
         ]
         
         WebService importService = ws / 'analysis/import'
         
         if(opts.test) {
-            log.info "Would post $data to $createBamService.endPoint"
+            log.info "Would post:\n ${JsonOutput.prettyPrint(JsonOutput.toJson(data))}\nto $createBamService.endPoint"
         } 
         else {
             importService.post(data) 
