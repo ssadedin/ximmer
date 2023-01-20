@@ -1,17 +1,12 @@
-FROM ubuntu:14.04
+FROM ubuntu:20.04
 MAINTAINER Simon Sadedin "simon.sadedin@mcri.edu.au" 
-RUN apt-get update; 
+RUN apt update && apt install -y software-properties-common curl wget apt-transport-https
+RUN apt update && add-apt-repository universe && add-apt-repository ppa:openjdk-r/ppa && apt update
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
-RUN echo 'deb http://cran.rstudio.com/bin/linux/ubuntu trusty/' >> /etc/apt/sources.list
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
-RUN apt-get update && \
-    apt-get install -y software-properties-common python-software-properties && \
-    apt-get install -y curl wget &&  \
-    apt-get install -y apt-transport-https && apt-get update
-RUN apt-get update && apt-get install -y libcurl4-openssl-dev && apt-get install -y libxml2-dev && apt-get install -y libmariadbclient-dev && apt-get install -y r-base-core
-RUN add-apt-repository ppa:openjdk-r/ppa && apt-get update 
-RUN apt-get install -y openjdk-8-jre && apt-get install -y libfreetype6-dev pkg-config python-dev python-pip
-
+RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/'
+RUN apt update && apt install -y libcurl4-openssl-dev libxml2-dev libmariadbclient-dev r-base-core
+RUN apt install -y openjdk-11-jre libfreetype6-dev pkg-config python2 python2-dev python3 python3-dev python3-pip
 RUN echo 'local({r <- getOption("repos"); r["CRAN"] <- "http://cran.r-project.org"; options(repos=r); }); install.packages("BiocManager"); BiocManager::install("ExomeDepth");' | Rscript -
 RUN echo 'local({r <- getOption("repos"); r["CRAN"] <- "http://cran.r-project.org"; options(repos=r); }); install.packages("BiocManager"); BiocManager::install("CODEX");' | Rscript -
 

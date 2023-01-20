@@ -25,7 +25,7 @@ CONIFER="$TOOLS/conifer/0.2.2"
 
 GNGS_JAR="$TOOLS/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar"
 
-BPIPE="$BASE/tools/bpipe/0.9.11/bin/bpipe"
+BPIPE="$BASE/tools/bpipe/0.9.12/bin/bpipe"
 
 SAVVYCNV_HOME="$TOOLS/SavvySuite"
 
@@ -35,9 +35,9 @@ SAVVYCNV_HOME="$TOOLS/SavvySuite"
 // Groovy distribution for running in the pipeline (should be the same
 // as that which the bundled bpipe uses, as well as the one that
 // the groovy-ngs-utils is compiled with
-GROOVY="$TOOLS/groovy/2.5.13/bin/groovy"
+GROOVY="$TOOLS/groovy/3.0.10/bin/groovy"
 
-GROOVY_ALL_JAR="$TOOLS/groovy/2.5.13/embeddable/groovy-all-2.5.13.jar"
+GROOVY_ALL_JAR="$TOOLS/groovy/3.0.10/lib/*"
 
 JAVA="java"
 

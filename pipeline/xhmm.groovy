@@ -65,19 +65,26 @@ xhmm_init = {
 
 find_extreme_gc_content = {
 
-    // requires target_bed : "BED file containing regions to calculate coverage depth for"
+    doc "Create files containing gc content for each region and regions containing extreme gc content"
 
     produce(file(input.bed).name + ".gc.txt", file(input.bed).name+".extremegc.txt") {
 
-        exec """
-            $JAVA -Xmx3g -jar $XIMMER/tools/gatk/2.3.9/GenomeAnalysisTK.jar 
-                -T GCContentByInterval 
-                -L $input.bed
-                -R $HGFA
-                -o $output1.txt
+        groovy """
+            import gngs.*
 
-            cat $output1.txt | awk '{if (\$2 < 0.1 || \$2 > 0.9) print \$1}' > $output2.txt
-        ""","medium"
+            FASTA ref = new FASTA("$HGFA")
+
+            Utils.withWriters(["$output1", "$output2"]) { allgc, extremegc ->
+                new BED("$input.bed").load().each { r ->
+                    def gc = ref.gc(r)
+                    String line = [r.toString(), gc].join('\\t') + '\\n'
+                    allgc.write(line)
+                    if(gc > 0.9 || gc < 0.1) {
+                        extremegc.write(line)
+                    }
+                }
+            }
+        """
     }
 }
 
@@ -94,7 +101,7 @@ xhmm_count_reads = {
 
             unset GROOVY_HOME
 
-            $JAVA -Xmx${memory}g -cp $GROOVY_ALL_JAR:$GNGS_JAR gngs.tools.MultiCov
+            $JAVA -Xmx${memory}g -cp '$GROOVY_HOME/lib/*:$GNGS_JAR' gngs.tools.MultiCov
                     -targetmeans $output.sample_interval_summary
                     -bed $target_bed $inputs.bam > $output.bgz; 
         """, "calc_qc_stats"

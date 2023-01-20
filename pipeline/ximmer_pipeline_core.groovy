@@ -26,6 +26,9 @@ init_batch = {
     
     List<String> param_files = file(batch_name).listFiles().grep { it.name.endsWith('.params.txt') }*.path
     
+    if(param_files.isEmpty())
+        throw new bpipe.PipelineError("No cnv caller parameter files were found for batch $batch_name: this means no analysis will be done, and probably indicates a configuration error.\n\nPlease check you have specified CNV callers correctly.")
+
     println "Parameter files for $batch_name are $param_files"
     
     forward param_files
@@ -124,6 +127,8 @@ ximmer_core = segment {
     caller_stages = cnv_callers.collect { caller ->
         (caller + '.%.params.txt') * [ init_caller_params.using(caller:caller) + caller_pipelines[caller] + register_caller_result ]
     }
+    
+    println "There are ${caller_stages.size()} cnv caller stages to run in batches: $batch_dirs"
     
     init + create_analysable_target + compute_kmer_profiles.when { enable_kmer_normalisation } + '%.bam' * [ calc_target_covs ] + forward_all_cov_files + calc_combined_correlations.using(type:'rawqc') + select_controls + [
         calc_combined_correlations.using(type:'qc') + // + calc_qc_stats.using(type:'qc'),

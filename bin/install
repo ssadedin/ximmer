@@ -114,6 +114,6 @@ else
 
     init_bpipe_config
 
-    ./tools/bpipe/0.9.11/bin/bpipe install $QUIET_FLAG  ./pipeline/exome_cnv_pipeline.groovy
+    ./tools/bpipe/0.9.12/bin/bpipe install $QUIET_FLAG  ./pipeline/exome_cnv_pipeline.groovy
 fi
 

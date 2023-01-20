@@ -312,14 +312,6 @@ class CNVDiagram {
             return
         }
         
-        if(jsonFile)
-            json = jsonFile.newWriter() 
-        
-        json.println("""cnv = //NOJSON\n{ 
-     "start" : ${cnv.from},
-     "end" : ${cnv.to},
-     "targets" : [""")
-        
         SAM bam = bams[cnv.sample]
 
         List<String> genes = geneDb.getGenes(cnv).grep { gene -> geneDb.getExons(gene).overlaps(this.targetRegions) }
@@ -333,6 +325,15 @@ class CNVDiagram {
             log.warning  "ERROR: no targets overlapped by $cnv.chr:$cnv.from-$cnv.to"
             return
         }
+        
+        if(jsonFile)
+            json = jsonFile.newWriter() 
+        
+        json.println("""cnv = //NOJSON\n{ 
+     "start" : ${cnv.from},
+     "end" : ${cnv.to},
+     "targets" : [""")
+        
         
         Region displayRegion = new Region(cnv.chr, froms[0]..tos[-1])
         

@@ -136,6 +136,10 @@ class PostToCXP extends ToolBase {
         
         List<String> all_samples = ximmer.bamFiles*.key
         List<String> analysis_samples = cfg?.containsKey('test_samples') ?  all_samples.grep { it in cfg.test_samples } : all_samples
+        if(cfg?.containsKey('test_samples')) {
+            log.info "Test samples are specified explicitly ($cfg.test_samples)"
+        }
+
         List<String> control_samples = []
         if(cfg?.containsKey('controls')) {
              control_samples = all_samples.grep { it in cfg.controls }

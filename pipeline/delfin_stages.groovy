@@ -27,7 +27,7 @@ delfin = {
             
     produce(batch_name + '.delfin.cnvs.tsv') {
         exec """
-            $JAVA -Xmx${memory}g -cp /Users/simon.sadedin/work/groovy-ngs-utils/eclipse-build:$GROOVY_ALL_JAR:$GNGS_JAR gngs.tools.Delfin
+            $JAVA -Xmx${memory}g -cp '$GROOVY_HOME/lib/*:$GNGS_JAR' gngs.tools.Delfin
                 -t $input.bed ${test_samples.collect { "-s $it"}.join(" ")}
                 -o $output.cnvs.tsv
                 -maxpc $delfin_max_pc_components

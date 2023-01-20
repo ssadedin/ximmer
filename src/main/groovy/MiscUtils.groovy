@@ -246,29 +246,30 @@ class MiscUtils {
         }
         return results 
     }
-       /**
-    * Set up simple logging to work in a sane way
-    *
-    * @param path
-    * @return
-    */
-   public static configureSimpleLogging(String path) {
-       Logger parentLog = log.parent
-       parentLog.getHandlers().each { parentLog.removeHandler(it) }
-       FileHandler fh = new FileHandler(path)
-       fh.setFormatter(new LogFormatter())
-       parentLog.addHandler(fh)
-   }
-       
-  public static void configureVerboseLogging() {
-       ConsoleHandler console = new ConsoleHandler()
-       console.setFormatter(new LogFormatter())
-       console.setLevel(Level.FINE)
-       log.getParent().addHandler(console)
-   }
-  
-   final static int TEMP_DIR_ATTEMPTS = 10
-  
+
+    /**
+     * Set up simple logging to work in a sane way
+     *
+     * @param path
+     * @return
+     */
+    public static configureSimpleLogging(String path) {
+        Logger parentLog = log.parent
+        parentLog.getHandlers().each { parentLog.removeHandler(it) }
+        FileHandler fh = new FileHandler(path)
+        fh.setFormatter(new LogFormatter())
+        parentLog.addHandler(fh)
+    }
+
+    public static void configureVerboseLogging() {
+        ConsoleHandler console = new ConsoleHandler()
+        console.setFormatter(new LogFormatter())
+        console.setLevel(Level.FINE)
+        log.getParent().addHandler(console)
+    }
+
+    final static int TEMP_DIR_ATTEMPTS = 10
+
     /**
      * Create a temporary directory 
      * (Based on Guava library)
@@ -276,14 +277,13 @@ class MiscUtils {
     public static File createTempDir() {
         File baseDir = new File(System.getProperty("java.io.tmpdir"));
         String baseName = Long.toString(System.nanoTime()) + "-";
-      
+
         for (int counter = 0; counter < TEMP_DIR_ATTEMPTS; counter++) {
-          File tempDir = new File(baseDir, baseName + counter);
-          if (tempDir.mkdir()) {
-            return tempDir;
-          }
+            File tempDir = new File(baseDir, baseName + counter);
+            if (tempDir.mkdir()) {
+                return tempDir;
+            }
         }
         throw new IllegalStateException("Failed to create directory within $TEMP_DIR_ATTEMPTS")
-      }
-       
+    }
 }

@@ -26,5 +26,5 @@ echo '{
     "fullpath": "'$FULLPATH'",
     "version": 1,
     "default_reference_panel": null
-}' | "$XIMMER_HOME/tools/groovy/2.5.13/bin/groovy" -cp "$CP" "$XIMMER_HOME/src/main/groovy/RawPostToCXP.groovy" \
+}' | "$XIMMER_HOME/tools/groovy/3.0.10/bin/groovy" -cp "$CP" "$XIMMER_HOME/src/main/groovy/RawPostToCXP.groovy" \
     -url "$3/assay/"
