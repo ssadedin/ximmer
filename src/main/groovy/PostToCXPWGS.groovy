@@ -108,6 +108,10 @@ class PostToCXPWGS extends ToolBase {
         ws = new WebService(opts.cxp)
         ws.autoSlash = true
         ws.credentialsPath = ".cxp/credentials"
+        String accessToken = System.getenv('ACCESS_TOKEN')
+        if (accessToken) {
+            ws.setBearerToken(new BearerTokenCredentials(token: accessToken))
+        }
         this.createBamService = (ws / 'dataasset/create/bam/')
         
         this.registerBAMFiles(batchDir, assay)
