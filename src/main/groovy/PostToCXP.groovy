@@ -48,6 +48,10 @@ class PostToCXP extends ToolBase {
         ws = new WebService(opts.cxp)
         ws.autoSlash = true
         ws.credentialsPath = ".cxp/credentials"
+        String accessToken = System.getenv('ACCESS_TOKEN')
+        if (accessToken) {
+            ws.setBearerToken(new BearerTokenCredentials(token: accessToken))
+        }
 
         String projectGuid = opts.project
         log.info "Target project=${projectGuid}"
