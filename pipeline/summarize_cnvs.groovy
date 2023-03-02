@@ -173,7 +173,7 @@ create_cnv_report = {
         exec """
             unset GROOVY_HOME
 
-            JAVA_OPTS="-Xmx12g -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC:$XIMMER_SRC/../resources:$XIMMER_SRC/../js $XIMMER_SRC/SummarizeCNVs.groovy
+            JAVA_OPTS="-Xmx32g -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC:$XIMMER_SRC/../resources:$XIMMER_SRC/../js $XIMMER_SRC/SummarizeCNVs.groovy
                 -target $target_bed ${caller_opts.join(" ")} $refGeneOpts $reportChrFlag ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")}
                 -tsv $output.tsv -json $output.json ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""} -mergefrac $mergeOverlapFraction
                 -mergeby $cnvMergeMode $dgvFlag $dddOpt $true_cnvs $idMaskOpt $geneFilterOpts $excludeGenesOpts $geneListOpts $minCatOpt $sampleMapParam $samplesOption
