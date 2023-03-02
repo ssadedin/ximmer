@@ -16,6 +16,6 @@ JAVA_OPTS="-Xmx$XIMMER_MEM -noverify -Dsamjdk.reference_fasta=$XIMMER_REF -Dsnap
 export JAVA_OPTS
 
 $BASE/tools/groovy/3.0.10/bin/groovy \
--cp $BASE/src/main/groovy:$BASE/src/main/resources:$BASE/tools/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar \
+-cp $BASE/src/main/groovy:$BASE/src/main/resources:$BASE/tools/groovy-ngs-utils/current/groovy-ngs-utils.jar \
     $BASE/src/main/groovy/PostToCXP.groovy $*
 
