@@ -31,7 +31,7 @@ CRAMTOOLS="$TOOLS/cramtools/2.1/cramtools.jar"
 
 CONIFER="$TOOLS/conifer/0.2.2"
 
-GNGS_JAR="$TOOLS/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar"
+GNGS_JAR="$TOOLS/groovy-ngs-utils/current/groovy-ngs-utils.jar"
 
 // ======================= Languages =======================
 
