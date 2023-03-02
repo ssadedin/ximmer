@@ -12,6 +12,8 @@
 
 // NOTE: Depends on base HG19
 
+XHMM_BIN="$XIMMER/tools/xhmm/trunk/xhmm"
+
 xhmm_init = {
 
     // Settings that can be overridden on command line
@@ -116,7 +118,7 @@ xhmm_mean_center = {
     from("sample_interval_summary", "extremegc.txt") {
         transform("centered","excluded.targets","excluded.samples") {
             exec """
-                $XHMM --matrix -r $input.sample_interval_summary
+                $XHMM_BIN --matrix -r $input.sample_interval_summary
                     --centerData 
                     --centerType target 
                     -o $output.centered
@@ -137,7 +139,7 @@ xhmm_merge_coverage = {
     from("*.sample_interval_summary") {
         filter("merged") {
             exec """
-                $XHMM --mergeGATKdepths -o $output.sample_interval_summary ${inputs.sample_interval_summary.withFlag("--GATKdepths ")}
+                $XHMM_BIN --mergeGATKdepths -o $output.sample_interval_summary ${inputs.sample_interval_summary.withFlag("--GATKdepths ")}
             ""","smallish"
         }
     }
@@ -149,7 +151,7 @@ xhmm_pca = {
 
     transform("PC.txt", "PC_SD.txt", "PC_LOADINGS.txt") {
         exec """
-            $XHMM --PCA -r $input.centered --PCAfiles $output.txt.prefix.prefix
+            $XHMM_BIN --PCA -r $input.centered --PCAfiles $output.txt.prefix.prefix
         """
     }
 }
@@ -163,7 +165,7 @@ xhmm_normalize = {
     filter("norm") {
         from("PC.txt") {
             exec """
-                $XHMM --normalize 
+                $XHMM_BIN --normalize 
                    -r $input.centered 
                    --PCAfiles $input.txt.prefix.prefix
                    --normalizeOutput $output.txt
@@ -181,7 +183,7 @@ xhmm_filter_normalized = {
 
     transform("zscored","excluded.targets","excluded.samples") {
         exec """
-            $XHMM --matrix -r $input.txt --centerData --centerType sample --zScoreData 
+            $XHMM_BIN --matrix -r $input.txt --centerData --centerType sample --zScoreData 
                 -o $output.zscored                
                 --outputExcludedTargets $output.targets
                 --outputExcludedSamples $output.samples
@@ -199,7 +201,7 @@ xhmm_filter_orig = {
           "norm.excluded.samples") {
         filter("filt") {
             exec """
-                $XHMM --matrix -r $input.sample_interval_summary
+                $XHMM_BIN --matrix -r $input.sample_interval_summary
                 --excludeTargets $input2
                 --excludeTargets $input3
                 --excludeSamples $input4
@@ -227,7 +229,7 @@ xhmm_discover = {
 
     from(xhmm_params) {
         exec """
-            $XHMM --discover 
+            $XHMM_BIN --discover 
                       -p $input.txt
                       -r $input.zscored 
                       -R $input.sample_interval_summary
