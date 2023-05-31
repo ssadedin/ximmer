@@ -158,6 +158,7 @@ class SummarizeCNVs {
             savvy 'Savvy CNV results', args:Cli.UNLIMITED
             delly 'Delly results', args:Cli.UNLIMITED
             lumpy 'Lumpy results', args:Cli.UNLIMITED
+            schism 'Schism results',args:Cli.UNLIMITED
             truth 'Postiive control CNVs', args:1
             vcf 'VCF file containing variants for a sample in results', args:Cli.UNLIMITED
             target 'Target regions with id for each region to annotate', args:1, required:true
@@ -371,6 +372,9 @@ class SummarizeCNVs {
 
         if(opts.delly)
             parseCallerOpt("delly", opts.dellys, { fileName -> new DellyResults(fileName) }, results)
+            
+        if(opts.schism)
+            parseCallerOpt("schism", opts.schisms, { fileName -> new SchismResults(fileName) }, results)
 
         if(opts.canv)
             parseCallerOpt("canvas", opts.canvs, { fileName -> new CanvasResults(fileName) }, results)
@@ -768,7 +772,7 @@ class SummarizeCNVs {
                     cnvs : cnvs,
                     batch_name : name,
                     cnv_callers : results.keySet() as List,
-                    types : ['DUP','DEL'],
+                    types : ['DUP','DEL','BND'],
                     reportSamples : false,
                     cnvAnnotator : cnvAnnotator,
                     js : renderedAssets,
@@ -932,7 +936,7 @@ class SummarizeCNVs {
             log.info "WARNING: CNV $cnv has conflicting calls: " + types
             
         cnv.type = types.join(",")
-        cnv.count = callers.grep { it != "truth" }
+        cnv.count = callers.grep { it != "truth" && cnv[it]?.best?.type != "BND" }
                            .count { cnv[it].best != null } 
         
         annotateGenes(cnv)

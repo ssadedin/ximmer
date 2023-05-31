@@ -65,7 +65,8 @@
     //println(cnvs);
     def cnv_labels = [
         DEL : "Deletion",
-        DUP : "Duplication"
+        DUP : "Duplication",
+        BND : "Break End"
     ]
 
     // Find the Variants for each CNV
@@ -148,6 +149,8 @@
                       ['targets','sample','type','count','stotal','category','sampleCount','sampleFreq'].collectEntries { [it, cnv.getProperty(it)] } +
                       [ genes : cnv.genes ? cnv.genes.split(",") : [] ] +
                       cnv_callers.collect { caller -> 
+                          if(caller=="schism")
+                              log.println "Schism call $cnv object ${cnv.hashCode()} is ${cnv[caller]} with properties ${cnv[caller].expandoProperties}" 
                           if(cnv[caller]?.best)
                             [ caller, [ quality : cnv[caller]?.best.quality ] ] 
                           else
