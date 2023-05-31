@@ -10,7 +10,7 @@ how to edit Bpipe scripts.
 ## Add Pipeline Stage to Perform Analysis
 
 Create a new file with a name like `<caller name>.groovy`, and place it
-in eval/pipeline. In this file, define a pipeline stage that performs the 
+in pipeline directory. In this file, define a pipeline stage that performs the 
 analysis based on:
 
  * input BAM files provided as `$input.bam`
