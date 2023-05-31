@@ -707,6 +707,7 @@ function igv_load_cnv(cnv, pos) {
 }
 
 function igv_load(chr, start, end) {
+    var bam_url = 'http://localhost:60151/load?file='+encodeURIComponent(bam_file_path+bams[cnv.sample])+'&locus='+cnv.chr+'%3A'+cnv.start+'-'+cnv.end
     var locus_url = 'http://localhost:60151/goto?locus='+chr+'%3A'+start+'-'+end;
     $.ajax( bam_url, {
         complete: function() {
