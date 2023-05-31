@@ -1,5 +1,6 @@
 // vim: expandtab:sw=4:ts=4:cindent
 
+import Transform
 
 init_chr = {
    branch.chromosome = branch.name
