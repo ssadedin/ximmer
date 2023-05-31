@@ -11,6 +11,9 @@ import groovy.util.logging.Log;
 
 import ximmer.results.*
 import ximmer.*
+import XimmerBanner
+import HTMLAssets
+import HTMLAssetSource
 
 /**
  * Reads results from any number of CNV callers and combines them together into
