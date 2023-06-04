@@ -144,7 +144,17 @@ class CNVMerger {
     }
     
     private Region mergeCNVClusters(Region cluster, Region cnv1, Region cnv2) {
-        Region newCluster = cluster.union(cnv2)
+        Region newCluster
+        
+        // Break ends can introduce a scenario where the two CNVs are considered
+        // part of the same cluster but do not actually overlap
+        if(cnv1.overlaps(cnv2)) {
+            newCluster = cluster.union(cnv2)
+        }
+        else {
+            newCluster = [cnv1,cnv2].max { it.size() }
+        }
+
         HashSet allCnvs = new HashSet()
         allCnvs.addAll(cnv1.cnvs?:[cnv1])
         allCnvs.addAll(cnv2.cnvs?:[cnv2])
