@@ -46,12 +46,14 @@ class SchismResults extends CNVResults {
                 "samples": []
             }
          */
-        for(result in json) {
+        for(Map result in json) {
+            def  nonDataKeys = ['depth','sample_count','cscore','partner','cdsdist']
             result.sample.each { sample, data ->
                 Region r = new Region(result.chr, result.start, result.end)
                 r.type = "BND"
                 r.quality = data.obs
                 r.sample = sample
+                r.details = nonDataKeys.collectEntries { [it, result[it]] } + data
                 addRegion(r)
             }
         }
