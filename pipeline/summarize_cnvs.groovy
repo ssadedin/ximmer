@@ -109,6 +109,7 @@ create_cnv_report = {
             minimum_category: false,
             sample_map: false,
             DDD_CNVS: false,
+            GNOMAD_SV_VCF : false,
             file_name_prefix : "",
             mergeOverlapFraction: 0.4,
             cnvMergeMode: "sharedtargets",
@@ -155,6 +156,8 @@ create_cnv_report = {
     String idMaskOpt = sample_id_mask ? "-idmask '$sample_id_mask'" : ""
     
     String dddOpt = DDD_CNVS ? "-ddd $DDD_CNVS" : ""
+    
+    String gnomadOpt = GNOMAD_SV_VCF ? " -gmd $GNOMAD_SV_VCF" : ""
 
     String samplesOption = ""
     if(control_samples) {
@@ -176,8 +179,9 @@ create_cnv_report = {
 
             JAVA_OPTS="-Xmx12g -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC:$XIMMER_SRC/../resources:$XIMMER_SRC/../js $XIMMER_SRC/SummarizeCNVs.groovy
                 -target $target_bed ${caller_opts.join(" ")} $refGeneOpts $reportChrFlag ${inputs.vcf.withFlag("-vcf")} ${inputs.vcf.gz.withFlag("-vcf")}
-                -tsv $output.tsv -json $output.json ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""} -mergefrac $mergeOverlapFraction
-                -mergeby $cnvMergeMode $dgvFlag $dddOpt $true_cnvs $idMaskOpt $geneFilterOpts $excludeGenesOpts $geneListOpts $minCatOpt $sampleMapParam $samplesOption
+                -tsv $output.tsv 
+                -json $output.json ${imgpath?"-imgpath "+imgpath.replaceAll('#batch#',batch_name):""} -mergefrac $mergeOverlapFraction
+                -mergeby $cnvMergeMode $dgvFlag $dddOpt $gnomadOpt $true_cnvs $idMaskOpt $geneFilterOpts $excludeGenesOpts $geneListOpts $minCatOpt $sampleMapParam $samplesOption
                 ${batch_quality_params.join(" ")} -o $output.html 
                 ${batch_name ? "-name $batch_name" : ""} ${inputs.bam.withFlag('-bam')}
         """, "create_cnv_report"

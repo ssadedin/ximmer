@@ -13,6 +13,7 @@ import ximmer.results.*
 import ximmer.*
 import XimmerBanner
 import HTMLAssets
+import HTMLAsset
 import HTMLAssetSource
 
 /**
@@ -421,7 +422,8 @@ class SummarizeCNVs {
             
             if(opts.gmd) {
                 log.info "Adding gnomAD annotation source from $opts.gmd"
-                databases["GMD"] = new GnomADCNVDatabase(new VCFIndex(opts.gmd))
+//                databases["GMD"] = new GnomADCNVDatabase(new VCFIndex(opts.gmd))
+                databases["GMD"] = new GnomADCNVDatabase(opts.gmd)
             }
 
             summarizer.cnvAnnotator = new TargetedCNVAnnotator(databases, target)
@@ -463,6 +465,9 @@ class SummarizeCNVs {
         }.join(',\n') + '\n}\n'
     }
     
+    /**
+     * Main entry point
+     */
     Regions run(List exportSamples) {
         
         if(this.genelists)
@@ -612,8 +617,16 @@ class SummarizeCNVs {
         w.println('[')
             
         cnvs.eachWithIndex { Region cnv, int i ->
+            
                 
             Map cnvData = cnvToMap(cnvCallers, dbIds, columnNames, cnv)
+            
+            if(cnv.maxGnomAD) {
+                cnvData.maxGnomAD = cnv.maxGnomAD
+                cnvData.gnomADCount = cnv.gnomADCount
+                cnvData.gnomAD = cnv.gnomAD
+            }
+
             try {
                 if(i>0)
                     w.println(',')
@@ -635,6 +648,11 @@ class SummarizeCNVs {
            cnvCallers + cnvCallers.collect { it+"_qual" } + ['calls','details']
     }
     
+    /**
+     * Annotate and convert a CNV region information to be ready for output
+     * 
+     * @return map of key value pairs of information to output
+     */
     Map<String, Object> cnvToMap(List<String> cnvCallers, List<String> dbIds, List<String> columnNames, Region cnv) {
         
         List cdsInfo = this.refGenes ? [cnv.cdsOverlap] : []
@@ -688,6 +706,18 @@ class SummarizeCNVs {
        cnv.chr.startsWith('chr') ? cnv.chr : 'chr' + cnv.chr 
     }
 
+    /**
+     * Compute the high level CNV frequency information for each configured CNV 
+     * database.
+     * 
+     * As a side effect, if gnomAD is configured as a CNV database, then
+     * additional gnomAD information corresponding to the highest frequency qualifying gnomAD CNV
+     * is set on the original CNV as a maxGnomAD property.
+     * 
+     * @return a list of numbers, representing alternatingly, the count and 
+     *         then population frequency of the highest spanning frequency CNV for
+     *         the given event from each respective CNV database
+     */
     private List computeCNVFrequencyInfo(Region cnv, List<String> dbIds) {
         
         String annoType = anno_types[cnv.type]
@@ -697,6 +727,25 @@ class SummarizeCNVs {
         Map<String,CNVFrequency> freqInfos = [:]
         if(cnvAnnotator)
             freqInfos = cnvAnnotator.annotate(cnvRegion, annoType)
+            
+        if(freqInfos.GMD) {
+            Region maxG = freqInfos.GMD.spanning.max { cnv.type == 'DEL' ? it.deletion_frequency : it.duplication_frequency }
+            
+            cnv.maxGnomAD = maxG
+            
+            if(maxG) {
+                // JSON serialization of region doesn't include actual coordinates
+                cnv.maxGnomAD.chr = maxG.chr
+                cnv.maxGnomAD.start = maxG.from
+                cnv.maxGnomAD.end = maxG.to
+            }
+            cnv.gnomADCount = freqInfos.GMD.spanning.size()
+            cnv.gnomAD = freqInfos.GMD.spanning.collect {
+                [it.from, it.to,  cnv.type == 'DEL' ? it.deletion_frequency : it.duplication_frequency, cnv.type == 'DEL' ? it.observedLosses : it.observedGains ]
+            }
+            .sort { -it[2] } // highest pop freq first
+            .take(5)
+        }
 
         List frequencyInfo = dbIds.collect { dbId ->
             CNVFrequency freqInfo = freqInfos[dbId];
