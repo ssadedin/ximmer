@@ -18,5 +18,15 @@ class OverlapBySpan implements OverlapCriteria {
 
         return r1.mutualOverlap(r2) > minimumFraction;
     }
+
+    @Override
+    public double calculateOverlap(Region r1, Region r2) {
+        
+        if((r1['type'] == 'BND') ^ (r2['type'] == 'BND')) {
+            return 0d
+        }
+        
+        return r1.mutualOverlap(r2) > minimumFraction;
+    }
 }
 

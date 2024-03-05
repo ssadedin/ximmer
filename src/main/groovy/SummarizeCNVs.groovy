@@ -716,12 +716,12 @@ class SummarizeCNVs {
      * @param cnv
      * @param gmd
      */
-    void addSupplementalGnomADInfo(String type, Region cnv, Region gmd) {
-        cnv.chr = gmd.chr
-        cnv.start = gmd.from
-        cnv.end = gmd.to
-        cnv.overlap =  cnv.mutualOverlap(gmd)
-        cnv.freq = (type == 'DEL') ? gmd.deletion_frequency : gmd.duplication_frequency
+    void addSupplementalGnomADInfo(Region cnv, String type, Region gmd) {
+        gmd.chr = gmd.chr
+        gmd.start = gmd.from
+        gmd.end = gmd.to
+        gmd.overlap =  this.overlapCriteria.calculateOverlap(cnv, gmd)
+        gmd.freq = (type == 'DEL') ? gmd.deletion_frequency : gmd.duplication_frequency
     }
 
     /**
@@ -748,29 +748,31 @@ class SummarizeCNVs {
             
         if(freqInfos.GMD) {
             Region maxG = freqInfos.GMD.spanning.max { cnv.type == 'DEL' ? it.deletion_frequency : it.duplication_frequency }
-            Region closeG = freqInfos.GMD.spanning.max { cnv.mutualOverlap(it) }
+            Region closeG = freqInfos.GMD.spanning.max { this.overlapCriteria.calculateOverlap(cnv,it) }
             
             cnv.maxGnomAD = maxG
             cnv.closeGnomAD = closeG
             
             if(maxG) {
                 // JSON serialization of region doesn't include actual coordinates
-                addSupplementalGnomADInfo(cnv.type, cnv.maxGnomAD, maxG)
-                addSupplementalGnomADInfo(cnv.type, cnv.closeGnomAD, closeG)
+                addSupplementalGnomADInfo(cnv, cnv.type, maxG)
+                addSupplementalGnomADInfo(cnv, cnv.type, closeG)
             }
             
             cnv.gnomADCount = freqInfos.GMD.spanning.size()
             
-            List<Region> spans = freqInfos.GMD.spanning.collect {
-                [it.from, it.to,  cnv.type == 'DEL' ? it.deletion_frequency : it.duplication_frequency, cnv.type == 'DEL' ? it.observedLosses : it.observedGains ]
+            List<List> spans = freqInfos.GMD.spanning.collect {
+                def freq = cnv.type == 'DEL' ? it.deletion_frequency : it.duplication_frequency
+                def count = cnv.type == 'DEL' ? it.observedLosses : it.observedGains
+                [ it.from, it.to,  freq , count, this.overlapCriteria.calculateOverlap(cnv, it) ]
             }
 
-            List<Region> highFreq = spans
+            List<List> highFreq = spans
             .sort { -it[2] } // highest pop freq first
             .take(5)
             
-            List<Region> closeMatch = spans
-            .sort { -cnv.mutualOverlap(it) } // highest mutual overlap first
+            List<List> closeMatch = spans
+            .sort { -it[4] } // highest mutual overlap first
             .take(5)
             
             cnv.gnomAD = (highFreq + closeMatch).unique()
