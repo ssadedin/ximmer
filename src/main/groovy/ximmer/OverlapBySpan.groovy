@@ -26,7 +26,7 @@ class OverlapBySpan implements OverlapCriteria {
             return 0d
         }
         
-        return r1.mutualOverlap(r2) > minimumFraction;
+        return r1.mutualOverlap(r2);
     }
 }
 
