@@ -13,6 +13,7 @@ import ximmer.results.*
 import ximmer.*
 import XimmerBanner
 import HTMLAssets
+import HTMLAsset
 import HTMLAssetSource
 
 /**
@@ -421,7 +422,8 @@ class SummarizeCNVs {
             
             if(opts.gmd) {
                 log.info "Adding gnomAD annotation source from $opts.gmd"
-                databases["GMD"] = new GnomADCNVDatabase(new VCFIndex(opts.gmd))
+//                databases["GMD"] = new GnomADCNVDatabase(new VCFIndex(opts.gmd))
+                databases["GMD"] = new GnomADCNVDatabase(opts.gmd)
             }
 
             summarizer.cnvAnnotator = new TargetedCNVAnnotator(databases, target)
@@ -463,6 +465,9 @@ class SummarizeCNVs {
         }.join(',\n') + '\n}\n'
     }
     
+    /**
+     * Main entry point
+     */
     Regions run(List exportSamples) {
         
         if(this.genelists)
@@ -612,8 +617,20 @@ class SummarizeCNVs {
         w.println('[')
             
         cnvs.eachWithIndex { Region cnv, int i ->
+            
                 
             Map cnvData = cnvToMap(cnvCallers, dbIds, columnNames, cnv)
+            
+            if(cnv.maxGnomAD) {
+                cnvData.maxGnomAD = cnv.maxGnomAD
+                cnvData.gnomADCount = cnv.gnomADCount
+                cnvData.gnomAD = cnv.gnomAD
+            }
+
+            if(cnv.closeGnomAD) {
+                cnvData.closeGnomAD = cnv.closeGnomAD
+            }
+
             try {
                 if(i>0)
                     w.println(',')
@@ -632,9 +649,14 @@ class SummarizeCNVs {
        return DEFAULT_JS_COLUMNS + 
            (refGenes?['cds']:[]) +
            (dbIds.collect { String dbId -> [dbId, dbId + 'Freq'] }.sum()?:[]) +
-           cnvCallers + cnvCallers.collect { it+"_qual" } + ['calls']
+           cnvCallers + cnvCallers.collect { it+"_qual" } + ['calls','details']
     }
     
+    /**
+     * Annotate and convert a CNV region information to be ready for output
+     * 
+     * @return map of key value pairs of information to output
+     */
     Map<String, Object> cnvToMap(List<String> cnvCallers, List<String> dbIds, List<String> columnNames, Region cnv) {
         
         List cdsInfo = this.refGenes ? [cnv.cdsOverlap] : []
@@ -646,9 +668,15 @@ class SummarizeCNVs {
         }
         
         Map calls = [:]
+        Map details = [:]
         for(String caller in cnvCallers) {
             if(cnv[caller]) {
-                calls[caller] = cnv[caller].all.collect { [it.from, it.to, it.quality] }
+                calls[caller] = cnv[caller].all.collect { 
+                    [it.from, it.to, it.quality] 
+                }
+                
+                if(cnv[caller]?.best?.details)
+                    details[caller] = cnv[caller].best.details
             }
         }
         
@@ -670,7 +698,7 @@ class SummarizeCNVs {
             cnv[caller].best ? "TRUE" : "FALSE"
         }  + cnvCallers.collect { caller ->
             cnv[caller].best ? cnv[caller].best.quality : 0
-        } + [calls]
+        } + [calls] + details
                
 		Map data = [columnNames,line].transpose().collectEntries()
         
@@ -681,7 +709,33 @@ class SummarizeCNVs {
     String normChr(Region cnv) {
        cnv.chr.startsWith('chr') ? cnv.chr : 'chr' + cnv.chr 
     }
+    
+    /**
+     * Set explicit properties from gnomAD so that they export into JSON
+     * 
+     * @param cnv
+     * @param gmd
+     */
+    void addSupplementalGnomADInfo(Region cnv, String type, Region gmd) {
+        gmd.chr = gmd.chr
+        gmd.start = gmd.from
+        gmd.end = gmd.to
+        gmd.overlap =  this.overlapCriteria.calculateOverlap(cnv, gmd)
+        gmd.freq = (type == 'DEL') ? gmd.deletion_frequency : gmd.duplication_frequency
+    }
 
+    /**
+     * Compute the high level CNV frequency information for each configured CNV 
+     * database.
+     * 
+     * As a side effect, if gnomAD is configured as a CNV database, then
+     * additional gnomAD information corresponding to the highest frequency qualifying gnomAD CNV
+     * is set on the original CNV as a maxGnomAD property.
+     * 
+     * @return a list of numbers, representing alternatingly, the count and 
+     *         then population frequency of the highest spanning frequency CNV for
+     *         the given event from each respective CNV database
+     */
     private List computeCNVFrequencyInfo(Region cnv, List<String> dbIds) {
         
         String annoType = anno_types[cnv.type]
@@ -691,6 +745,38 @@ class SummarizeCNVs {
         Map<String,CNVFrequency> freqInfos = [:]
         if(cnvAnnotator)
             freqInfos = cnvAnnotator.annotate(cnvRegion, annoType)
+            
+        if(freqInfos.GMD) {
+            Region maxG = freqInfos.GMD.spanning.max { cnv.type == 'DEL' ? it.deletion_frequency : it.duplication_frequency }
+            Region closeG = freqInfos.GMD.spanning.max { this.overlapCriteria.calculateOverlap(cnv,it) }
+            
+            cnv.maxGnomAD = maxG
+            cnv.closeGnomAD = closeG
+            
+            if(maxG) {
+                // JSON serialization of region doesn't include actual coordinates
+                addSupplementalGnomADInfo(cnv, cnv.type, maxG)
+                addSupplementalGnomADInfo(cnv, cnv.type, closeG)
+            }
+            
+            cnv.gnomADCount = freqInfos.GMD.spanning.size()
+            
+            List<List> spans = freqInfos.GMD.spanning.collect {
+                def freq = cnv.type == 'DEL' ? it.deletion_frequency : it.duplication_frequency
+                def count = cnv.type == 'DEL' ? it.observedLosses : it.observedGains
+                [ it.from, it.to,  freq , count, this.overlapCriteria.calculateOverlap(cnv, it) ]
+            }
+
+            List<List> highFreq = spans
+            .sort { -it[2] } // highest pop freq first
+            .take(5)
+            
+            List<List> closeMatch = spans
+            .sort { -it[4] } // highest mutual overlap first
+            .take(5)
+            
+            cnv.gnomAD = (highFreq + closeMatch).unique()
+        }
 
         List frequencyInfo = dbIds.collect { dbId ->
             CNVFrequency freqInfo = freqInfos[dbId];

@@ -1243,7 +1243,7 @@ class CNVDiagram {
             // Filter high freq, high within-batch calls and dups called by a single caller
             cnvs = cnvs.grep { 
                 (it.sampleCount < maxSampleCount) &&  // Do not include if found in more than (default 3) samples in the batch
-                (it.DDDFreq<maxFreq) && (it.DGVFreq<maxFreq) &&  // Do not include if spanning population freq too high 
+                (it.DDDFreq<maxFreq) && (it.DGVFreq<maxFreq) && (it.GMDFreq<maxFreq) &&  // Do not include if spanning population freq too high 
                 (it.type.contains('DEL') || (it.count > 1))  // Only include non-deletions if count > 1
             } as Regions
             
