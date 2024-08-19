@@ -654,7 +654,7 @@ class SummarizeCNVs {
        return DEFAULT_JS_COLUMNS + 
            (refGenes?['cds']:[]) +
            (dbIds.collect { String dbId -> [dbId, dbId + 'Freq'] }.sum()?:[]) +
-           cnvCallers + cnvCallers.collect { it+"_qual" } + ['calls','details']
+           cnvCallers + cnvCallers.collect { it+"_qual" } + ['calls','details','extrainfo']
     }
     
     /**
@@ -674,11 +674,13 @@ class SummarizeCNVs {
         
         Map calls = [:]
         Map details = [:]
+        Map extrainfo = [:]
         for(String caller in cnvCallers) {
             if(cnv[caller]) {
                 calls[caller] = cnv[caller].all.collect { 
                     [it.from, it.to, it.quality] 
                 }
+                extrainfo[caller] = cnv[caller].all.collect { it.extrainfo?:{} }
                 
                 if(cnv[caller]?.best?.details)
                     details[caller] = cnv[caller].best.details
@@ -703,7 +705,7 @@ class SummarizeCNVs {
             cnv[caller].best ? "TRUE" : "FALSE"
         }  + cnvCallers.collect { caller ->
             cnv[caller].best ? cnv[caller].best.quality : 0
-        } + [calls] + details
+        } + [calls] + details + extrainfo
                
 		Map data = [columnNames,line].transpose().collectEntries()
         
