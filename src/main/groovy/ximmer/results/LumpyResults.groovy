@@ -26,6 +26,7 @@ class LumpyResults extends CNVResults {
 			r.start = v.pos
 			r.end = v.info.END.toInteger()
 			r.quality = [v.info.PE?:0,v.info.SU?:0, v.info.SR?:0]*.toInteger().sum()
+			r.extrainfo = [PE:v.info.PE.toInteger()?:0,SU:v.info.SU.toInteger()?:0]
             
 			addRegion(r)
             
