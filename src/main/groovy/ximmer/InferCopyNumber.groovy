@@ -13,6 +13,13 @@ import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log
 
+/**
+ * Use target read counts calculated in the QC stage of the Ximmer pipeline
+ * to infer actual copy numbers for calls, along with reporting the observed
+ * to expected read ratio and computing a combined quality metric that sums
+ * the quality outputs from Phred based callers. These metrics are added
+ * to Ximmer's standard TSV and JSON output formats.
+ */
 @Log
 class InferCopyNumber extends ToolBase {
     
