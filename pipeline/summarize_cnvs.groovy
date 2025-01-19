@@ -188,6 +188,26 @@ create_cnv_report = {
     }
 }
 
+infer_copy_number = {
+    doc \
+    """
+    Infers copy number in merged CNV calls based on observed read depth differences
+    """
+    
+    output.dir = 'analysis/report'
+    
+    transform('tsv','json') to('cn.tsv','cn.json') {
+        exec """
+            JAVA_OPTS="-Xmx12g -noverify" $GROOVY -cp $GNGS_JAR:$XIMMER_SRC:$XIMMER_SRC/../resources:$XIMMER_SRC/../js $XIMMER_SRC/ximmer/InferCopyNumber.groovy
+                -c $input.combined.sample_interval_summary
+                -t $input.tsv
+                -j $input.json
+                -to $output.tsv
+                -jo $output.json
+        """
+    }
+}
+
 zip_cnv_report = {
     produce("cnv_report.zip") {
         exec """

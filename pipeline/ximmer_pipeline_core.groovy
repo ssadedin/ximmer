@@ -103,7 +103,7 @@ ximmer_core = segment {
         cnv_reports << create_cnv_report
     }
     
-    cnv_reports << create_cnv_report.using(file_name_prefix:"local_", imgpath: "") 
+    cnv_reports << [ create_cnv_report.using(file_name_prefix:"local_", imgpath: "")  + infer_copy_number ]
     
     caller_pipelines = [
 
