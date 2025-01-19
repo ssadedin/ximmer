@@ -230,7 +230,7 @@ run_exome_depth = {
                 sample.reference.stats = as.data.frame(reference.set\$summary.stats)
                 sample.reference.stats$sample = ed.test.sample 
              
-                if(is.na(all.reference.stats)) {
+                if(all(is.na(all.reference.stats))) {
                     all.reference.stats = sample.reference.stats
                 }
                 else {
