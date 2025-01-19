@@ -50,15 +50,18 @@ savvy_bin_coverage = {
 savvy_call_cnvs = {
     
     var savvy_chunk_size : 5000,
-        savvy_transition_probability : 0.001
+        savvy_transition_probability : 0.001,
+        savvy_singular_vectors : null
     
+    def svArg =  savvy_singular_vectors ? "-sv $savvy_singular_vectors" : ""
+
     produce('savvy.cnvs.tsv') {
         exec """
             export CLASSPATH="$SAVVYCNV_JAR"
 
             printf "chromosome\\tstart\\tend\\ttype\\tblock_support\\tblock_span\\t\\tqual\\tqual_rel\\tsample\\n" > $output.tsv
 
-            $JAVA -Xmx${memory}g SavvyCNV -data -d $savvy_chunk_size -trans $savvy_transition_probability $inputs.coverageBinner >> $output.tsv 
+            $JAVA -Xmx${memory}g SavvyCNV -data -d $savvy_chunk_size $svArg  -trans $savvy_transition_probability $inputs.coverageBinner >> $output.tsv 
         ""","savvycnv"
     }
 
