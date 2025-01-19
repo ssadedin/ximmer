@@ -79,9 +79,9 @@ class InferCopyNumber extends ToolBase {
         
         List cnv_sources = []
         if(cnvs_j)
-            cnv_sources.add(cnvs_j)
+            cnv_sources.add(cnvs_j as List)
         if(cnvs_t)
-            cnv_sources.add(cnvs_t)
+            cnv_sources.add(cnvs_t as List)
 
         // Because they are the same size we can pair them
         List<List<Region>> paired = cnv_sources.transpose()
@@ -122,7 +122,7 @@ class InferCopyNumber extends ToolBase {
      */
     void writeTSVOutput(final Regions cnvs_t) {
         List<Map> rawTSV = new TSV(opts.t).toListMap()
-        [rawTSV, cnvs_t].transpose().each { Map tsvRow, cnv ->
+        [rawTSV, cnvs_t as List].transpose().each { Map tsvRow, cnv ->
             tsvRow.putAll(
                 coverage_ratio : cnv.coverage_ratio,
                 combined_qual : cnv.combined_qual,
