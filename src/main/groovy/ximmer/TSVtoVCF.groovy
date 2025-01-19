@@ -142,11 +142,13 @@ class TSVtoVCF extends ToolBase {
      */
     private Set createHeaders(FASTA genomeRef, List contigs) {
         Map<String, Integer> contigLengths = genomeRef.contigs
-        Set contigHeaderLines = contigs.collect { String contig ->
-            if(!contigLengths.containsKey(contig))
-                throw new IllegalComponentStateException("Contig $contig was not found in the supplied FASTA file")
-            new VCFSimpleHeaderLine(contig, [ ID: contig, length: genomeRef.contigs[contig]])
-        } as Set
+        Set contigHeaderLines = contigLengths*.key
+            .grep { !Region.isMinorContig(it) }
+            .collect { String contig ->
+                if(!contigLengths.containsKey(contig))
+                    throw new IllegalComponentStateException("Contig $contig was not found in the supplied FASTA file")
+                new VCFSimpleHeaderLine(contig, [ ID: contig, length: genomeRef.contigs[contig]])
+            } as Set
 
         Set headerLines = [
             new VCFInfoHeaderLine('SVTYPE', 1, VCFHeaderLineType.String, "Type of structural variant"),
