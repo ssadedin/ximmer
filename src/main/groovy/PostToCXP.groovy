@@ -116,12 +116,9 @@ class PostToCXP extends ToolBase {
             println "Found batch $batch"
         }
         else {
-            log.info "Creating new batch $batchIdentifier"
-            batch = [(ws / 'batch').post(
-                metadata: [:],
-                identifier: batchIdentifier,
-                date: batchDate(batchDir.lastModified())
-            )]
+            def batchData = [                metadata: [:], assay: assay, identifier: batchIdentifier, date: batchDate(batchDir.lastModified())]
+            log.info "Creating new batch $batchIdentifier: " + JsonOutput.prettyPrint(JsonOutput.toJson(batchData))
+            batch = [(ws / 'batch').post(batchData)]
         }
         
         List samplesToSubmit = ximmer.bamFiles*.key
