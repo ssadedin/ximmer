@@ -187,7 +187,7 @@ run_exome_depth = {
 
             # Now we need all the bam files. Generate them from sample names
             ed.samples = c(${sample_list.collect{'"'+it+'"'}.join(",")})
-            ed.test.samples = c(${test_samples.collect{'"'+it+'"'}.join(",")})
+            ed.test.samples = c(${test_samples.source.collect{'"'+it+'"'}.join(",")})
 
             print(sprintf("Read %d samples",length(ed.samples)))
 
