@@ -147,8 +147,12 @@ class TSVtoVCF extends ToolBase {
             .collect { String contig ->
                 if(!contigLengths.containsKey(contig))
                     throw new IllegalComponentStateException("Contig $contig was not found in the supplied FASTA file")
-                new VCFSimpleHeaderLine(contig, [ ID: contig, length: genomeRef.contigs[contig]])
+                new VCFSimpleHeaderLine("contig", [ ID: contig, length: genomeRef.contigs[contig]])
             } as Set
+            
+            
+        Set referenceHeaderLine = 
+                 [ new VCFSimpleHeaderLine("reference", "GRCh38", "Reference file") ] as Set
 
         Set headerLines = [
             new VCFInfoHeaderLine('SVTYPE', 1, VCFHeaderLineType.String, "Type of structural variant"),
@@ -158,7 +162,8 @@ class TSVtoVCF extends ToolBase {
             new VCFInfoHeaderLine('CR', 1, VCFHeaderLineType.Integer, "Ratio of observed to expected coverage depth over event")
         ] as Set
 
-        Set allHeaders = contigHeaderLines + headerLines
+        Set allHeaders = referenceHeaderLine + contigHeaderLines + headerLines
+
         return allHeaders
     }
 
