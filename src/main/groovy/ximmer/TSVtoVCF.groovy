@@ -96,7 +96,11 @@ class TSVtoVCF extends ToolBase {
             if(line.sample in samples) {
                 List<Genotype> gts = samples.collect {
                     if(it == line.sample) {
-                        return GenotypeBuilder.create(it, [firstAllele, altAlleles[0]])
+                        def formatFields =  [
+                            CR : has_cn_info ? line.coverage_ratio : null,
+                            NC : has_cn_info ? line.count : null
+                        ]
+                        return GenotypeBuilder.create(it, [firstAllele, altAlleles[0]], formatFields)
                     }
                     return GenotypeBuilder.create(it, [refAllele, refAllele])
                 }
@@ -112,7 +116,6 @@ class TSVtoVCF extends ToolBase {
                         .attribute("SVLEN", svLen)
                         .attribute("CR", has_cn_info ? line.coverage_ratio : '.')
                         .attribute("CN", has_cn_info ? line.copy_number : '.')
-                        .attribute("CALLERS", line.count)
                         .attribute("CALLERS", line.count)
                         .alleles((Collection)alleles)
                         .genotypes(gts)
@@ -150,9 +153,14 @@ class TSVtoVCF extends ToolBase {
                 new VCFSimpleHeaderLine("contig", [ ID: contig, length: genomeRef.contigs[contig]])
             } as Set
             
+        def formatHeaderLines = [ 
+            new VCFFormatHeaderLine('CR', 1, VCFHeaderLineType.Float, "Ratio of expected to observed coverage depth"),
+            new VCFFormatHeaderLine('NC', 1, VCFHeaderLineType.Integer, "Count of callers supporting the CNV call")
+        ] as Set
             
         Set referenceHeaderLine = 
                  [ new VCFSimpleHeaderLine("reference", "GRCh38", "Reference file") ] as Set
+                 
 
         Set headerLines = [
             new VCFInfoHeaderLine('SVTYPE', 1, VCFHeaderLineType.String, "Type of structural variant"),
@@ -162,7 +170,7 @@ class TSVtoVCF extends ToolBase {
             new VCFInfoHeaderLine('CR', 1, VCFHeaderLineType.Integer, "Ratio of observed to expected coverage depth over event")
         ] as Set
 
-        Set allHeaders = referenceHeaderLine + contigHeaderLines + headerLines
+        Set allHeaders = referenceHeaderLine + formatHeaderLines + contigHeaderLines + headerLines
 
         return allHeaders
     }
