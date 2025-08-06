@@ -29,6 +29,7 @@ class DellyResults extends CNVResults {
             r.start = it.pos
             r.end = it.info.END.toInteger()
             r.quality = it.genoTypes[0].GQ.toDouble()
+            r.cn = it.genoTypes[0].CN.toDouble()
 
             addRegion(r)
 

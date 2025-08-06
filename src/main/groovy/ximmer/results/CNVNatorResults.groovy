@@ -27,6 +27,8 @@ class CNVNatorResults extends CNVResults {
             r.start = it.pos
             r.end = it.info.END.toInteger()
             r.quality = it.info['natorQ0'].toDouble()
+            r.cn = it.genoTypes[0].CN.toInteger()
+
             addRegion(r)
             
             return false

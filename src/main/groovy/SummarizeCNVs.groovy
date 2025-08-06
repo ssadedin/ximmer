@@ -2,6 +2,7 @@
 import org.codehaus.groovy.runtime.StackTraceUtils;
 
 import gngs.*
+import graxxia.IntegerStats
 import graxxia.Stats
 import groovy.json.JsonOutput
 import groovy.text.SimpleTemplateEngine
@@ -563,18 +564,27 @@ class SummarizeCNVs {
              }
         }
         
+        
+        
         new File(fileName).withWriter { w ->
             
             List<String> dbIds = cnvAnnotator ? cnvAnnotator.cnvDatabases*.key : []
             
-            w.println((["chr","start","end","sample","genes", "type","count","stotal","sampleCount","sampleFreq"] + 
-                       dbIds.collect{ dbId -> [dbId,dbId+"Freq"]}.sum() +
+            List<String> columnNames = ["chr","start","end","sample","genes", "type","count","stotal","sampleCount","sampleFreq","copy_number"]
+            
+            def outputColumnNames = columnNames + 
+                       (dbIds.collect{ dbId -> [dbId,dbId+"Freq"]}.sum()?:[]) +
                        cnvCallers + 
-                       cnvCallers.collect { it+"_qual" }).join("\t"))
+                       cnvCallers.collect { it+"_qual" }
+
+            w.println(outputColumnNames.join("\t"))
             
             cnvs.eachWithIndex { cnv, i ->
                 
-                List frequencyInfo = dbIds.collect { dbId -> CNVFrequency freqInfo = annotations[i][dbId];  [freqInfo.spanning.size(), freqInfo.spanningFreq] }.sum() 
+                Integer cn_estimate = computeCombinedCopyNumber(cnvCallers, cnv)
+
+                List frequencyInfo = 
+                    (dbIds.collect { dbId -> CNVFrequency freqInfo = annotations[i][dbId];  [freqInfo.spanning.size(), freqInfo.spanningFreq] }.sum()?:[])
                 
                 List line = [
                     normChr(cnv), 
@@ -586,7 +596,8 @@ class SummarizeCNVs {
                     cnv.count, 
                     cnv.stotal, 
                     cnv.sampleCount,
-                    cnv.sampleFreq
+                    cnv.sampleFreq,
+                    cn_estimate
                 ] + frequencyInfo +
                 cnvCallers.collect { caller ->
                     cnv[caller].best ? "TRUE" : "FALSE"
@@ -609,7 +620,7 @@ class SummarizeCNVs {
     final Map<String,String> anno_types = [ "DEL" : "LOSS", "DUP" : "GAIN" ]
     
     final static List<String> DEFAULT_JS_COLUMNS = 
-        ["chr","start","end","targets","sample","genes","category", "type","count","stotal","sampleCount","sampleFreq"]
+        ["chr","start","end","targets","sample","genes","category", "type","count","stotal","sampleCount","sampleFreq","copy_number"]
     
     void writeJSON(Regions cnvs, Writer w) {
         
@@ -622,7 +633,6 @@ class SummarizeCNVs {
         w.println('[')
             
         cnvs.eachWithIndex { Region cnv, int i ->
-            
                 
             Map cnvData = cnvToMap(cnvCallers, dbIds, columnNames, cnv)
             
@@ -675,17 +685,32 @@ class SummarizeCNVs {
         Map calls = [:]
         Map details = [:]
         Map extrainfo = [:]
+        
+        List cns = []
         for(String caller in cnvCallers) {
-            if(cnv[caller]) {
-                calls[caller] = cnv[caller].all.collect { 
+            Map call = cnv[caller]
+            if(call) {
+                calls[caller] = call.all.collect { 
                     [it.from, it.to, it.quality] 
                 }
-                extrainfo[caller] = cnv[caller].all.collect { it.extrainfo?:{} }
                 
-                if(cnv[caller]?.best?.details)
-                    details[caller] = cnv[caller].best.details
+                extrainfo[caller] = call.all.collect { it.extrainfo?:{} }
+                
+                if(call?.best?.details) {
+                    details[caller] = call.best.details
+                }
+                if(call?.best) {
+                    details.get(caller, [:]).cn = call.best.cn
+                    
+                    if(call.best.cn != null)
+                        cns.add(call.best.cn)
+                }
             }
         }
+        
+        log.info "Copy numbers: " + cns
+        
+        Integer cn_estimate = cns.min()
         
         List line = [
             normChr(cnv), 
@@ -699,7 +724,8 @@ class SummarizeCNVs {
             cnv.count, 
             cnv.stotal, 
             cnv.sampleCount,
-            cnv.sampleFreq
+            cnv.sampleFreq,
+            cn_estimate
         ] + cdsInfo + frequencyInfo +
         cnvCallers.collect { caller ->
             cnv[caller].best ? "TRUE" : "FALSE"
@@ -710,6 +736,19 @@ class SummarizeCNVs {
 		Map data = [columnNames,line].transpose().collectEntries()
         
         return data
+    }
+    
+    Integer computeCombinedCopyNumber(List<String> cnvCallers, Region cnv) {
+        List cns = []
+        for(String caller in cnvCallers) {
+            Map call = cnv[caller]
+            if(call?.best) {
+                if(call.best.cn != null)
+                    cns.add(call.best.cn)
+            }
+        }
+        
+        return cns.min()
     }
     
     @CompileStatic

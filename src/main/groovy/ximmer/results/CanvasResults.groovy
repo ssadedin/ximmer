@@ -35,6 +35,7 @@ class CanvasResults extends CNVResults {
             r.start = v.pos
             r.end = v.info.END.toInteger()
             r.quality = v.qual
+            r.cn = v.genoTypes[0].CN.toInteger()
 
             addRegion(r)
             return false
