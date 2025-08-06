@@ -26,6 +26,7 @@ class TSVtoVCF extends ToolBase {
             r 'Reference genome for computing reference alleles at CNV start positions', args:1, required: true, type:File
             hl 'Additional header lines to add', args:'*', type: String
             s 'Sample to include', args: '*', required: true, type: String
+            source 'Optional Source to specify in header line', args:1, required: false, type: String
             o 'VCF output file', args:1, required: true, type: File
         }
     }
@@ -203,8 +204,12 @@ class TSVtoVCF extends ToolBase {
         ] as Set
             
         Set referenceHeaderLine = 
-                 [ new VCFSimpleHeaderLine("reference", "GRCh38", "Reference file") ] as Set
-                 
+                 [ new VCFHeaderLine("reference", "GRCh38") ] as Set
+
+        Set sourceHeaderLine = []
+        if(opts.source) {
+             sourceHeaderLine = [ new VCFHeaderLine("source", opts.source) ] as Set
+        }
 
         Set headerLines = [
             new VCFInfoHeaderLine('SVTYPE', 1, VCFHeaderLineType.String, "Type of structural variant"),
@@ -214,7 +219,7 @@ class TSVtoVCF extends ToolBase {
             new VCFInfoHeaderLine('CR', 1, VCFHeaderLineType.Integer, "Ratio of observed to expected coverage depth over event")
         ] as Set
 
-        Set allHeaders = referenceHeaderLine + formatHeaderLines + contigHeaderLines + headerLines
+        Set allHeaders = sourceHeaderLine + referenceHeaderLine + formatHeaderLines + contigHeaderLines + headerLines
 
         return allHeaders
     }

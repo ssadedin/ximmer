@@ -379,6 +379,8 @@ calc_qc_stats = {
 
 convert_to_vcf = {
     output.dir = "vcfs"
+
+    var vcf_source : 'vcgs_ximmer'
     
     branch.sample = branch.name
     
@@ -390,6 +392,7 @@ convert_to_vcf = {
                 -i $input.tsv
                 -s $sample
                 -r $HGFA
+                -source $vcf_source
                 -o $output.vcf
         ""","convert_to_vcf"
     }
