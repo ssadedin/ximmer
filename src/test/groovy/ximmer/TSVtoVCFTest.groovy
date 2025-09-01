@@ -109,6 +109,8 @@ class TSVtoVCFTest {
         
         // Verify that DEL was chosen over DUP
         assert variant != null
+        
+        // Change the implementation and this test so that SVTYPE comes out as DEL in this scenario AI!
         assert variant.getAttribute("SVTYPE") == "DUP,DEL"
         assert variant.alleles.size() == 2
         assert variant.alleles[0].displayString == "G"
