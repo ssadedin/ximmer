@@ -93,7 +93,7 @@ class TSVtoVCF extends ToolBase {
      * @param samples List of samples to include in the output
      * @return VariantContext object if valid, null if variant should be skipped
      */
-    private VariantContext createVariantFromLine(PropertyMapper line, FASTA genomeRef, List<String> samples) {
+    VariantContext createVariantFromLine(PropertyMapper line, FASTA genomeRef, List<String> samples) {
         String ref = genomeRef.basesAt(line.chr, line.start, line.start+1)[0]
 
         // Ignore non-primary assembly contigs because they can return blank reference sequence

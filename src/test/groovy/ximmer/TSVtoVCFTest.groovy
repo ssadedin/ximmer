@@ -2,6 +2,8 @@ package ximmer
 
 import static org.junit.Assert.*
 
+import com.xlson.groovycsv.PropertyMapper
+import gngs.FASTA
 import org.junit.Test
 
 class TSVtoVCFTest {
@@ -21,7 +23,7 @@ class TSVtoVCFTest {
         ] as FASTA
         
         // Create mock input line
-        def line = [
+        def lineValues = [
             chr: "chr1",
             start: 1000,
             end: 2000,
@@ -30,9 +32,17 @@ class TSVtoVCFTest {
             columns: ["copy_number", "coverage_ratio"],
             copy_number: 1,
             coverage_ratio: 0.5,
-            count: 2
-        ] as PropertyMapper
+            count: 2,
+            xhmm_qual : 100d,
+            xhmm : 'TRUE'
+        ] 
         
+        PropertyMapper line = new PropertyMapper()
+        line.columns = lineValues*.key.indexed().collectEntries {  [ it.value, it.key ]}
+        line.values = lineValues*.value
+        
+//        def line = lineValues
+
         // Test with single sample
         def samples = ["SAMPLE1"]
         
