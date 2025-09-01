@@ -80,7 +80,7 @@ class TSVtoVCF extends ToolBase {
         }
 
         log.info "Sorting and writing ${outputVariants.size()} output variants ..."
-        
+        log.info "Wrote ${sortedVariants.size()} variants to VCF"
     }
     
     /**
