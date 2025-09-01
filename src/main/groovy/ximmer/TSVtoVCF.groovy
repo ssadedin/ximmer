@@ -1,8 +1,6 @@
 
 package ximmer
 
-import java.awt.IllegalComponentStateException
-
 import com.xlson.groovycsv.PropertyMapper
 import gngs.FASTA
 import gngs.ProgressCounter
@@ -195,7 +193,7 @@ class TSVtoVCF extends ToolBase {
             .grep { !Region.isMinorContig(it) }
             .collect { String contig ->
                 if(!contigLengths.containsKey(contig))
-                    throw new IllegalComponentStateException("Contig $contig was not found in the supplied FASTA file")
+                    throw new IllegalStateException("Contig $contig was not found in the supplied FASTA file")
                 new VCFSimpleHeaderLine("contig", [ ID: contig, length: genomeRef.contigs[contig]])
             } as Set
             
