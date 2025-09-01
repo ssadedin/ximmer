@@ -9,6 +9,16 @@ import org.junit.Test
 class TSVtoVCFTest {
     // no dot in CR
     // no N as REF
+    
+    /**
+     * Creates a PropertyMapper from a map of values
+     */
+    private PropertyMapper createPropertyMapper(Map lineValues) {
+        PropertyMapper mapper = new PropertyMapper()
+        mapper.columns = lineValues*.key.indexed().collectEntries { [it.value, it.key] }
+        mapper.values = lineValues*.value
+        return mapper
+    }
 
     /**
      * Test the createVariantFromLine method
@@ -37,12 +47,8 @@ class TSVtoVCFTest {
             xhmm : 'TRUE'
         ] 
         
-        // Convert this into a function that takes the lineValues and returns a PropertyMapper AI!
-        PropertyMapper line = new PropertyMapper()
-        line.columns = lineValues*.key.indexed().collectEntries {  [ it.value, it.key ]}
-        line.values = lineValues*.value
+        PropertyMapper line = createPropertyMapper(lineValues)
         
-//        def line = lineValues
 
         // Test with single sample
         def samples = ["SAMPLE1"]
