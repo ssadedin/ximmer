@@ -32,8 +32,7 @@ class TSVtoVCFTest {
             basesAt: { chr, start, end -> "A" }
         ] as FASTA
         
-        // Create mock input line
-        def lineValues = [
+        PropertyMapper line = createPropertyMapper(
             chr: "chr1",
             start: 1000,
             end: 2000,
@@ -45,10 +44,7 @@ class TSVtoVCFTest {
             count: 2,
             xhmm_qual : 100d,
             xhmm : 'TRUE'
-        ] 
-        
-        PropertyMapper line = createPropertyMapper(lineValues)
-        
+        ) 
 
         // Test with single sample
         def samples = ["SAMPLE1"]
@@ -78,6 +74,14 @@ class TSVtoVCFTest {
         assert genotype.getAlleles().size() == 2
         assert genotype.getExtendedAttribute("CR") == 0.5
         assert genotype.getExtendedAttribute("NC") == 2
+    }
+    
+    /**
+     * Test that if the type has both DUP and DEL, only DEL is in the output
+     */
+    @Test
+    void testCombinedDupAndDel() {
+        
     }
 
 }
