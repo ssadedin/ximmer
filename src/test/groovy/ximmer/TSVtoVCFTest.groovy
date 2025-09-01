@@ -203,5 +203,34 @@ class TSVtoVCFTest {
         assert dupVariant.getAttribute("CR") == 3.0
         assert dupVariant.getGenotype("SAMPLE1").getExtendedAttribute("CR") == 3.0
     }
+    
+    /**
+     * Test that variants with N as reference base are skipped
+     */
+    @Test
+    void testSkipNReference() {
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "N" }
+        ] as FASTA
+        
+        PropertyMapper line = createPropertyMapper(
+            chr: "chr1",
+            start: 9000,
+            end: 10000,
+            type: "DEL",
+            sample: "SAMPLE1",
+            copy_number: 1,
+            count: 1,
+            xhmm_qual: 70d,
+            xhmm: 'TRUE'
+        )
+        
+        def samples = ["SAMPLE1"]
+        def variant = tsv.createVariantFromLine(line, mockFasta, samples)
+        
+        // Verify that variant is null when reference base is N
+        assert variant == null
+    }
 
 }

@@ -99,6 +99,12 @@ class TSVtoVCF extends ToolBase {
         // Ignore non-primary assembly contigs because they can return blank reference sequence
         if(Region.isMinorContig(line.chr) && !ref.trim())
             return null
+            
+        // Skip variants where reference base is N
+        if(ref.toUpperCase() == 'N') {
+            log.warning("Skipping variant at ${line.chr}:${line.start} because reference base is N")
+            return null
+        }
                                          
         int svLen = (line.end - line.start) * (line.type == 'DEL' ? -1 : 1 )
         Allele refAllele = Allele.create(ref, true)
