@@ -65,6 +65,7 @@ class TSVtoVCF extends ToolBase {
         
         List<VariantContext> outputVariants = new ArrayList(10000)
         
+        // Factor the body of this loop into a separate function AI!
         for(PropertyMapper line in tsv) {
             
             String ref = genomeRef.basesAt(line.chr, line.start, line.start+1)[0]
