@@ -10,12 +10,11 @@ import gngs.plot.Bars
 import gngs.plot.Plot
 import gngs.plot.bx.*
 
-
 /**
  * A tool that produces a basic report, mainly based on CNV counts to allow
  * quick assessment of whether the CNV calling has operated correctly.
  */
-class CNVQCReport extends ToolBase {
+class CNVQCReport extends gngs.ToolBase {
     
     
     static Logger log = Logger.getLogger("CNVQCReport")
