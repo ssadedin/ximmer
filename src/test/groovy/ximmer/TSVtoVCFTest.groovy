@@ -37,6 +37,7 @@ class TSVtoVCFTest {
             xhmm : 'TRUE'
         ] 
         
+        // Convert this into a function that takes the lineValues and returns a PropertyMapper AI!
         PropertyMapper line = new PropertyMapper()
         line.columns = lineValues*.key.indexed().collectEntries {  [ it.value, it.key ]}
         line.values = lineValues*.value
