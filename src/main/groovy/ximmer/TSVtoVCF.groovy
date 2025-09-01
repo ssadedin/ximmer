@@ -74,6 +74,13 @@ class TSVtoVCF extends ToolBase {
         }
         p.end()
         
+        
+        List<VariantContext> sortedVariants = outputVariants.sort { XPos.computePos(it.contig, it.start)}
+        for(vctx in sortedVariants) {
+                encoder.write(w, vctx)
+                w.write('\n')
+        }
+
         log.info "Sorting and writing ${outputVariants.size()} output variants ..."
         
     }
@@ -97,6 +104,8 @@ class TSVtoVCF extends ToolBase {
         Allele refAllele = Allele.create(ref, true)
         
         List<String> types = line.type.tokenize(',')
+        
+        // Instead of outputting multiple alt alleles, only output a single one, where a single duplication is output as DUP but ANYTHING ELSE is output as a deletion AI!
         List<Allele> altAlleles = types.collect { Allele.create('<' + it + '>')}
         
         Allele firstAllele = refAllele
@@ -157,12 +166,6 @@ class TSVtoVCF extends ToolBase {
                     .make()
         }
         return null
-        
-        List<VariantContext> sortedVariants = outputVariants.sort { XPos.computePos(it.contig, it.start)}
-        for(vctx in sortedVariants) {
-                encoder.write(w, vctx)
-                w.write('\n')
-        }
     }
 
     /**
