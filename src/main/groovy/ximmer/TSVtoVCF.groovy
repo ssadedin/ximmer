@@ -122,6 +122,9 @@ class TSVtoVCF extends ToolBase {
         
         boolean has_cr_info = 'coverage_ratio' in line.columns
         
+        // Default CR values when coverage_ratio not available
+        double defaultCR = altType == 'DEL' ? 0.5 : 3.0
+        
         List<Allele> alleles = [
             refAllele,
             *altAlleles
@@ -162,7 +165,7 @@ class TSVtoVCF extends ToolBase {
                     .attribute("SVTYPE", svType)
                     .attribute("END", line.end)
                     .attribute("SVLEN", svLen)
-                    .attribute("CR", has_cr_info ? line.coverage_ratio : '.')
+                    .attribute("CR", has_cr_info ? line.coverage_ratio : defaultCR)
                     .attribute("CN", has_cn_info ? line.copy_number : '.')
                     .attribute("CALLERS", line.count)
                     .alleles((Collection)alleles)

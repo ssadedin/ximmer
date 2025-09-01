@@ -154,5 +154,57 @@ class TSVtoVCFTest {
         assert variant.alleles[0].displayString == "T"
         assert variant.alleles[1].displayString == "<DEL>"
     }
+    
+    /**
+     * Test that default coverage ratios are used when coverage_ratio is not provided
+     */
+    @Test
+    void testDefaultCoverageRatios() {
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "C" }
+        ] as FASTA
+        
+        // Test deletion without coverage_ratio
+        PropertyMapper delLine = createPropertyMapper(
+            chr: "chr1",
+            start: 7000,
+            end: 8000,
+            type: "DEL",
+            sample: "SAMPLE1",
+            columns: ["copy_number"],
+            copy_number: 1,
+            count: 1,
+            xhmm_qual: 70d,
+            xhmm: 'TRUE'
+        )
+        
+        def samples = ["SAMPLE1"]
+        def delVariant = tsv.createVariantFromLine(delLine, mockFasta, samples)
+        
+        // Verify default CR for deletion is 0.5
+        assert delVariant != null
+        assert delVariant.getAttribute("CR") == 0.5
+        
+        // Test duplication without coverage_ratio
+        PropertyMapper dupLine = createPropertyMapper(
+            chr: "chr1",
+            start: 7000,
+            end: 8000,
+            type: "DUP",
+            sample: "SAMPLE1",
+            columns: ["copy_number"],
+            copy_number: 3,
+            count: 1,
+            xhmm_qual: 70d,
+            xhmm: 'TRUE'
+        )
+        
+        def dupVariant = tsv.createVariantFromLine(dupLine, mockFasta, samples)
+        
+        // Verify default CR for duplication is 3.0
+        assert dupVariant != null
+        assert dupVariant.getAttribute("CR") == 3.0
+    }
 
 }
