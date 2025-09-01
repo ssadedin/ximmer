@@ -66,80 +66,8 @@ class TSVtoVCF extends ToolBase {
         List<VariantContext> outputVariants = new ArrayList(10000)
         
         for(PropertyMapper line in tsv) {
-            
-            // Factor the body of this loop into a separate function AI!
-
-            String ref = genomeRef.basesAt(line.chr, line.start, line.start+1)[0]
-
-            // Ignore non-primary assembly contigs because they can return blank reference sequence
-            if(Region.isMinorContig(line.chr) && !ref.trim())
-                continue
-                                         
-            int svLen = (line.end - line.start) * (line.type == 'DEL' ? -1 : 1 )
-            Allele refAllele = Allele.create(ref, true)
-            
-            List<String> types = line.type.tokenize(',')
-            List<Allele> altAlleles = types.collect { Allele.create('<' + it + '>')}
-            
-            Allele firstAllele = refAllele
-            boolean has_cn_info = 'copy_number' in line.columns
-            if(has_cn_info) {
-                if(types[0] == 'DEL' && line.copy_number == 0) {
-                    firstAllele = altAlleles[0]
-                }
-            }
-            
-            boolean has_cr_info = 'coverage_ratio' in line.columns
-            
-            List<Allele> alleles = [
-                refAllele,
-                *altAlleles
-            ]
-            
-            Genotype gt = GenotypeBuilder.create(line.sample, alleles)
-            if(line.sample in samples) {
-                List<Genotype> gts = samples.collect {
-                    if(it == line.sample) {
-                        def formatFields =  [
-                            CR : has_cr_info ? line.coverage_ratio : null,
-                            NC : has_cn_info ? line.count : null
-                        ]
-                        return GenotypeBuilder.create(it, [firstAllele, altAlleles[0]], formatFields)
-                    }
-                    return GenotypeBuilder.create(it, [refAllele, refAllele])
-                }
-                
-                boolean has_combined_qual = ('combined_qual' in line.columns)
-                double combined_qual = 20
-                if(has_combined_qual) {
-                    combined_qual = line.combined_qual
-                }
-                else {
-                    // Calculate assuming Phred scaled values b/w 0 and 100
-                    // clip at 100 to avoid a single caller dominating the score
-                    combined_qual = line.columns*.key.grep { it.endsWith('_qual') && line[it.split('_')[0]] == 'TRUE' }
-                    .collect { line[it].toDouble() }
-                    .collect { qual ->
-                        Math.min(100d, Math.max(0d, qual))
-                    }.sum()
-                }
-
-                VariantContext vctx = 
-                    new VariantContextBuilder()
-                        .chr(line.chr)
-                        .start(line.start)
-                        .stop(line.end)
-                        .log10PError(-combined_qual/10)
-                        .attribute("SVTYPE", line.type)
-                        .attribute("END", line.end)
-                        .attribute("SVLEN", svLen)
-                        .attribute("CR", has_cr_info ? line.coverage_ratio : '.')
-                        .attribute("CN", has_cn_info ? line.copy_number : '.')
-                        .attribute("CALLERS", line.count)
-                        .alleles((Collection)alleles)
-                        .genotypes(gts)
-                        .make()
-                        
+            VariantContext vctx = createVariantFromLine(line, genomeRef, samples)
+            if(vctx) {
                 outputVariants.add(vctx)
             }
             p.count()
@@ -147,6 +75,88 @@ class TSVtoVCF extends ToolBase {
         p.end()
         
         log.info "Sorting and writing ${outputVariants.size()} output variants ..."
+        
+    }
+    
+    /**
+     * Creates a VariantContext from a single line of TSV input
+     * 
+     * @param line The line from the TSV file containing variant information
+     * @param genomeRef Reference genome for getting reference bases
+     * @param samples List of samples to include in the output
+     * @return VariantContext object if valid, null if variant should be skipped
+     */
+    private VariantContext createVariantFromLine(PropertyMapper line, FASTA genomeRef, List<String> samples) {
+        String ref = genomeRef.basesAt(line.chr, line.start, line.start+1)[0]
+
+        // Ignore non-primary assembly contigs because they can return blank reference sequence
+        if(Region.isMinorContig(line.chr) && !ref.trim())
+            return null
+                                         
+        int svLen = (line.end - line.start) * (line.type == 'DEL' ? -1 : 1 )
+        Allele refAllele = Allele.create(ref, true)
+        
+        List<String> types = line.type.tokenize(',')
+        List<Allele> altAlleles = types.collect { Allele.create('<' + it + '>')}
+        
+        Allele firstAllele = refAllele
+        boolean has_cn_info = 'copy_number' in line.columns
+        if(has_cn_info) {
+            if(types[0] == 'DEL' && line.copy_number == 0) {
+                firstAllele = altAlleles[0]
+            }
+        }
+        
+        boolean has_cr_info = 'coverage_ratio' in line.columns
+        
+        List<Allele> alleles = [
+            refAllele,
+            *altAlleles
+        ]
+        
+        if(line.sample in samples) {
+            List<Genotype> gts = samples.collect {
+                if(it == line.sample) {
+                    def formatFields =  [
+                        CR : has_cr_info ? line.coverage_ratio : null,
+                        NC : has_cn_info ? line.count : null
+                    ]
+                    return GenotypeBuilder.create(it, [firstAllele, altAlleles[0]], formatFields)
+                }
+                return GenotypeBuilder.create(it, [refAllele, refAllele])
+            }
+            
+            boolean has_combined_qual = ('combined_qual' in line.columns)
+            double combined_qual = 20
+            if(has_combined_qual) {
+                combined_qual = line.combined_qual
+            }
+            else {
+                // Calculate assuming Phred scaled values b/w 0 and 100
+                // clip at 100 to avoid a single caller dominating the score
+                combined_qual = line.columns*.key.grep { it.endsWith('_qual') && line[it.split('_')[0]] == 'TRUE' }
+                .collect { line[it].toDouble() }
+                .collect { qual ->
+                    Math.min(100d, Math.max(0d, qual))
+                }.sum()
+            }
+
+            return new VariantContextBuilder()
+                    .chr(line.chr)
+                    .start(line.start)
+                    .stop(line.end)
+                    .log10PError(-combined_qual/10)
+                    .attribute("SVTYPE", line.type)
+                    .attribute("END", line.end)
+                    .attribute("SVLEN", svLen)
+                    .attribute("CR", has_cr_info ? line.coverage_ratio : '.')
+                    .attribute("CN", has_cn_info ? line.copy_number : '.')
+                    .attribute("CALLERS", line.count)
+                    .alleles((Collection)alleles)
+                    .genotypes(gts)
+                    .make()
+        }
+        return null
         
         List<VariantContext> sortedVariants = outputVariants.sort { XPos.computePos(it.contig, it.start)}
         for(vctx in sortedVariants) {
