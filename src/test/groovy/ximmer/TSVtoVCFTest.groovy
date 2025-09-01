@@ -81,7 +81,38 @@ class TSVtoVCFTest {
      */
     @Test
     void testCombinedDupAndDel() {
+        // Create mock objects
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "G" }
+        ] as FASTA
         
+        PropertyMapper line = createPropertyMapper(
+            chr: "chr1",
+            start: 5000,
+            end: 6000,
+            type: "DUP,DEL",
+            sample: "SAMPLE1",
+            columns: ["copy_number", "coverage_ratio"],
+            copy_number: 1,
+            coverage_ratio: 0.5,
+            count: 3,
+            xhmm_qual: 80d,
+            xhmm: 'TRUE'
+        )
+
+        // Test with single sample
+        def samples = ["SAMPLE1"]
+        
+        // Get variant context
+        def variant = tsv.createVariantFromLine(line, mockFasta, samples)
+        
+        // Verify that DEL was chosen over DUP
+        assert variant != null
+        assert variant.getAttribute("SVTYPE") == "DUP,DEL"
+        assert variant.alleles.size() == 2
+        assert variant.alleles[0].displayString == "G"
+        assert variant.alleles[1].displayString == "<DEL>"
     }
 
 }
