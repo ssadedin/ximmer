@@ -134,7 +134,7 @@ class TSVtoVCF extends ToolBase {
             List<Genotype> gts = samples.collect {
                 if(it == line.sample) {
                     def formatFields =  [
-                        CR : has_cr_info ? line.coverage_ratio : null,
+                        CR : has_cr_info ? line.coverage_ratio : defaultCR,
                         NC : has_cn_info ? line.count : null
                     ]
                     return GenotypeBuilder.create(it, [firstAllele, altAlleles[0]], formatFields)

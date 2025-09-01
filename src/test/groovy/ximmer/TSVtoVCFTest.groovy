@@ -179,9 +179,10 @@ class TSVtoVCFTest {
         def samples = ["SAMPLE1"]
         def delVariant = tsv.createVariantFromLine(delLine, mockFasta, samples)
         
-        // Verify default CR for deletion is 0.5
+        // Verify default CR for deletion is 0.5 in both variant and genotype
         assert delVariant != null
         assert delVariant.getAttribute("CR") == 0.5
+        assert delVariant.getGenotype("SAMPLE1").getExtendedAttribute("CR") == 0.5
         
         // Test duplication without coverage_ratio
         PropertyMapper dupLine = createPropertyMapper(
@@ -197,9 +198,10 @@ class TSVtoVCFTest {
         
         def dupVariant = tsv.createVariantFromLine(dupLine, mockFasta, samples)
         
-        // Verify default CR for duplication is 3.0
+        // Verify default CR for duplication is 3.0 in both variant and genotype
         assert dupVariant != null
         assert dupVariant.getAttribute("CR") == 3.0
+        assert dupVariant.getGenotype("SAMPLE1").getExtendedAttribute("CR") == 3.0
     }
 
 }
