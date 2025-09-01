@@ -115,5 +115,44 @@ class TSVtoVCFTest {
         assert variant.alleles[0].displayString == "G"
         assert variant.alleles[1].displayString == "<DEL>"
     }
+    
+    /**
+     * Test that inversions (INV) are treated as deletions in the output
+     */
+    @Test
+    void testInversion() {
+        // Create mock objects
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "T" }
+        ] as FASTA
+        
+        PropertyMapper line = createPropertyMapper(
+            chr: "chr1",
+            start: 3000,
+            end: 4000,
+            type: "INV",
+            sample: "SAMPLE1",
+            columns: ["copy_number", "coverage_ratio"],
+            copy_number: 1,
+            coverage_ratio: 0.5,
+            count: 1,
+            xhmm_qual: 90d,
+            xhmm: 'TRUE'
+        )
+
+        // Test with single sample
+        def samples = ["SAMPLE1"]
+        
+        // Get variant context
+        def variant = tsv.createVariantFromLine(line, mockFasta, samples)
+        
+        // Verify that INV is converted to DEL
+        assert variant != null
+        assert variant.getAttribute("SVTYPE") == "DEL"
+        assert variant.alleles.size() == 2
+        assert variant.alleles[0].displayString == "T"
+        assert variant.alleles[1].displayString == "<DEL>"
+    }
 
 }

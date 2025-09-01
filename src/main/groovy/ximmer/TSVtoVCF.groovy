@@ -105,12 +105,12 @@ class TSVtoVCF extends ToolBase {
         
         List<String> types = line.type.tokenize(',')
         
-        // Simplify to single alt allele - DUP only if it's the only type, DEL for everything else
+        // Simplify to single alt allele - DUP only if it's the only type and no other types, DEL for everything else
         String altType = types.contains('DUP') && types.size() == 1 ? 'DUP' : 'DEL'
         List<Allele> altAlleles = [Allele.create('<' + altType + '>')]
         
-        // For the SVTYPE attribute, use DEL if present, otherwise use original type
-        String svType = types.contains('DEL') ? 'DEL' : line.type
+        // For the SVTYPE attribute, use DEL if DEL is present or if type is INV, otherwise use original type
+        String svType = types.contains('DEL') || line.type == 'INV' ? 'DEL' : line.type
         
         Allele firstAllele = refAllele
         boolean has_cn_info = 'copy_number' in line.columns
