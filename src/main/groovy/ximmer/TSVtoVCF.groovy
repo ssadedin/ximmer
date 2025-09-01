@@ -105,8 +105,9 @@ class TSVtoVCF extends ToolBase {
         
         List<String> types = line.type.tokenize(',')
         
-        // Instead of outputting multiple alt alleles, only output a single one, where a single duplication is output as DUP but ANYTHING ELSE is output as a deletion AI!
-        List<Allele> altAlleles = types.collect { Allele.create('<' + it + '>')}
+        // Simplify to single alt allele - DUP for duplications, DEL for everything else
+        String altType = types.contains('DUP') && types.size() == 1 ? 'DUP' : 'DEL'
+        List<Allele> altAlleles = [Allele.create('<' + altType + '>')]
         
         Allele firstAllele = refAllele
         boolean has_cn_info = 'copy_number' in line.columns
