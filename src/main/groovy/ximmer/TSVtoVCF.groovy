@@ -130,49 +130,50 @@ class TSVtoVCF extends ToolBase {
             *altAlleles
         ]
         
-        if(line.sample in samples) {
-            List<Genotype> gts = samples.collect {
-                if(it == line.sample) {
-                    def formatFields =  [
-                        CR : has_cr_info ? line.coverage_ratio : defaultCR,
-                        NC : has_cn_info ? line.count : null
-                    ]
-                    return GenotypeBuilder.create(it, [firstAllele, altAlleles[0]], formatFields)
-                }
-                return GenotypeBuilder.create(it, [refAllele, refAllele])
-            }
-            
-            boolean has_combined_qual = ('combined_qual' in line.columns)
-            double combined_qual = 20
-            if(has_combined_qual) {
-                combined_qual = line.combined_qual
-            }
-            else {
-                // Calculate assuming Phred scaled values b/w 0 and 100
-                // clip at 100 to avoid a single caller dominating the score
-                combined_qual = line.columns*.key.grep { it.endsWith('_qual') && line[it.split('_')[0]] == 'TRUE' }
-                .collect { line[it].toDouble() }
-                .collect { qual ->
-                    Math.min(100d, Math.max(0d, qual))
-                }.sum()
-            }
-
-            return new VariantContextBuilder()
-                    .chr(line.chr)
-                    .start(line.start)
-                    .stop(line.end)
-                    .log10PError(-combined_qual/10)
-                    .attribute("SVTYPE", svType)
-                    .attribute("END", line.end)
-                    .attribute("SVLEN", svLen)
-                    .attribute("CR", has_cr_info ? line.coverage_ratio : defaultCR)
-                    .attribute("CN", has_cn_info ? line.copy_number : '.')
-                    .attribute("CALLERS", line.count)
-                    .alleles((Collection)alleles)
-                    .genotypes(gts)
-                    .make()
+        if(!(line.sample in samples)) {
+            return null
         }
-        return null
+
+        List<Genotype> gts = samples.collect {
+            if(it == line.sample) {
+                def formatFields =  [
+                    CR : has_cr_info ? line.coverage_ratio : defaultCR,
+                    NC : has_cn_info ? line.count : null
+                ]
+                return GenotypeBuilder.create(it, [firstAllele, altAlleles[0]], formatFields)
+            }
+            return GenotypeBuilder.create(it, [refAllele, refAllele])
+        }
+        
+        boolean has_combined_qual = ('combined_qual' in line.columns)
+        double combined_qual = 20
+        if(has_combined_qual) {
+            combined_qual = line.combined_qual
+        }
+        else {
+            // Calculate assuming Phred scaled values b/w 0 and 100
+            // clip at 100 to avoid a single caller dominating the score
+            combined_qual = line.columns*.key.grep { it.endsWith('_qual') && line[it.split('_')[0]] == 'TRUE' }
+            .collect { line[it].toDouble() }
+            .collect { qual ->
+                Math.min(100d, Math.max(0d, qual))
+            }.sum()
+        }
+
+        return new VariantContextBuilder()
+                .chr(line.chr)
+                .start(line.start)
+                .stop(line.end)
+                .log10PError(-combined_qual/10)
+                .attribute("SVTYPE", svType)
+                .attribute("END", line.end)
+                .attribute("SVLEN", svLen)
+                .attribute("CR", has_cr_info ? line.coverage_ratio : defaultCR)
+                .attribute("CN", has_cn_info ? line.copy_number : '.')
+                .attribute("CALLERS", line.count)
+                .alleles((Collection)alleles)
+                .genotypes(gts)
+                .make()
     }
 
     /**
