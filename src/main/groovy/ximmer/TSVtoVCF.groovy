@@ -117,6 +117,13 @@ class TSVtoVCF extends ToolBase {
         // For the SVTYPE attribute, use DEL if DEL is present or if type is INV, otherwise use original type
         String svType = types.contains('DEL') || line.type == 'INV' ? 'DEL' : line.type
         
+        // Cap copy number at 1 for DEL variants or combined DUP,DEL
+        int copyNumber = has_cn_info ? (
+            (svType == 'DEL' || types.contains('DEL')) ? 
+                Math.min(1, line.copy_number) : 
+                line.copy_number
+        ) : null
+        
         Allele firstAllele = refAllele
         boolean has_cn_info = 'copy_number' in line.columns
         if(has_cn_info) {
@@ -174,7 +181,7 @@ class TSVtoVCF extends ToolBase {
                 .attribute("END", line.end)
                 .attribute("SVLEN", svLen)
                 .attribute("CR", has_cr_info ? line.coverage_ratio : defaultCR)
-                .attribute("CN", has_cn_info ? line.copy_number : '.')
+                .attribute("CN", has_cn_info ? copyNumber : '.')
                 .attribute("CALLERS", line.count)
                 .alleles((Collection)alleles)
                 .genotypes(gts)

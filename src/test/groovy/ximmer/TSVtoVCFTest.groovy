@@ -106,10 +106,11 @@ class TSVtoVCFTest {
         // Get variant context
         def variant = tsv.createVariantFromLine(line, mockFasta, samples)
         
-        // Verify that DEL was chosen over DUP
+        // Verify that DEL was chosen over DUP and CN is set to 1
         assert variant != null
         
         assert variant.getAttribute("SVTYPE") == "DEL"
+        assert variant.getAttribute("CN") == 1
         assert variant.alleles.size() == 2
         assert variant.alleles[0].displayString == "G"
         assert variant.alleles[1].displayString == "<DEL>"
@@ -231,6 +232,38 @@ class TSVtoVCFTest {
         
         // Verify that variant is null when reference base is N
         assert variant == null
+    }
+    
+    /**
+     * Test that DEL variants have copy number capped at 1
+     */
+    @Test
+    void testDelCopyNumberCap() {
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "A" }
+        ] as FASTA
+        
+        PropertyMapper line = createPropertyMapper(
+            chr: "chr1",
+            start: 11000,
+            end: 12000,
+            type: "DEL",
+            sample: "SAMPLE1",
+            copy_number: 3,  // High copy number that should be capped
+            coverage_ratio: 0.5,
+            count: 1,
+            xhmm_qual: 70d,
+            xhmm: 'TRUE'
+        )
+        
+        def samples = ["SAMPLE1"]
+        def variant = tsv.createVariantFromLine(line, mockFasta, samples)
+        
+        // Verify that copy number is capped at 1 for DEL
+        assert variant != null
+        assert variant.getAttribute("SVTYPE") == "DEL"
+        assert variant.getAttribute("CN") == 1
     }
 
 }
