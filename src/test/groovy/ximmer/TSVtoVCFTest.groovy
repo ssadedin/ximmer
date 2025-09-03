@@ -20,6 +20,7 @@ class TSVtoVCFTest {
         return mapper
     }
 
+
     /**
      * Test the createVariantFromLine method
      * Single deletion on input maps to single deletion in output variant context
@@ -264,6 +265,41 @@ class TSVtoVCFTest {
         assert variant != null
         assert variant.getAttribute("SVTYPE") == "DEL"
         assert variant.getAttribute("CN") == 1
+    }
+    
+    /**
+     * Test that combined DUP,INV is converted to DEL
+     */
+    @Test
+    void testCombinedDupAndInv() {
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "C" }
+        ] as FASTA
+        
+        PropertyMapper line = createPropertyMapper(
+            chr: "chr1",
+            start: 13000,
+            end: 14000,
+            type: "DUP,INV",
+            sample: "SAMPLE1",
+            copy_number: 2,
+            coverage_ratio: 1.5,
+            count: 2,
+            xhmm_qual: 85d,
+            xhmm: 'TRUE'
+        )
+        
+        def samples = ["SAMPLE1"]
+        def variant = tsv.createVariantFromLine(line, mockFasta, samples)
+        
+        // Verify that INV causes conversion to DEL and CN is capped at 1
+        assert variant != null
+        assert variant.getAttribute("SVTYPE") == "DEL"
+        assert variant.getAttribute("CN") == 1
+        assert variant.alleles.size() == 2
+        assert variant.alleles[0].displayString == "C"
+        assert variant.alleles[1].displayString == "<DEL>"
     }
 
 }

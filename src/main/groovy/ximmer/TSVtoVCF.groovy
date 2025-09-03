@@ -16,6 +16,14 @@ import htsjdk.variant.vcf.*
 /**
  * Converts the CNV report produced by SummarizeCNVs into VCF format. If the form with copy number
  * information is supplied, includes that in the genotyping column.
+ * 
+ * <p>Rules for converting multiple variant types to single output allele:</p>
+ * <ol>
+ *   <li>If variant contains DEL or INV, output as DEL with copy number capped at 1</li>
+ *   <li>If variant is pure DUP (no DEL/INV), output as DUP with original copy number</li>
+ *   <li>For combined types (e.g. DUP,DEL or DUP,INV), DEL/INV take precedence over DUP</li>
+ *   <li>Any variant output as DEL will have copy number capped at 1 regardless of input</li>
+ * </ol>
  */
 @Log
 class TSVtoVCF extends ToolBase {
@@ -110,22 +118,26 @@ class TSVtoVCF extends ToolBase {
         
         List<String> types = line.type.tokenize(',')
         
-        // Simplify to single alt allele - DUP only if it's the only type and no other types, DEL for everything else
-        String altType = types.contains('DUP') && types.size() == 1 ? 'DUP' : 'DEL'
+        boolean has_cn_info = 'copy_number' in line.columns
+        
+        // Check if variant contains INV or DEL
+        boolean hasDelOrInv = types.contains('DEL') || types.contains('INV')
+        
+        // Simplify to single alt allele - DUP only if it's the only type and no INV/DEL, DEL for everything else
+        String altType = types.contains('DUP') && !hasDelOrInv ? 'DUP' : 'DEL'
         List<Allele> altAlleles = [Allele.create('<' + altType + '>')]
         
-        // For the SVTYPE attribute, use DEL if DEL is present or if type is INV, otherwise use original type
-        String svType = types.contains('DEL') || line.type == 'INV' ? 'DEL' : line.type
+        // For the SVTYPE attribute, use DEL if DEL or INV is present, otherwise use original type
+        String svType = hasDelOrInv ? 'DEL' : line.type
         
         // Cap copy number at 1 for DEL variants or combined DUP,DEL
-        int copyNumber = has_cn_info ? (
+        Integer copyNumber = has_cn_info ? (
             (svType == 'DEL' || types.contains('DEL')) ? 
-                Math.min(1, line.copy_number) : 
-                line.copy_number
+                Math.min(1, line.copy_number as int) : 
+                line.copy_number as int
         ) : null
         
         Allele firstAllele = refAllele
-        boolean has_cn_info = 'copy_number' in line.columns
         if(has_cn_info) {
             if(types[0] == 'DEL' && line.copy_number == 0) {
                 firstAllele = altAlleles[0]
@@ -150,7 +162,7 @@ class TSVtoVCF extends ToolBase {
             if(it == line.sample) {
                 def formatFields =  [
                     CR : has_cr_info ? line.coverage_ratio : defaultCR,
-                    NC : has_cn_info ? line.count : null
+                    NC : line.count
                 ]
                 return GenotypeBuilder.create(it, [firstAllele, altAlleles[0]], formatFields)
             }
