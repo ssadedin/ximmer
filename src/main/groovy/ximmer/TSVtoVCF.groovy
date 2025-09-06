@@ -247,7 +247,9 @@ class TSVtoVCF extends ToolBase {
             new VCFInfoHeaderLine('SVLEN', 1, VCFHeaderLineType.Integer, "Difference in length between REF and ALT alleles"),
             new VCFInfoHeaderLine('END', 1, VCFHeaderLineType.Integer, "End position of the variant described in this record"),
             new VCFInfoHeaderLine('CN', 1, VCFHeaderLineType.Integer, "Inferred copy number"),
-            new VCFInfoHeaderLine('CR', 1, VCFHeaderLineType.Integer, "Ratio of observed to expected coverage depth over event")
+            new VCFInfoHeaderLine('CR', 1, VCFHeaderLineType.Integer, "Ratio of observed to expected coverage depth over event"),
+            new VCFInfoHeaderLine('CALLERS', 1, VCFHeaderLineType.Integer, "Number of callers that identified the event"),
+            new VCFInfoHeaderLine('CALLEDBY', 1, VCFHeaderLineType.String, "Comma separated list of callers that identified the event")
         ] as Set
 
         Set allHeaders = sourceHeaderLine + referenceHeaderLine + formatHeaderLines + contigHeaderLines + headerLines
