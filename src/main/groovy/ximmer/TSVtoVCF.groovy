@@ -188,6 +188,12 @@ class TSVtoVCF extends ToolBase {
                 Math.min(100d, Math.max(0d, qual))
             }.sum()
         }
+        
+        List<String> allCallers = line.findAll { it.key.endsWith('_qual') }.collect { Map.Entry e -> e.key.tokenize('_')[0] }
+        
+        List<String> calledBy = allCallers.grep { line[it] == "TRUE" }
+        
+        assert calledBy.size() == line.count
 
         return new VariantContextBuilder()
                 .chr(line.chr)
@@ -200,6 +206,7 @@ class TSVtoVCF extends ToolBase {
                 .attribute("CR", has_cr_info ? line.coverage_ratio : defaultCR)
                 .attribute("CN", has_cn_info ? copyNumber : '.')
                 .attribute("CALLERS", line.count)
+                .attribute("CALLEDBY", calledBy)
                 .alleles((Collection)alleles)
                 .genotypes(gts)
                 .make()
