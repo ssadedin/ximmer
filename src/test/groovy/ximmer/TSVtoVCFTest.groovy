@@ -268,7 +268,7 @@ class TSVtoVCFTest {
             basesAt: { chr, start, end -> "C" }
         ] as FASTA
         
-        PropertyMapper line = createPropertyMapper(
+        Map line = [
             chr: "chr1",
             start: 13000,
             end: 14000,
@@ -279,7 +279,7 @@ class TSVtoVCFTest {
             count: 2,
             xhmm_qual: 85d,
             xhmm: 'TRUE'
-        )
+        ]
         
         def samples = ["SAMPLE1"]
         def variant = tsv.createVariantFromLine(line, mockFasta, samples)
