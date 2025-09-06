@@ -36,7 +36,7 @@ class TSVtoVCFTest {
             count: 2,
             xhmm_qual : 100d,
             xhmm : 'TRUE'
-        ) 
+        ] 
 
         // Test with single sample
         def samples = ["SAMPLE1"]
@@ -90,7 +90,7 @@ class TSVtoVCFTest {
             count: 3,
             xhmm_qual: 80d,
             xhmm: 'TRUE'
-        )
+        ]
 
         // Test with single sample
         def samples = ["SAMPLE1"]
@@ -130,7 +130,7 @@ class TSVtoVCFTest {
             count: 1,
             xhmm_qual: 90d,
             xhmm: 'TRUE'
-        )
+        ]
 
         // Test with single sample
         def samples = ["SAMPLE1"]
@@ -167,7 +167,7 @@ class TSVtoVCFTest {
             count: 1,
             xhmm_qual: 70d,
             xhmm: 'TRUE'
-        )
+        ]
         
         def samples = ["SAMPLE1"]
         def delVariant = tsv.createVariantFromLine(delLine, mockFasta, samples)
@@ -187,7 +187,7 @@ class TSVtoVCFTest {
             count: 1,
             xhmm_qual: 70d,
             xhmm: 'TRUE'
-        )
+        ]
         
         def dupVariant = tsv.createVariantFromLine(dupLine, mockFasta, samples)
         
@@ -217,7 +217,7 @@ class TSVtoVCFTest {
             count: 1,
             xhmm_qual: 70d,
             xhmm: 'TRUE'
-        )
+        ]
         
         def samples = ["SAMPLE1"]
         def variant = tsv.createVariantFromLine(line, mockFasta, samples)
@@ -247,7 +247,7 @@ class TSVtoVCFTest {
             count: 1,
             xhmm_qual: 70d,
             xhmm: 'TRUE'
-        )
+        ]
         
         def samples = ["SAMPLE1"]
         def variant = tsv.createVariantFromLine(line, mockFasta, samples)
