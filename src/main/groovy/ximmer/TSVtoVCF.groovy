@@ -21,7 +21,7 @@ import htsjdk.variant.vcf.*
  * <ol>
  *   <li>If variant contains DEL or INV, output as DEL with copy number capped at 1</li>
  *   <li>If variant is pure DUP (no DEL/INV), output as DUP with original copy number</li>
- *   <li>For combined types (e.g. DUP,DEL or DUP,INV), DEL/INV take precedence over DUP</li>
+ *   <li>For combined types (e.g. DUP,DEL or DUP,INV), DEL takes precedence</li>
  *   <li>Any variant output as DEL will have copy number capped at 1 regardless of input</li>
  * </ol>
  */
