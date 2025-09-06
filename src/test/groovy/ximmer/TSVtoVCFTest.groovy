@@ -10,15 +10,6 @@ class TSVtoVCFTest {
     // no dot in CR
     // no N as REF
     
-    /**
-     * Creates a PropertyMapper from a map of values
-     */
-    private PropertyMapper createPropertyMapper(Map lineValues) {
-        PropertyMapper mapper = new PropertyMapper()
-        mapper.columns = lineValues*.key.indexed().collectEntries { [it.value, it.key] }
-        mapper.values = lineValues*.value
-        return mapper
-    }
 
 
     /**
@@ -33,7 +24,7 @@ class TSVtoVCFTest {
             basesAt: { chr, start, end -> "A" }
         ] as FASTA
         
-        PropertyMapper line = createPropertyMapper(
+        Map line = [
             chr: "chr1",
             start: 1000,
             end: 2000,
@@ -88,7 +79,7 @@ class TSVtoVCFTest {
             basesAt: { chr, start, end -> "G" }
         ] as FASTA
         
-        PropertyMapper line = createPropertyMapper(
+        Map line = [
             chr: "chr1",
             start: 5000,
             end: 6000,
@@ -128,7 +119,7 @@ class TSVtoVCFTest {
             basesAt: { chr, start, end -> "T" }
         ] as FASTA
         
-        PropertyMapper line = createPropertyMapper(
+        Map line = [
             chr: "chr1",
             start: 3000,
             end: 4000,
@@ -166,7 +157,7 @@ class TSVtoVCFTest {
         ] as FASTA
         
         // Test deletion without coverage_ratio
-        PropertyMapper delLine = createPropertyMapper(
+        Map delLine = [
             chr: "chr1",
             start: 7000,
             end: 8000,
@@ -187,7 +178,7 @@ class TSVtoVCFTest {
         assert delVariant.getGenotype("SAMPLE1").getExtendedAttribute("CR") == 0.5
         
         // Test duplication without coverage_ratio
-        PropertyMapper dupLine = createPropertyMapper(
+        Map dupLine = [
             chr: "chr1",
             start: 7000,
             end: 8000,
@@ -216,7 +207,7 @@ class TSVtoVCFTest {
             basesAt: { chr, start, end -> "N" }
         ] as FASTA
         
-        PropertyMapper line = createPropertyMapper(
+        Map line = [
             chr: "chr1",
             start: 9000,
             end: 10000,
@@ -245,7 +236,7 @@ class TSVtoVCFTest {
             basesAt: { chr, start, end -> "A" }
         ] as FASTA
         
-        PropertyMapper line = createPropertyMapper(
+        Map line = [
             chr: "chr1",
             start: 11000,
             end: 12000,
