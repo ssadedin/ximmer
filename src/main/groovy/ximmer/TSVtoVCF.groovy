@@ -8,6 +8,7 @@ import gngs.ToolBase
 import gngs.XPos
 import gngs.Region
 import graxxia.TSV
+import groovy.json.JsonSlurper
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log
 import htsjdk.variant.variantcontext.*
@@ -42,13 +43,17 @@ class TSVtoVCF extends ToolBase {
     @Override
     public void run() {
         FASTA ref = new FASTA(opts.r.absolutePath)
-        TSV cnvReport = new TSV(opts.i)
+        List<Map> cnvReport
+        if(opts.i.name.endsWith('.tsv'))
+            cnvReport = new TSV(opts.i).toListMap()
+        else
+            cnvReport = new JsonSlurper().parse(opts.i)
+
         log.info "Converting $opts.i to VCF format"
         log.info "Using reference: $opts.r"
         
         
-        TSV scanTSV = new TSV(opts.i)
-        List<String> contigs = scanTSV*.chr.grep { !Region.isMinorContig(it) }.sort()
+        List<String> contigs = cnvReport*.chr.grep { !Region.isMinorContig(it) }.sort()
         
         opts.o.withWriter { w ->
             this.createVCF(w, ref, contigs, cnvReport)
@@ -57,7 +62,7 @@ class TSVtoVCF extends ToolBase {
         log.info "Wrote $opts.o"
     }
 
-    void createVCF(final Writer w, final FASTA genomeRef, final List<String> contigs, final TSV tsv) {
+    void createVCF(final Writer w, final FASTA genomeRef, final List<String> contigs, final List<Map> tsv) {
         List<String> samples = opts.ss
         
         Set allHeaders = createHeaders(genomeRef, contigs)
@@ -72,7 +77,7 @@ class TSVtoVCF extends ToolBase {
         
         List<VariantContext> outputVariants = new ArrayList(10000)
         
-        for(PropertyMapper line in tsv) {
+        for(Map line in tsv) {
             VariantContext vctx = createVariantFromLine(line, genomeRef, samples)
             if(vctx) {
                 outputVariants.add(vctx)
@@ -100,7 +105,7 @@ class TSVtoVCF extends ToolBase {
      * @param samples List of samples to include in the output
      * @return VariantContext object if valid, null if variant should be skipped
      */
-    VariantContext createVariantFromLine(PropertyMapper line, FASTA genomeRef, List<String> samples) {
+    VariantContext createVariantFromLine(Map line, FASTA genomeRef, List<String> samples) {
         String ref = genomeRef.basesAt(line.chr, line.start, line.start+1)[0]
 
         // Ignore non-primary assembly contigs because they can return blank reference sequence
@@ -118,7 +123,7 @@ class TSVtoVCF extends ToolBase {
         
         List<String> types = line.type.tokenize(',')
         
-        boolean has_cn_info = 'copy_number' in line.columns
+        boolean has_cn_info = 'copy_number' in line
         
         // Check if variant contains INV or DEL
         boolean hasDelOrInv = types.contains('DEL') || types.contains('INV')
@@ -144,7 +149,7 @@ class TSVtoVCF extends ToolBase {
             }
         }
         
-        boolean has_cr_info = 'coverage_ratio' in line.columns
+        boolean has_cr_info = 'coverage_ratio' in line
         
         // Default CR values when coverage_ratio not available
         double defaultCR = altType == 'DEL' ? 0.5 : 3.0
@@ -169,7 +174,7 @@ class TSVtoVCF extends ToolBase {
             return GenotypeBuilder.create(it, [refAllele, refAllele])
         }
         
-        boolean has_combined_qual = ('combined_qual' in line.columns)
+        boolean has_combined_qual = ('combined_qual' in line)
         double combined_qual = 20
         if(has_combined_qual) {
             combined_qual = line.combined_qual
@@ -177,7 +182,7 @@ class TSVtoVCF extends ToolBase {
         else {
             // Calculate assuming Phred scaled values b/w 0 and 100
             // clip at 100 to avoid a single caller dominating the score
-            combined_qual = line.columns*.key.grep { it.endsWith('_qual') && line[it.split('_')[0]] == 'TRUE' }
+            combined_qual = line*.key.grep { it.endsWith('_qual') && line[it.split('_')[0]] == 'TRUE' }
             .collect { line[it].toDouble() }
             .collect { qual ->
                 Math.min(100d, Math.max(0d, qual))
