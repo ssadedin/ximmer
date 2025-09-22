@@ -199,6 +199,7 @@ class TSVtoVCF extends ToolBase {
                 .chr(line.chr)
                 .start(line.start)
                 .stop(line.end)
+                .passFilters()
                 .log10PError(-combined_qual/10)
                 .attribute("SVTYPE", svType)
                 .attribute("END", line.end)
