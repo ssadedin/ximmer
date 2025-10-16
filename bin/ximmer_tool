@@ -38,8 +38,22 @@ if [ "$1" == "install" ];
 then
     $BASE/tools/bpipe/0.9.12/bin/bpipe install $BASE/pipeline/exome_cnv_pipeline.groovy 
 else
+
+    if [ -e $BASE/src/main/groovy/ximmer/${tool}.groovy ];
+    then
+        TOOLPATH="$BASE/src/main/groovy/ximmer/${tool}.groovy"
+    elif [ -e $BASE/src/main/groovy/${tool}.groovy ];
+    then
+        TOOLPATH="$BASE/src/main/groovy/${tool}.groovy"
+    else
+        echo
+        echo "No tool calld $tool was found"
+        echo
+        exit 1
+    fi
+
         $BASE/tools/groovy/3.0.10/bin/groovy \
         -cp $BASE/src/main/groovy:$BASE/src/main/resources:$BASE/tools/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar \
-            $BASE/src/main/groovy/ximmer/${tool} $*
+            $TOOLPATH $*
 fi
 
