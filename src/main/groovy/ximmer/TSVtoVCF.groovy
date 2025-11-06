@@ -123,7 +123,7 @@ class TSVtoVCF extends ToolBase {
         
         List<String> types = line.type.tokenize(',')
         
-        boolean has_cn_info = 'copy_number' in line
+        boolean has_cn_info = line.containsKey('copy_number')
         
         // Check if variant contains INV or DEL
         boolean hasDelOrInv = types.contains('DEL') || types.contains('INV')
@@ -138,18 +138,18 @@ class TSVtoVCF extends ToolBase {
         // Cap copy number at 1 for DEL variants or combined DUP,DEL
         Integer copyNumber = has_cn_info ? (
             (svType == 'DEL' || types.contains('DEL')) ? 
-                Math.min(1, line.copy_number as int) : 
+                Math.min(1, (line.copy_number?:0) as int) : 
                 line.copy_number as int
         ) : null
         
         Allele firstAllele = refAllele
         if(has_cn_info) {
-            if(types[0] == 'DEL' && line.copy_number == 0) {
+            if(types[0] == 'DEL' && (line.copy_number?:0) == 0) {
                 firstAllele = altAlleles[0]
             }
         }
         
-        boolean has_cr_info = 'coverage_ratio' in line
+        boolean has_cr_info = line.containsKey('coverage_ratio')
         
         // Default CR values when coverage_ratio not available
         double defaultCR = altType == 'DEL' ? 0.5 : 3.0
@@ -174,10 +174,10 @@ class TSVtoVCF extends ToolBase {
             return GenotypeBuilder.create(it, [refAllele, refAllele])
         }
         
-        boolean has_combined_qual = ('combined_qual' in line)
+        boolean has_combined_qual = line.containsKey('combined_qual')
         double combined_qual = 20
         if(has_combined_qual) {
-            combined_qual = line.combined_qual
+            combined_qual = line.combined_qual?:0
         }
         else {
             // Calculate assuming Phred scaled values b/w 0 and 100
