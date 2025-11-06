@@ -138,9 +138,12 @@ class TSVtoVCF extends ToolBase {
         // Cap copy number at 1 for DEL variants or combined DUP,DEL
         Integer copyNumber = has_cn_info ? (
             (svType == 'DEL' || types.contains('DEL')) ? 
-                Math.min(1, (line.copy_number?:0) as int) : 
-                line.copy_number as int
+                Math.min(1, (line.copy_number?:0) as int) : (line.copy_number?:0) as int
         ) : null
+        
+        if(has_cn_info && line.copy_number == null) {
+            log.warning("Copy number assigned as null for $line")
+        }
         
         Allele firstAllele = refAllele
         if(has_cn_info) {
