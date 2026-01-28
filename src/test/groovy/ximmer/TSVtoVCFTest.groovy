@@ -35,7 +35,9 @@ class TSVtoVCFTest {
             coverage_ratio: 0.5,
             count: 2,
             xhmm_qual : 100d,
-            xhmm : 'TRUE'
+            xhmm : 'TRUE',
+            cnvnator_qual: 90d,
+            cnvnator: 'TRUE'
         ] 
 
         // Test with single sample
