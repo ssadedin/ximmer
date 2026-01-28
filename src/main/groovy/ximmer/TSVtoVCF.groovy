@@ -136,9 +136,11 @@ class TSVtoVCF extends ToolBase {
         String svType = hasDelOrInv ? 'DEL' : line.type
         
         // Cap copy number at 1 for DEL variants or combined DUP,DEL
+        // Set minimum copy number of 3 for DUP variants
         Integer copyNumber = has_cn_info ? (
             (svType == 'DEL' || types.contains('DEL')) ? 
-                Math.min(1, (line.copy_number?:0) as int) : (line.copy_number?:0) as int
+                Math.min(1, (line.copy_number?:0) as int) : 
+                (altType == 'DUP' ? Math.max(3, (line.copy_number?:0) as int) : (line.copy_number?:0) as int)
         ) : null
         
         if(has_cn_info && line.copy_number == null) {

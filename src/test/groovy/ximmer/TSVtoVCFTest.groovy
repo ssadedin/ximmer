@@ -89,7 +89,11 @@ class TSVtoVCFTest {
             coverage_ratio: 0.5,
             count: 3,
             xhmm_qual: 80d,
-            xhmm: 'TRUE'
+            xhmm: 'TRUE',
+            cnvnator_qual: 85d,
+            cnvnator: 'TRUE',
+            exomedepth_qual: 75d,
+            exomedepth: 'TRUE'
         ]
 
         // Test with single sample
@@ -278,7 +282,9 @@ class TSVtoVCFTest {
             coverage_ratio: 1.5,
             count: 2,
             xhmm_qual: 85d,
-            xhmm: 'TRUE'
+            xhmm: 'TRUE',
+            cnvnator_qual: 80d,
+            cnvnator: 'TRUE'
         ]
         
         def samples = ["SAMPLE1"]
