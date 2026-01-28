@@ -292,5 +292,40 @@ class TSVtoVCFTest {
         assert variant.alleles[0].displayString == "C"
         assert variant.alleles[1].displayString == "<DEL>"
     }
+    
+    /**
+     * Test that DUP variants have minimum copy number of 3
+     */
+    @Test
+    void testDupMinimumCopyNumber() {
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "G" }
+        ] as FASTA
+        
+        Map line = [
+            chr: "chr1",
+            start: 15000,
+            end: 16000,
+            type: "DUP",
+            sample: "SAMPLE1",
+            copy_number: 2,  // Low copy number that should be raised to 3
+            coverage_ratio: 2.0,
+            count: 1,
+            xhmm_qual: 75d,
+            xhmm: 'TRUE'
+        ]
+        
+        def samples = ["SAMPLE1"]
+        def variant = tsv.createVariantFromLine(line, mockFasta, samples)
+        
+        // Verify that copy number is set to minimum of 3 for DUP
+        assert variant != null
+        assert variant.getAttribute("SVTYPE") == "DUP"
+        assert variant.getAttribute("CN") == 3
+        assert variant.alleles.size() == 2
+        assert variant.alleles[0].displayString == "G"
+        assert variant.alleles[1].displayString == "<DUP>"
+    }
 
 }
