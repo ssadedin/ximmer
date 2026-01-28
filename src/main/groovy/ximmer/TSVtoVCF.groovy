@@ -137,11 +137,19 @@ class TSVtoVCF extends ToolBase {
         
         // Cap copy number at 1 for DEL variants or combined DUP,DEL
         // Set minimum copy number of 3 for DUP variants
-        Integer copyNumber = has_cn_info ? (
-            (svType == 'DEL' || types.contains('DEL')) ? 
-                Math.min(1, (line.copy_number?:0) as int) : 
-                (altType == 'DUP' ? Math.max(3, (line.copy_number?:0) as int) : (line.copy_number?:0) as int)
-        ) : null
+        Integer copyNumber = null
+        if (has_cn_info) {
+            if (svType == 'DEL' || types.contains('DEL')) {
+                // DEL variants: cap at 1
+                copyNumber = Math.min(1, (line.copy_number?:0) as int)
+            } else if (altType == 'DUP') {
+                // DUP variants: minimum of 3
+                copyNumber = Math.max(3, (line.copy_number?:0) as int)
+            } else {
+                // Other variants: use as-is
+                copyNumber = (line.copy_number?:0) as int
+            }
+        }
         
         if(has_cn_info && line.copy_number == null) {
             log.warning("Copy number assigned as null for $line")
