@@ -50,12 +50,15 @@ abstract class CNVResults extends RangedData {
     String toJson(TargetedCNVAnnotator annotator = null) {
         JsonOutput.toJson(
                 this.collect { cnv ->
+                    def q = cnv.quality
+                    if(q instanceof Number && (Double.isNaN(q.doubleValue()) || Double.isInfinite(q.doubleValue())))
+                        q = 0
                     def row = [
                         chr: cnv.chr,
                         start: cnv.from, 
                         end: cnv.to,
                         sample: cnv.sample,
-                        quality: cnv.quality,
+                        quality: q,
                         type: cnv.type
                     ]
                     
