@@ -467,7 +467,8 @@ class SummarizeCNVs {
      */
     void writeCallerJSON(Map<String, CNVResults> results, File outputFile) {
         outputFile.text = 'var cnv_calls = {\n' + results.collect { String caller, CNVResults calls -> 
-            /"$caller" : / + calls.toJson(this.cnvAnnotator)
+            String json = calls.toJson(this.cnvAnnotator)
+            /"$caller" : / + json.replace('NaN', '0')
         }.join(',\n') + '\n}\n'
     }
     
@@ -650,7 +651,7 @@ class SummarizeCNVs {
                 if(i>0)
                     w.println(',')
                         
-                w.print(JsonOutput.toJson(cnvData))
+                w.print(JsonOutput.toJson(sanitizeNaN(cnvData)))
             }
             catch(Exception e) {
                 log.severe("Failed to write CNV $cnvData : error $e")
@@ -754,6 +755,24 @@ class SummarizeCNVs {
     @CompileStatic
     String normChr(Region cnv) {
        cnv.chr.startsWith('chr') ? cnv.chr : 'chr' + cnv.chr 
+    }
+    
+    /**
+     * Recursively replace any NaN or Infinite float/double values with zero
+     * so that JSON serialization does not fail.
+     */
+    static Object sanitizeNaN(Object value) {
+        if(value instanceof Double && (((Double)value).isNaN() || ((Double)value).isInfinite()))
+            return 0
+        if(value instanceof Float && (((Float)value).isNaN() || ((Float)value).isInfinite()))
+            return 0
+        if(value instanceof Map) {
+            return ((Map)value).collectEntries { k, v -> [k, sanitizeNaN(v)] }
+        }
+        if(value instanceof List) {
+            return ((List)value).collect { sanitizeNaN(it) }
+        }
+        return value
     }
     
     /**
