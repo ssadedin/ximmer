@@ -651,7 +651,7 @@ class SummarizeCNVs {
                 if(i>0)
                     w.println(',')
                         
-                w.print(JsonOutput.toJson(sanitizeNaN(cnvData)))
+                w.print(JsonOutput.toJson(cnvData))
             }
             catch(Exception e) {
                 log.severe("Failed to write CNV $cnvData : error $e")
@@ -692,7 +692,10 @@ class SummarizeCNVs {
             Map call = cnv[caller]
             if(call) {
                 calls[caller] = call.all.collect { 
-                    [it.from, it.to, it.quality] 
+                    def q = it.quality
+                    if(q instanceof Number && (Double.isNaN(q.doubleValue()) || Double.isInfinite(q.doubleValue())))
+                        q = 0
+                    [it.from, it.to, q] 
                 }
                 
                 extrainfo[caller] = call.all.collect { it.extrainfo?:{} }
@@ -731,7 +734,8 @@ class SummarizeCNVs {
         cnvCallers.collect { caller ->
             cnv[caller].best ? "TRUE" : "FALSE"
         }  + cnvCallers.collect { caller ->
-            cnv[caller].best ? cnv[caller].best.quality : 0
+            def q = cnv[caller].best ? cnv[caller].best.quality : 0
+            (q instanceof Number && (Double.isNaN(q.doubleValue()) || Double.isInfinite(q.doubleValue()))) ? 0 : q
         } + [calls] + details + extrainfo
                
 		Map data = [columnNames,line].transpose().collectEntries()
@@ -755,24 +759,6 @@ class SummarizeCNVs {
     @CompileStatic
     String normChr(Region cnv) {
        cnv.chr.startsWith('chr') ? cnv.chr : 'chr' + cnv.chr 
-    }
-    
-    /**
-     * Recursively replace any NaN or Infinite float/double values with zero
-     * so that JSON serialization does not fail.
-     */
-    static Object sanitizeNaN(Object value) {
-        if(value instanceof Double && (((Double)value).isNaN() || ((Double)value).isInfinite()))
-            return 0
-        if(value instanceof Float && (((Float)value).isNaN() || ((Float)value).isInfinite()))
-            return 0
-        if(value instanceof Map) {
-            return ((Map)value).collectEntries { k, v -> [k, sanitizeNaN(v)] }
-        }
-        if(value instanceof List) {
-            return ((List)value).collect { sanitizeNaN(it) }
-        }
-        return value
     }
     
     /**
