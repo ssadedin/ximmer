@@ -42,7 +42,8 @@ class SavvyCNVResults extends CNVResults {
             
             r.sample = new File(r.sample).name.replaceAll('\\.coverageBinner$','')
             r.type = CN_TO_TYPE[r.type] ?: 'OTHER'
-            r.quality = r.qual
+            def q = r.qual
+            r.quality = (q instanceof Number && (Double.isNaN(q.doubleValue()) || Double.isInfinite(q.doubleValue()))) ? 0 : q
         }
     }
 }
