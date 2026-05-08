@@ -380,7 +380,9 @@ calc_qc_stats = {
 convert_to_vcf = {
     output.dir = "vcfs"
 
-    var vcf_source : 'vcgs_ximmer'
+    var vcf_source : 'vcgs_ximmer',
+        min_cnv_targets : 0,
+        min_cnv_callers : 0
     
     branch.sample = branch.name
     
@@ -392,6 +394,9 @@ convert_to_vcf = {
                 -i $input.tsv
                 -s $sample
                 -r $HGFA
+                -t $target_bed
+                -pass_targets $min_cnv_targets
+                -pass_caller_count $min_cnv_callers
                 -source $vcf_source
                 -o $output.vcf
         ""","convert_to_vcf"
