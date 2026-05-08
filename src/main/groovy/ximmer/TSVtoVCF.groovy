@@ -104,6 +104,26 @@ class TSVtoVCF extends ToolBase {
         }
         p.end()
         
+        // Log filter statistics if any filters are active
+        if(passTargets != null || passCallerCount != null) {
+            int totalCount = outputVariants.size()
+            int filteredCount = outputVariants.count { !it.filters.isEmpty() }
+            int passCount = totalCount - filteredCount
+            int pctFiltered = totalCount > 0 ? Math.round(100.0 * filteredCount / totalCount) : 0
+            log.info "${filteredCount} of ${totalCount} CNVs removed by filtering (${pctFiltered}%)"
+            
+            if(passCallerCount != null) {
+                int lowCallerCount = outputVariants.count { it.filters.contains(FILTER_LOW_CALLERS) }
+                int pctLowCallers = totalCount > 0 ? Math.round(100.0 * lowCallerCount / totalCount) : 0
+                log.info "${lowCallerCount} of ${totalCount} CNVs failed ${FILTER_LOW_CALLERS} filter (${pctLowCallers}%)"
+            }
+            
+            if(passTargets != null) {
+                int fewTargetsCount = outputVariants.count { it.filters.contains(FILTER_FEW_TARGETS) }
+                int pctFewTargets = totalCount > 0 ? Math.round(100.0 * fewTargetsCount / totalCount) : 0
+                log.info "${fewTargetsCount} of ${totalCount} CNVs failed ${FILTER_FEW_TARGETS} filter (${pctFewTargets}%)"
+            }
+        }
         
         List<VariantContext> sortedVariants = outputVariants.sort { XPos.computePos(it.contig, it.start)}
         for(vctx in sortedVariants) {
