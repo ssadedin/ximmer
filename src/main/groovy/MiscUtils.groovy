@@ -1,21 +1,14 @@
-import java.util.logging.ConsoleHandler;
-import java.util.logging.FileHandler
-import java.util.logging.Level;
-import java.util.regex.Pattern
-import java.nio.file.FileSystems
-import java.nio.file.PathMatcher
 import java.text.DateFormat;
 import java.text.SimpleDateFormat
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler
-import java.util.logging.Level
+import java.util.logging.Formatter;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Pattern
-import java.util.logging.Formatter;
 
-
-import groovy.util.logging.Log;;
+import groovy.util.logging.Log;
 
 /**
  * The default Java log former uses a format that is too verbose, so
@@ -103,10 +96,7 @@ class MiscUtils {
         log.info "Globbing $rawPattern .... "
 
         String pattern = rawPattern
-        if(System.properties['os.name'].toLowerCase().contains('windows')) {
-            return windowsGlob(rawPattern)
-        }
-        
+       
         if(pattern instanceof Pattern)
             return regexGlob(pattern)
         
@@ -225,26 +215,6 @@ class MiscUtils {
         Pattern pattern = Pattern.compile(f.name)
         def result = dir.listFiles().grep { pattern.matcher(it.name).matches() }*.path        
         return result
-    }
-
-    static List<String> windowsGlob(String rawPattern) {
-        File parent = new File('.')
-        File patternFile = new File(rawPattern)
-        File start = parent
-        String pattern = rawPattern
-
-        if(patternFile.absolute) {
-            start = patternFile.absoluteFile.parentFile
-            pattern = patternFile.name
-            return new FileNameFinder().getFileNames(start.absolutePath, pattern)
-        }
-
-        PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
-        List results = []
-        start.eachFileMatch(matcher) { 
-            results.add(it.path)
-        }
-        return results 
     }
 
     /**
