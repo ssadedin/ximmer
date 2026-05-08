@@ -3,7 +3,10 @@ package ximmer
 import static org.junit.Assert.*
 
 import com.xlson.groovycsv.PropertyMapper
+import gngs.BED
 import gngs.FASTA
+import gngs.Region
+import gngs.Regions
 import org.junit.Test
 
 class TSVtoVCFTest {
@@ -334,6 +337,301 @@ class TSVtoVCFTest {
         assert variant.alleles.size() == 2
         assert variant.alleles[0].displayString == "G"
         assert variant.alleles[1].displayString == "<DUP>"
+    }
+
+    /**
+     * Test that variants pass filters when no filter thresholds are specified
+     */
+    @Test
+    void testNoFiltersAppliedByDefault() {
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "A" }
+        ] as FASTA
+        
+        Map line = [
+            chr: "chr1",
+            start: 1000,
+            end: 2000,
+            type: "DEL",
+            sample: "SAMPLE1",
+            copy_number: 1,
+            coverage_ratio: 0.5,
+            count: 1,
+            xhmm_qual: 100d,
+            xhmm: 'TRUE'
+        ]
+
+        def samples = ["SAMPLE1"]
+        
+        // No target regions, no thresholds - should always PASS
+        def variant = tsv.createVariantFromLine(line, mockFasta, samples)
+        
+        assert variant != null
+        assert variant.filtersWereApplied()
+        assert variant.filters.isEmpty() // empty filters means PASS
+    }
+    
+    /**
+     * Test that LOW_CALLERS filter is applied when caller count is below threshold
+     */
+    @Test
+    void testLowCallersFilter() {
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "A" }
+        ] as FASTA
+        
+        Map line = [
+            chr: "chr1",
+            start: 1000,
+            end: 2000,
+            type: "DEL",
+            sample: "SAMPLE1",
+            copy_number: 1,
+            coverage_ratio: 0.5,
+            count: 1,
+            xhmm_qual: 100d,
+            xhmm: 'TRUE'
+        ]
+
+        def samples = ["SAMPLE1"]
+        
+        // Require 2 callers, but only 1 present - should fail
+        def variant = tsv.createVariantFromLine(line, mockFasta, samples, null, null, 2)
+        
+        assert variant != null
+        assert variant.filters.contains(TSVtoVCF.FILTER_LOW_CALLERS)
+    }
+    
+    /**
+     * Test that LOW_CALLERS filter is NOT applied when caller count meets threshold
+     */
+    @Test
+    void testCallerCountMeetsThreshold() {
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "A" }
+        ] as FASTA
+        
+        Map line = [
+            chr: "chr1",
+            start: 1000,
+            end: 2000,
+            type: "DEL",
+            sample: "SAMPLE1",
+            copy_number: 1,
+            coverage_ratio: 0.5,
+            count: 2,
+            xhmm_qual: 100d,
+            xhmm: 'TRUE',
+            cnvnator_qual: 90d,
+            cnvnator: 'TRUE'
+        ]
+
+        def samples = ["SAMPLE1"]
+        
+        // Require 2 callers, and 2 are present - should PASS
+        def variant = tsv.createVariantFromLine(line, mockFasta, samples, null, null, 2)
+        
+        assert variant != null
+        assert !variant.filters.contains(TSVtoVCF.FILTER_LOW_CALLERS)
+    }
+    
+    /**
+     * Test that FEW_TARGETS filter is applied when target overlap count is below threshold
+     */
+    @Test
+    void testFewTargetsFilter() {
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "A" }
+        ] as FASTA
+        
+        // Create target regions - only 1 target overlaps the CNV
+        Regions targetRegions = [
+            new Region('chr1:1200-1300'),
+            new Region('chr1:5000-5100'),
+            new Region('chr1:6000-6100')
+        ] as Regions
+        
+        Map line = [
+            chr: "chr1",
+            start: 1000,
+            end: 2000,
+            type: "DEL",
+            sample: "SAMPLE1",
+            copy_number: 1,
+            coverage_ratio: 0.5,
+            count: 1,
+            xhmm_qual: 100d,
+            xhmm: 'TRUE'
+        ]
+
+        def samples = ["SAMPLE1"]
+        
+        // Require 3 targets, but only 1 overlaps - should fail
+        def variant = tsv.createVariantFromLine(line, mockFasta, samples, targetRegions, 3, null)
+        
+        assert variant != null
+        assert variant.filters.contains(TSVtoVCF.FILTER_FEW_TARGETS)
+        assert variant.getAttribute("TARGETS") == 1
+    }
+    
+    /**
+     * Test that FEW_TARGETS filter is NOT applied when target overlap count meets threshold
+     */
+    @Test
+    void testTargetCountMeetsThreshold() {
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "A" }
+        ] as FASTA
+        
+        // Create target regions - 3 targets overlap the CNV
+        Regions targetRegions = [
+            new Region('chr1:1100-1200'),
+            new Region('chr1:1400-1500'),
+            new Region('chr1:1700-1800'),
+            new Region('chr1:5000-5100')
+        ] as Regions
+        
+        Map line = [
+            chr: "chr1",
+            start: 1000,
+            end: 2000,
+            type: "DEL",
+            sample: "SAMPLE1",
+            copy_number: 1,
+            coverage_ratio: 0.5,
+            count: 1,
+            xhmm_qual: 100d,
+            xhmm: 'TRUE'
+        ]
+
+        def samples = ["SAMPLE1"]
+        
+        // Require 3 targets, and 3 overlap - should PASS on target filter
+        def variant = tsv.createVariantFromLine(line, mockFasta, samples, targetRegions, 3, null)
+        
+        assert variant != null
+        assert !variant.filters.contains(TSVtoVCF.FILTER_FEW_TARGETS)
+        assert variant.getAttribute("TARGETS") == 3
+    }
+    
+    /**
+     * Test that both filters can be applied simultaneously
+     */
+    @Test
+    void testBothFiltersApplied() {
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "A" }
+        ] as FASTA
+        
+        // Create target regions - only 1 target overlaps the CNV
+        Regions targetRegions = [
+            new Region('chr1:1200-1300'),
+            new Region('chr1:5000-5100')
+        ] as Regions
+        
+        Map line = [
+            chr: "chr1",
+            start: 1000,
+            end: 2000,
+            type: "DEL",
+            sample: "SAMPLE1",
+            copy_number: 1,
+            coverage_ratio: 0.5,
+            count: 1,
+            xhmm_qual: 100d,
+            xhmm: 'TRUE'
+        ]
+
+        def samples = ["SAMPLE1"]
+        
+        // Require 2 callers AND 3 targets - both should fail
+        def variant = tsv.createVariantFromLine(line, mockFasta, samples, targetRegions, 3, 2)
+        
+        assert variant != null
+        assert variant.filters.contains(TSVtoVCF.FILTER_LOW_CALLERS)
+        assert variant.filters.contains(TSVtoVCF.FILTER_FEW_TARGETS)
+        assert variant.filters.size() == 2
+    }
+    
+    /**
+     * Test that TARGETS info field is populated when target regions are provided
+     */
+    @Test
+    void testTargetsInfoField() {
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "A" }
+        ] as FASTA
+        
+        // Create target regions - 2 targets overlap the CNV
+        Regions targetRegions = [
+            new Region('chr1:1100-1200'),
+            new Region('chr1:1500-1600'),
+            new Region('chr1:5000-5100')
+        ] as Regions
+        
+        Map line = [
+            chr: "chr1",
+            start: 1000,
+            end: 2000,
+            type: "DEL",
+            sample: "SAMPLE1",
+            copy_number: 1,
+            coverage_ratio: 0.5,
+            count: 2,
+            xhmm_qual: 100d,
+            xhmm: 'TRUE',
+            cnvnator_qual: 90d,
+            cnvnator: 'TRUE'
+        ]
+
+        def samples = ["SAMPLE1"]
+        
+        // No filter thresholds, but target regions provided - TARGETS should be populated
+        def variant = tsv.createVariantFromLine(line, mockFasta, samples, targetRegions, null, null)
+        
+        assert variant != null
+        assert variant.getAttribute("TARGETS") == 2
+        // Should still PASS since no thresholds set
+        assert variant.filters.isEmpty()
+    }
+    
+    /**
+     * Test the computeFilters method directly
+     */
+    @Test
+    void testComputeFilters() {
+        def tsv = new TSVtoVCF()
+        
+        // No thresholds - always empty (PASS)
+        assert tsv.computeFilters(1, 1, null, null).isEmpty()
+        
+        // Caller count below threshold
+        assert tsv.computeFilters(1, 5, null, 2).contains(TSVtoVCF.FILTER_LOW_CALLERS)
+        
+        // Caller count meets threshold
+        assert !tsv.computeFilters(2, 5, null, 2).contains(TSVtoVCF.FILTER_LOW_CALLERS)
+        
+        // Target count below threshold
+        assert tsv.computeFilters(2, 1, 3, null).contains(TSVtoVCF.FILTER_FEW_TARGETS)
+        
+        // Target count meets threshold
+        assert !tsv.computeFilters(2, 3, 3, null).contains(TSVtoVCF.FILTER_FEW_TARGETS)
+        
+        // Both filters fail
+        def filters = tsv.computeFilters(1, 1, 3, 2)
+        assert filters.contains(TSVtoVCF.FILTER_LOW_CALLERS)
+        assert filters.contains(TSVtoVCF.FILTER_FEW_TARGETS)
+        assert filters.size() == 2
+        
+        // Target overlap is null (no target regions provided) - FEW_TARGETS not applied
+        assert !tsv.computeFilters(2, null, 3, null).contains(TSVtoVCF.FILTER_FEW_TARGETS)
     }
 
 }

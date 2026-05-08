@@ -2,8 +2,10 @@
 package ximmer
 
 import com.xlson.groovycsv.PropertyMapper
+import gngs.BED
 import gngs.FASTA
 import gngs.ProgressCounter
+import gngs.Regions
 import gngs.ToolBase
 import gngs.XPos
 import gngs.Region
@@ -29,12 +31,18 @@ import htsjdk.variant.vcf.*
 @Log
 class TSVtoVCF extends ToolBase {
     
+    static final String FILTER_LOW_CALLERS = 'LOW_CALLERS'
+    static final String FILTER_FEW_TARGETS = 'FEW_TARGETS'
+    
     static void main(String[] args) {
         cli('TSVtoVCF -i <CNV report> -s <sample> [-s <sample2> ...] -o <vcf output>', 'Converts Ximmer CNV report to VCF format', args) {
             i 'CNV report produced by Ximmer SummarizeCNVs', args: 1, required: true, type: File
             r 'Reference genome for computing reference alleles at CNV start positions', args:1, required: true, type:File
             hl 'Additional header lines to add', args:'*', type: String
             s 'Sample to include', args: '*', required: true, type: String
+            t 'Target regions BED file for computing target overlap counts', args:1, required: false, type: File
+            pass_targets 'Minimum number of overlapping target regions for PASS filter', args:1, required: false, type: Integer
+            pass_caller_count 'Minimum number of callers for PASS filter', args:1, required: false, type: Integer
             source 'Optional Source to specify in header line', args:1, required: false, type: String
             o 'VCF output file', args:1, required: true, type: File
         }
@@ -52,20 +60,30 @@ class TSVtoVCF extends ToolBase {
         log.info "Converting $opts.i to VCF format"
         log.info "Using reference: $opts.r"
         
+        Regions targetRegions = null
+        if(opts.t) {
+            log.info "Loading target regions from $opts.t"
+            targetRegions = new BED(opts.t.absolutePath).load()
+            log.info "Loaded ${targetRegions.numberOfRanges} target regions"
+        }
+        
+        Integer passTargets = opts.pass_targets ? opts.pass_targets as Integer : null
+        Integer passCallerCount = opts.pass_caller_count ? opts.pass_caller_count as Integer : null
         
         List<String> contigs = cnvReport*.chr.grep { !Region.isMinorContig(it) }.sort()
         
         opts.o.withWriter { w ->
-            this.createVCF(w, ref, contigs, cnvReport)
+            this.createVCF(w, ref, contigs, cnvReport, targetRegions, passTargets, passCallerCount)
         }
         
         log.info "Wrote $opts.o"
     }
 
-    void createVCF(final Writer w, final FASTA genomeRef, final List<String> contigs, final List<Map> tsv) {
+    void createVCF(final Writer w, final FASTA genomeRef, final List<String> contigs, final List<Map> tsv,
+                   final Regions targetRegions = null, final Integer passTargets = null, final Integer passCallerCount = null) {
         List<String> samples = opts.ss
         
-        Set allHeaders = createHeaders(genomeRef, contigs)
+        Set allHeaders = createHeaders(genomeRef, contigs, passTargets, passCallerCount)
 
         VCFHeader header = new VCFHeader(allHeaders, samples)
 
@@ -78,7 +96,7 @@ class TSVtoVCF extends ToolBase {
         List<VariantContext> outputVariants = new ArrayList(10000)
         
         for(Map line in tsv) {
-            VariantContext vctx = createVariantFromLine(line, genomeRef, samples)
+            VariantContext vctx = createVariantFromLine(line, genomeRef, samples, targetRegions, passTargets, passCallerCount)
             if(vctx) {
                 outputVariants.add(vctx)
             }
@@ -103,9 +121,14 @@ class TSVtoVCF extends ToolBase {
      * @param line The line from the TSV file containing variant information
      * @param genomeRef Reference genome for getting reference bases
      * @param samples List of samples to include in the output
+     * @param targetRegions Optional target regions for computing overlap count
+     * @param passTargets Minimum number of overlapping targets for PASS (null = no filter)
+     * @param passCallerCount Minimum number of callers for PASS (null = no filter)
      * @return VariantContext object if valid, null if variant should be skipped
      */
-    VariantContext createVariantFromLine(Map line, FASTA genomeRef, List<String> samples) {
+    VariantContext createVariantFromLine(Map line, FASTA genomeRef, List<String> samples, 
+                                         Regions targetRegions = null, Integer passTargets = null, 
+                                         Integer passCallerCount = null) {
         String ref = genomeRef.basesAt(line.chr, line.start, line.start+1)[0]
 
         // Ignore non-primary assembly contigs because they can return blank reference sequence
@@ -208,11 +231,20 @@ class TSVtoVCF extends ToolBase {
         
         assert calledBy.size() == line.count
 
-        return new VariantContextBuilder()
+        // Compute target overlap count if target regions are provided
+        Integer targetOverlapCount = null
+        if(targetRegions != null) {
+            Region cnvRegion = new Region(line.chr, line.start..line.end)
+            targetOverlapCount = targetRegions.getOverlapRegions(cnvRegion).size()
+        }
+        
+        // Determine filters
+        Set<String> filters = computeFilters(line.count as int, targetOverlapCount, passTargets, passCallerCount)
+
+        def builder = new VariantContextBuilder()
                 .chr(line.chr)
                 .start(line.start)
                 .stop(line.end)
-                .passFilters()
                 .log10PError(-combined_qual/10)
                 .attribute("SVTYPE", svType)
                 .attribute("END", line.end)
@@ -223,7 +255,42 @@ class TSVtoVCF extends ToolBase {
                 .attribute("CALLEDBY", calledBy)
                 .alleles((Collection)alleles)
                 .genotypes(gts)
-                .make()
+        
+        if(targetOverlapCount != null) {
+            builder.attribute("TARGETS", targetOverlapCount)
+        }
+        
+        if(filters.isEmpty()) {
+            builder.passFilters()
+        } else {
+            builder.filters(filters)
+        }
+        
+        return builder.make()
+    }
+    
+    /**
+     * Compute the set of filters that should be applied to a variant based on caller count
+     * and target overlap count.
+     * 
+     * @param callerCount Number of callers that called this variant
+     * @param targetOverlapCount Number of target regions overlapping this variant (null if not computed)
+     * @param passTargets Minimum target overlap count for PASS (null = no filter applied)
+     * @param passCallerCount Minimum caller count for PASS (null = no filter applied)
+     * @return Set of filter names to apply (empty set means PASS)
+     */
+    Set<String> computeFilters(int callerCount, Integer targetOverlapCount, Integer passTargets, Integer passCallerCount) {
+        Set<String> filters = new LinkedHashSet<>()
+        
+        if(passCallerCount != null && callerCount < passCallerCount) {
+            filters.add(FILTER_LOW_CALLERS)
+        }
+        
+        if(passTargets != null && targetOverlapCount != null && targetOverlapCount < passTargets) {
+            filters.add(FILTER_FEW_TARGETS)
+        }
+        
+        return filters
     }
 
     /**
@@ -231,9 +298,11 @@ class TSVtoVCF extends ToolBase {
      * 
      * @param genomeRef
      * @param contigs
+     * @param passTargets
+     * @param passCallerCount
      * @return
      */
-    private Set createHeaders(FASTA genomeRef, List contigs) {
+    private Set createHeaders(FASTA genomeRef, List contigs, Integer passTargets = null, Integer passCallerCount = null) {
         Map<String, Integer> contigLengths = genomeRef.contigs
         Set contigHeaderLines = contigLengths*.key
             .grep { !Region.isMinorContig(it) }
@@ -263,10 +332,19 @@ class TSVtoVCF extends ToolBase {
             new VCFInfoHeaderLine('CN', 1, VCFHeaderLineType.Integer, "Inferred copy number"),
             new VCFInfoHeaderLine('CR', 1, VCFHeaderLineType.Integer, "Ratio of observed to expected coverage depth over event"),
             new VCFInfoHeaderLine('CALLERS', 1, VCFHeaderLineType.Integer, "Number of callers that identified the event"),
-            new VCFInfoHeaderLine('CALLEDBY', 1, VCFHeaderLineType.String, "Comma separated list of callers that identified the event")
+            new VCFInfoHeaderLine('CALLEDBY', 1, VCFHeaderLineType.String, "Comma separated list of callers that identified the event"),
+            new VCFInfoHeaderLine('TARGETS', 1, VCFHeaderLineType.Integer, "Number of target regions overlapping the event")
         ] as Set
 
-        Set allHeaders = sourceHeaderLine + referenceHeaderLine + formatHeaderLines + contigHeaderLines + headerLines
+        Set filterHeaderLines = [] as Set
+        if(passCallerCount != null) {
+            filterHeaderLines.add(new VCFFilterHeaderLine(FILTER_LOW_CALLERS, "Variant called by fewer than $passCallerCount callers"))
+        }
+        if(passTargets != null) {
+            filterHeaderLines.add(new VCFFilterHeaderLine(FILTER_FEW_TARGETS, "Variant overlaps fewer than $passTargets target regions"))
+        }
+
+        Set allHeaders = sourceHeaderLine + referenceHeaderLine + formatHeaderLines + contigHeaderLines + headerLines + filterHeaderLines
 
         return allHeaders
     }
