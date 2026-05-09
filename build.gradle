@@ -32,9 +32,103 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
 }
 
-test {
+/*
+ * Configure tests to be more friendly for agentic coding: keep noise to a minimum unless there
+ * is a failure and then output full detail when something fails to stderr/stdout
+ */
+tasks.withType(Test).configureEach { t ->
+    // Keep Gradle's own console logging brief
     testLogging {
-        events "passed", "skipped", "failed"
+        events "failed"
+        exceptionFormat "short"
+        showStandardStreams = false
+    }
+
+    // Buffer output per test descriptor
+    def stdoutByTest = new IdentityHashMap<TestDescriptor, StringBuilder>()
+    def stderrByTest = new IdentityHashMap<TestDescriptor, StringBuilder>()
+
+    onOutput { TestDescriptor descriptor, TestOutputEvent event ->
+        // We only care about atomic tests (methods / iterations), not suite-level noise
+        if (descriptor.parent == null) {
+            return
+        }
+
+        def map = (event.destination == TestOutputEvent.Destination.StdOut) ? stdoutByTest : stderrByTest
+        def buf = map.computeIfAbsent(descriptor) { new StringBuilder() }
+        buf.append(event.message)
+    }
+
+    afterTest { TestDescriptor descriptor, TestResult result ->
+        try {
+            if (result.resultType == TestResult.ResultType.FAILURE) {
+                def stdout = stdoutByTest.remove(descriptor)?.toString()
+                def stderr = stderrByTest.remove(descriptor)?.toString()
+
+                println ""
+                println "---- output for ${descriptor.className}.${descriptor.name} ----"
+
+                if (stdout) {
+                    println "[stdout]"
+                    print stdout
+                    if (!stdout.endsWith("\n")) println()
+                }
+
+                if (stderr) {
+                    println "[stderr]"
+                    print stderr
+                    if (!stderr.endsWith("\n")) println()
+                }
+
+                // Print sanitized exception stack trace (no Groovy/JUnit/Gradle internals)
+                try {
+                    def ex = result.exception
+                    if (ex) {
+                        def sanitized = org.codehaus.groovy.runtime.StackTraceUtils.sanitize(ex)
+                        def filteredFrames = { Throwable thr ->
+                            thr.stackTrace.findAll { frame ->
+                                def cn = frame.className
+                                !cn.startsWith('org.junit.') &&
+                                !cn.startsWith('org.gradle.') &&
+                                !cn.startsWith('worker.org.gradle.') &&
+                                !cn.startsWith('com.sun.proxy.') &&
+                                !cn.startsWith('jdk.internal.reflect.') &&
+                                !cn.startsWith('java.base/jdk.internal.reflect.') &&
+                                !cn.startsWith('org.gradle.internal.dispatch.') &&
+                                !cn.startsWith('org.gradle.process.internal.worker.') &&
+                                !cn.startsWith('org.gradle.api.internal.tasks.testing.')
+                            }
+                        }
+                        println "[exception]"
+                        println "${sanitized.class.name}: ${sanitized.message ?: ''}"
+                        filteredFrames(sanitized).each { println "\tat $it" }
+                        def cause = sanitized.cause
+                        while (cause) {
+                            def causeSanitized = org.codehaus.groovy.runtime.StackTraceUtils.sanitize(cause)
+                            def causeFrames = filteredFrames(causeSanitized)
+                            if (causeFrames) {
+                                println "Caused by: ${causeSanitized.class.name}: ${causeSanitized.message ?: ''}"
+                                causeFrames.each { println "\tat $it" }
+                            }
+                            cause = causeSanitized.cause
+                        }
+                        println ""
+                    }
+                } catch (Exception ignored) {
+                    // exception not accessible — Gradle will still show its short form
+                }
+
+                println "---- end output ----"
+            } else {
+                // passing/skipped: discard buffered output
+                stdoutByTest.remove(descriptor)
+                stderrByTest.remove(descriptor)
+            }
+        } finally {
+            // cleanup in case descriptor object lingers
+            stdoutByTest.remove(descriptor)
+            stderrByTest.remove(descriptor)
+        }
     }
 }
 
