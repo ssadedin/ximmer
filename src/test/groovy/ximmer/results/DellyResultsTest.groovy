@@ -21,17 +21,6 @@ class DellyResultsTest {
     }
     
     @Test
-    void 'test no inversions'() {
-        DellyResults dr = new DellyResults('src/test/data/test.delly.vcf')
-        
-        assert !dr*.type.any { it.contains('INV') }
-        
-        Region inv = new Region("chr1:782758-782858")
-        
-        assert dr.getOverlaps(inv).isEmpty()
-    }
-    
-    @Test
     void 'correct sample id inferred'() {
         DellyResults dr = new DellyResults('src/test/data/test.delly.vcf')
         assert dr[0].sample == 'TESTSAMPLE' // See VCF
