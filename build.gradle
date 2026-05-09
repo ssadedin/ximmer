@@ -1,45 +1,45 @@
-apply plugin: 'groovy'
-apply plugin: 'eclipse'
+plugins {
+    id 'groovy'
+}
 
 project.ext {
-    VERSION="0.1.0"
-    GROOVY_VERSION="2.4.10"
+    VERSION = "0.1.0"
+    GROOVY_VERSION = "3.0.10"
     mainClassName = 'SimulateCNVs'
 }
 
 repositories {
     mavenCentral()
-    maven { 
-        name "biojava"
-        url "http://www.biojava.org/download/maven/" 
-    }
     maven {
-      name "gral" 
-      url "http://mvn.erichseifert.de/maven2"
+        name "biojava"
+        url "https://www.biojava.org/download/maven/"
     }
-}
-
-configurations {
-  compile
 }
 
 dependencies {
+    implementation group: 'org.codehaus.groovy', name: 'groovy', version: "$GROOVY_VERSION"
+    implementation group: 'org.codehaus.groovy', name: 'groovy-xml', version: "$GROOVY_VERSION"
+    implementation group: 'org.codehaus.groovy', name: 'groovy-ant', version: "$GROOVY_VERSION"
+    implementation group: 'org.codehaus.groovy', name: 'groovy-json', version: "$GROOVY_VERSION"
+    implementation group: 'org.codehaus.groovy', name: 'groovy-sql', version: "$GROOVY_VERSION"
 
-     compile group: 'org.codehaus.groovy', name: 'groovy', version: "$GROOVY_VERSION"
-     compile group: 'org.codehaus.groovy', name: 'groovy-xml', version: "$GROOVY_VERSION"
-     compile group: 'org.codehaus.groovy', name: 'groovy-ant', version: "$GROOVY_VERSION"
-     compile group: 'org.codehaus.groovy', name: 'groovy-json', version: "$GROOVY_VERSION"
-     compile group: 'org.codehaus.groovy', name: 'groovy-sql', version: "$GROOVY_VERSION"
+    implementation group: 'com.googlecode.lanterna', name: 'lanterna', version: '3.0.0-beta3'
 
-     // https://mvnrepository.com/artifact/com.googlecode.lanterna/lanterna
-     compile group: 'com.googlecode.lanterna', name: 'lanterna', version: '3.0.0-beta3'
+    implementation 'org.codehaus.gpars:gpars:0.12'
 
-     compile 'org.codehaus.gpars:gpars:0.12'
-     compile files(fileTree(dir:'lib', includes:['*.jar']))
+    implementation files('tools/groovy-ngs-utils/1.0.9/groovy-ngs-utils.jar')
+
+    testImplementation 'junit:junit:4.13.2'
+}
+
+test {
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
 }
 
 jar {
-    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    from configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
 
     manifest {
         attributes 'Main-Class': mainClassName
