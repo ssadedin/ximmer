@@ -15,9 +15,10 @@ class LumpyResultsTest {
         LumpyResults lr = new LumpyResults('src/test/data/test.small.lumpy.vcf')
         Region dup = new Region("chr2:7283-7743")
 
-        assert lr.getOverlaps(dup).size() == 1
+        // The query region overlaps 4 records: 3 INVs and 1 DUP
+        assert lr.getOverlaps(dup).size() == 4
 
-        Region lumpyDup = lr.find { it.overlaps(dup) }
+        Region lumpyDup = lr.find { it.overlaps(dup) && it.type == 'DUP' }
         assert lumpyDup.type == 'DUP'
         assert lumpyDup.quality > 9
         assert lumpyDup.size() == 368
