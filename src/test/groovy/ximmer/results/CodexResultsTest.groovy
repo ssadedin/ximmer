@@ -3,8 +3,10 @@ package ximmer.results
 import static org.junit.Assert.*
 
 import groovy.json.JsonSlurper
+import org.junit.Ignore
 import org.junit.Test
 
+@Ignore("Codex no longer supported")
 class CodexResultsTest {
 	
 	static String cdxResultFile = 'src/test/data/cdx/test.cdx.tsv'
