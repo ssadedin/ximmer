@@ -1,0 +1,42 @@
+##fileformat=VCFv4.2
+##reference=GRCh38
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
+##INFO=<ID=END,Number=1,Type=Integer,Description="End position of the variant described in this record">
+##INFO=<ID=SVLEN,Number=1,Type=Integer,Description="Difference in length between REF and ALT alleles">
+##INFO=<ID=CN,Number=1,Type=Integer,Description="Inferred copy number">
+##INFO=<ID=CR,Number=1,Type=Float,Description="Ratio of observed to expected coverage depth over event">
+##INFO=<ID=CALLERS,Number=1,Type=Integer,Description="Number of callers that identified the event">
+##INFO=<ID=CALLEDBY,Number=1,Type=String,Description="Comma separated list of callers that identified the event">
+##INFO=<ID=TARGETS,Number=1,Type=Integer,Description="Number of target regions overlapping the event">
+##FILTER=<ID=LOW_CALLERS,Description="Variant called by fewer than 2 callers">
+##FILTER=<ID=FEW_TARGETS,Description="Variant overlaps fewer than 3 target regions">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=CR,Number=1,Type=Float,Description="Ratio of expected to observed coverage depth">
+##FORMAT=<ID=NC,Number=1,Type=Integer,Description="Count of callers supporting the CNV call">
+##contig=<ID=chr1,length=248956422>
+##contig=<ID=chr2,length=242193529>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE1
+## Example 1: Two DELs at same pos, different spans and caller counts
+## Expected after flatten: chr1:1000-5000 DEL, callers=ed,savvy (count=2, qual=190)
+chr1	1000	.	A	<DEL>	190	PASS	SVTYPE=DEL;END=2000;SVLEN=-1000;CN=0;CR=0.1;CALLERS=2;CALLEDBY=ed,savvy	GT:CR:NC	0/1:0.1:2
+chr1	1000	.	A	<DEL>	80	PASS	SVTYPE=DEL;END=5000;SVLEN=-4000;CN=1;CR=0.4;CALLERS=1;CALLEDBY=xhmm	GT:CR:NC	0/1:0.4:1
+## Example 2: Two DUPs at same pos, different spans and caller counts
+## Expected after flatten: chr2:3000-6000 DUP, callers=ed,cnvnator (count=2, qual=165)
+chr2	3000	.	A	<DUP>	75	PASS	SVTYPE=DUP;END=4000;SVLEN=1000;CN=3;CR=1.5;CALLERS=1;CALLEDBY=xhmm	GT:CR:NC	0/1:1.5:1
+chr2	3000	.	A	<DUP>	165	PASS	SVTYPE=DUP;END=6000;SVLEN=3000;CN=4;CR=2.0;CALLERS=2;CALLEDBY=ed,cnvnator	GT:CR:NC	0/1:2.0:2
+## Example 3: Tie-break by QUAL when caller counts are equal
+## Expected after flatten: chr1:2000-5000 DEL, callers=xhmm (count=1, qual=95)
+chr1	2000	.	A	<DEL>	90	PASS	SVTYPE=DEL;END=3000;SVLEN=-1000;CN=0;CR=0.1;CALLERS=1;CALLEDBY=ed	GT:CR:NC	0/1:0.1:1
+chr1	2000	.	A	<DEL>	95	PASS	SVTYPE=DEL;END=5000;SVLEN=-3000;CN=1;CR=0.4;CALLERS=1;CALLEDBY=xhmm	GT:CR:NC	0/1:0.4:1
+## Example 4: Different types at same pos - should NOT be merged
+## Expected after flatten: both remain unchanged
+chr1	4000	.	A	<DEL>	80	PASS	SVTYPE=DEL;END=5000;SVLEN=-1000;CN=1;CR=0.5;CALLERS=1;CALLEDBY=ed	GT:CR:NC	0/1:0.5:1
+chr1	4000	.	A	<DUP>	90	PASS	SVTYPE=DUP;END=6000;SVLEN=2000;CN=3;CR=1.5;CALLERS=1;CALLEDBY=xhmm	GT:CR:NC	0/1:1.5:1
+## Example 6: Three DELs at same pos
+## Expected after flatten: chr1:6000-9000 DEL, callers=ed,savvy,xhmm (count=3, qual=270)
+chr1	6000	.	A	<DEL>	270	PASS	SVTYPE=DEL;END=7000;SVLEN=-1000;CN=0;CR=0.05;CALLERS=3;CALLEDBY=ed,savvy,xhmm	GT:CR:NC	1/1:0.05:3
+chr1	6000	.	A	<DEL>	80	PASS	SVTYPE=DEL;END=8000;SVLEN=-2000;CN=1;CR=0.4;CALLERS=1;CALLEDBY=cnvnator	GT:CR:NC	0/1:0.4:1
+chr1	6000	.	A	<DEL>	180	PASS	SVTYPE=DEL;END=9000;SVLEN=-3000;CN=1;CR=0.5;CALLERS=2;CALLEDBY=gatk,xhmm	GT:CR:NC	0/1:0.5:2
+## Example 8: Single call at a position - passes through unchanged
+## Expected after flatten: unchanged
+chr1	10000	.	A	<DEL>	85	PASS	SVTYPE=DEL;END=11000;SVLEN=-1000;CN=1;CR=0.5;CALLERS=1;CALLEDBY=ed	GT:CR:NC	0/1:0.5:1
