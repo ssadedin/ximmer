@@ -207,6 +207,36 @@ class TSVtoVCFTest {
     }
     
     /**
+     * Test that variants where start == end (zero-length / SVLEN=0) are skipped
+     */
+    @Test
+    void testSkipZeroLengthVariant() {
+        def tsv = new TSVtoVCF()
+        def mockFasta = [
+            basesAt: { chr, start, end -> "A" }
+        ] as FASTA
+        
+        Map line = [
+            chr: "chr1",
+            start: 5000,
+            end: 5000,
+            type: "DEL",
+            sample: "SAMPLE1",
+            copy_number: 1,
+            coverage_ratio: 0.5,
+            count: 1,
+            xhmm_qual: 70d,
+            xhmm: 'TRUE'
+        ]
+        
+        def samples = ["SAMPLE1"]
+        def variant = tsv.createVariantFromLine(line, mockFasta, samples)
+        
+        // Verify that variant is null when start == end (SVLEN would be zero)
+        assert variant == null
+    }
+
+    /**
      * Test that variants with N as reference base are skipped
      */
     @Test

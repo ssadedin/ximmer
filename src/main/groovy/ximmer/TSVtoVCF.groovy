@@ -168,6 +168,12 @@ class TSVtoVCF extends ToolBase {
             log.warning("Skipping variant at ${line.chr}:${line.start} because reference base is N")
             return null
         }
+
+        // Skip variants where start == end (zero-length), which would produce SVLEN=0
+        if(line.start == line.end) {
+            log.warning("Skipping variant at ${line.chr}:${line.start}-${line.end} because SVLEN would be zero")
+            return null
+        }
                                          
         int svLen = (line.end - line.start) * (line.type == 'DEL' ? -1 : 1 )
         Allele refAllele = Allele.create(ref, true)
