@@ -391,7 +391,7 @@ class TSVtoVCF extends ToolBase {
                 .attribute("CN", representative.getAttribute("CN"))
                 .attribute("CALLERS", callerCount)
                 .attribute("CALLEDBY", representative.getAttribute("CALLEDBY"))
-                .alleles(representative.alleles)
+                .alleles(new ArrayList<Allele>(representative.alleles))
                 .genotypes(representative.genotypes)
         
         if(targetOverlapCount != null) {
