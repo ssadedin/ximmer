@@ -379,20 +379,12 @@ class TSVtoVCF extends ToolBase {
         Set<String> filters = computeFilters(callerCount, targetOverlapCount, passTargets, passCallerCount)
         
         // Build merged variant using representative's caller info + longest's span
-        def builder = new VariantContextBuilder()
-                .chr(representative.contig)
-                .start(representative.start)
+        def builder = new VariantContextBuilder(representative)
                 .stop(newEnd)
-                .log10PError(representative.getLog10PError())
-                .attribute("SVTYPE", svType)
                 .attribute("END", newEnd)
                 .attribute("SVLEN", svLen)
-                .attribute("CR", representative.getAttribute("CR"))
-                .attribute("CN", representative.getAttribute("CN"))
                 .attribute("CALLERS", callerCount)
                 .attribute("CALLEDBY", representative.getAttribute("CALLEDBY"))
-                .alleles(new ArrayList<Allele>(representative.alleles))
-                .genotypes(representative.genotypes)
         
         if(targetOverlapCount != null) {
             builder.attribute("TARGETS", targetOverlapCount)
