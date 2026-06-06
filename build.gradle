@@ -123,6 +123,8 @@ tasks.withType(Test).configureEach { t ->
                 // passing/skipped: discard buffered output
                 stdoutByTest.remove(descriptor)
                 stderrByTest.remove(descriptor)
+                
+                println "---- ${descriptor.className}.${descriptor.name} : PASSED"
             }
         } finally {
             // cleanup in case descriptor object lingers
