@@ -44,6 +44,7 @@ class TSVtoVCF extends ToolBase {
             pass_targets 'Minimum number of overlapping target regions for PASS filter', args:1, required: false, type: Integer
             pass_caller_count 'Minimum number of callers for PASS filter', args:1, required: false, type: Integer
             source 'Optional Source to specify in header line', args:1, required: false, type: String
+            flatten 'Flatten calls with same sample, chrom, pos, and type into single output record'
             o 'VCF output file', args:1, required: true, type: File
         }
     }
@@ -103,6 +104,13 @@ class TSVtoVCF extends ToolBase {
             p.count()
         }
         p.end()
+        
+        if(opts['flatten']) {
+            int beforeCount = outputVariants.size()
+            log.info "Flattening ${beforeCount} variants ..."
+            outputVariants = flattenVariants(outputVariants, targetRegions, passTargets, passCallerCount)
+            log.info "After flattening: ${outputVariants.size()} variants remain (${beforeCount - outputVariants.size()} removed)"
+        }
         
         // Log filter statistics if any filters are active
         if(passTargets != null || passCallerCount != null) {
@@ -289,6 +297,116 @@ class TSVtoVCF extends ToolBase {
         return builder.make()
     }
     
+    /**
+     * Flatten variants that share the same sample, chrom, position, and simplified SV type.
+     * 
+     * From each group:
+     * - Span (END) is taken from the longest call
+     * - Callers, count, QUAL, CN, CR are taken from the call with the most callers (tie-break: highest QUAL)
+     * - TARGETS and filters are recomputed based on the final span
+     * 
+     * @param variants List of all variant contexts to flatten
+     * @param targetRegions Optional target regions for recomputing overlap count
+     * @param passTargets Minimum target overlap count for PASS (null = no filter)
+     * @param passCallerCount Minimum caller count for PASS (null = no filter)
+     * @return Flattened list of variant contexts
+     */
+    List<VariantContext> flattenVariants(List<VariantContext> variants, Regions targetRegions,
+                                         Integer passTargets, Integer passCallerCount) {
+        // Group by (non-ref sample, contig, start, alt allele)
+        Map<List, List<VariantContext>> groups = variants.groupBy { VariantContext vc ->
+            getFlattenKey(vc)
+        }
+        
+        List<VariantContext> result = new ArrayList<>(groups.size())
+        for(Map.Entry<List, List<VariantContext>> entry in groups.entrySet()) {
+            List<VariantContext> group = entry.value
+            if(group.size() == 1) {
+                result.add(group[0])
+            } else {
+                result.add(mergeGroup(group, targetRegions, passTargets, passCallerCount))
+            }
+        }
+        return result
+    }
+    
+    /**
+     * Returns the key used to group variants for flattening:
+     * (non-ref sample name, contig, start, alt allele display string)
+     */
+    private List getFlattenKey(VariantContext vc) {
+        String sample = vc.genotypes.find { !it.isHomRef() }?.sampleName
+        return [sample, vc.contig, vc.start, vc.alleles[1].displayString]
+    }
+    
+    /**
+     * Merge a group of variants sharing the same flatten key into a single variant.
+     * 
+     * - Span from the longest call (largest END)
+     * - Callers/count/QUAL/CN/CR from the call with most callers (tie-break: highest QUAL)
+     * - TARGETS recomputed from the merged span
+     * - Filters recomputed
+     * 
+     * @param group List of variants to merge (all share same sample, chrom, pos, alt type)
+     * @param targetRegions Optional target regions for computing overlap
+     * @param passTargets Minimum target count for PASS
+     * @param passCallerCount Minimum caller count for PASS
+     * @return Merged VariantContext
+     */
+    private VariantContext mergeGroup(List<VariantContext> group, Regions targetRegions,
+                                      Integer passTargets, Integer passCallerCount) {
+        // Find representative: max callers, tie-break by highest QUAL
+        VariantContext representative = group.max { VariantContext vc ->
+            ((vc.getAttribute("CALLERS") as int) * 1000000.0d) + vc.getPhredScaledQual()
+        }
+        
+        // Find longest span
+        VariantContext longest = group.max { it.end }
+        
+        int newEnd = longest.end
+        String svType = representative.getAttribute("SVTYPE")
+        int svLen = (newEnd - representative.start) * (svType == 'DEL' ? -1 : 1)
+        
+        // Recompute TARGETS if target regions provided
+        Integer targetOverlapCount = null
+        if(targetRegions != null) {
+            Region cnvRegion = new Region(longest.contig, (int)longest.start..(int)longest.end)
+            targetOverlapCount = targetRegions.getOverlapRegions(cnvRegion).size()
+        }
+        
+        // Recompute filters using representative's caller count and new target count
+        int callerCount = representative.getAttribute("CALLERS") as int
+        Set<String> filters = computeFilters(callerCount, targetOverlapCount, passTargets, passCallerCount)
+        
+        // Build merged variant using representative's caller info + longest's span
+        def builder = new VariantContextBuilder()
+                .chr(representative.contig)
+                .start(representative.start)
+                .stop(newEnd)
+                .log10PError(representative.getLog10PError())
+                .attribute("SVTYPE", svType)
+                .attribute("END", newEnd)
+                .attribute("SVLEN", svLen)
+                .attribute("CR", representative.getAttribute("CR"))
+                .attribute("CN", representative.getAttribute("CN"))
+                .attribute("CALLERS", callerCount)
+                .attribute("CALLEDBY", representative.getAttribute("CALLEDBY"))
+                .alleles(representative.alleles)
+                .genotypes(representative.genotypes)
+        
+        if(targetOverlapCount != null) {
+            builder.attribute("TARGETS", targetOverlapCount)
+        }
+        
+        if(filters.isEmpty()) {
+            builder.passFilters()
+        } else {
+            builder.filters(filters)
+        }
+        
+        return builder.make()
+    }
+
     /**
      * Compute the set of filters that should be applied to a variant based on caller count
      * and target overlap count.
