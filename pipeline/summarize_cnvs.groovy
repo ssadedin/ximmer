@@ -382,9 +382,12 @@ convert_to_vcf = {
 
     var vcf_source : 'vcgs_ximmer',
         min_cnv_targets : 0,
-        min_cnv_callers : 0
+        min_cnv_callers : 0,
+        flatten : false
     
     branch.sample = branch.name
+
+    def flattenArgs = flatten ? "" : "-flatten"
     
     from('cn.tsv') produce(sample + '.cnv.vcf') {
         exec """
@@ -394,7 +397,7 @@ convert_to_vcf = {
                 -i $input.tsv
                 -s $sample
                 -r $HGFA
-                -t $target_bed
+                -t $target_bed $flattenArgs
                 -pass_targets $min_cnv_targets
                 -pass_caller_count $min_cnv_callers
                 -source $vcf_source
