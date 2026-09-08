@@ -362,12 +362,12 @@ class FamilyMerge extends ToolBase {
         }
 
         VariantContextBuilder builder = new VariantContextBuilder()
-                .chr(primaryVc.getContig())
-                .start(primaryVc.getStart())
-                .stop(primaryVc.getEnd())
-                .log10PError(primaryVc.getLog10PError())
-                .alleles(primaryVc.getAlleles())
-                .genotypes(genotypes)
+        builder.chr(primaryVc.getContig())
+        builder.start(primaryVc.getStart())
+        builder.stop(primaryVc.getEnd())
+        builder.log10PError(primaryVc.getLog10PError())
+        builder.alleles((Collection<Allele>)primaryVc.getAlleles())
+        builder.genotypes((List<Genotype>)genotypes)
 
         // Copy INFO attributes from primary
         for(Map.Entry<String, Object> attr in primaryVc.getAttributes().entrySet()) {
