@@ -54,7 +54,7 @@ class FamilyMergeTest {
                 .attribute("CN", svtype == 'DEL' ? 1 : 3)
                 .attribute("CALLERS", callers)
                 .attribute("CALLEDBY", ['testcaller'])
-                .alleles([refAllele, altAllele])
+                .alleles((Collection<Allele>)[refAllele, altAllele])
                 .genotypes(gts)
                 .passFilters()
                 .make()
@@ -114,7 +114,7 @@ class FamilyMergeTest {
         }
         def vc = new VariantContextBuilder()
                 .chr('chr1').start(100).stop(200)
-                .alleles([ref, Allele.create('<DEL>')])
+                .alleles((Collection<Allele>)[ref, Allele.create('<DEL>')])
                 .genotypes(gts)
                 .make()
 
@@ -432,7 +432,7 @@ class FamilyMergeTest {
                 .attribute("CN", 1)
                 .attribute("CALLERS", 1)
                 .attribute("CALLEDBY", ['xhmm'])
-                .alleles([ref, alt])
+                .alleles((Collection<Allele>)[ref, alt])
                 .genotypes([GenotypeBuilder.create('PROBAND', [ref, alt], [CR: 0.5d, NC: 1])])
                 .filters(['LOW_CALLERS'] as Set)
                 .make()
