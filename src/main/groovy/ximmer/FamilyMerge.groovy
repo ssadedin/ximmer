@@ -90,14 +90,19 @@ class FamilyMerge extends ToolBase {
             log.info "Loading variants from ${f}"
             VCFFileReader reader = new VCFFileReader(f, false)
             try {
+                VCFHeader fileHeader = reader.getFileHeader()
+                List<String> vcfSamples = fileHeader.getGenotypeSamples()
+                if(vcfSamples.isEmpty()) {
+                    log.warning("VCF file ${f} has no sample columns, skipping")
+                    continue
+                }
+                // Use the first sample from the header as the owning sample
+                String sample = vcfSamples[0]
+                log.info "VCF file ${f} contains sample: ${sample}"
+                if(!result.containsKey(sample)) {
+                    result[sample] = new ArrayList(1000)
+                }
                 for(VariantContext vc in reader) {
-                    String sample = findNonRefSample(vc)
-                    if(sample == null) {
-                        continue
-                    }
-                    if(!result.containsKey(sample)) {
-                        result[sample] = new ArrayList(1000)
-                    }
                     result[sample].add(vc)
                 }
             }
