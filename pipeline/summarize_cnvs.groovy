@@ -387,7 +387,7 @@ convert_to_vcf = {
     
     branch.sample = branch.name
 
-    def flattenArgs = flatten ? "" : "-flatten"
+    def flattenArgs = flatten ? "-flatten" : ""
     
     from('cn.tsv') produce(sample + '.cnv.vcf') {
         exec """
