@@ -61,7 +61,7 @@ savvy_call_cnvs = {
 
             printf "chromosome\\tstart\\tend\\ttype\\tblock_support\\tblock_span\\t\\tqual\\tqual_rel\\tsample\\n" > $output.tsv
 
-            $JAVA -Xmx${memory}g SavvyCNV -data -d $savvy_chunk_size $svArg  -trans $savvy_transition_probability $inputs.coverageBinner >> $output.tsv 
+            $JAVA -Xmx${memory}g SavvyCNV -data -d $savvy_chunk_size $svArg -gcCorrect $REF -trans $savvy_transition_probability $inputs.coverageBinner >> $output.tsv 
         ""","savvycnv"
     }
 
